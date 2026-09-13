@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { simulaRothC, RAPPORTO_DPM_RPM_DEFAULT } from '../../lib/rothc'
 import type { MeseClima, ScenarioRothCInput, RisultatoRothC } from '../../lib/rothc'
+import { PROFILI_CLIMATICI } from '../../lib/climaTipico'
 import { formatTCO2 } from '../../lib/format'
 
 const NOMI_MESI = [
@@ -37,6 +38,7 @@ export default function RothCTool({
   const [socInizialeTCHa, setSocInizialeTCHa] = useState(0)
   const [durataAnni, setDurataAnni] = useState(durataPeriodoCertificazioneAnni || 5)
   const [clima, setClima] = useState<MeseClima[]>(climaVuoto)
+  const [profiloSelezionato, setProfiloSelezionato] = useState('')
   const [riferimento, setRiferimento] = useState<ScenarioRothCInput>(scenarioVuoto)
   const [attivita, setAttivita] = useState<ScenarioRothCInput>(scenarioVuoto)
   const [risultato, setRisultato] = useState<RisultatoRothC | null>(null)
@@ -48,6 +50,12 @@ export default function RothCTool({
 
   function aggiornaMese(i: number, campo: keyof MeseClima, valore: number) {
     setClima((prev) => prev.map((m, idx) => (idx === i ? { ...m, [campo]: valore } : m)))
+  }
+
+  function handleCompilaClimaTipico() {
+    const profilo = PROFILI_CLIMATICI.find((p) => p.nome === profiloSelezionato)
+    if (!profilo) return
+    setClima(profilo.climaMensile.map((m) => ({ ...m })))
   }
 
   function handleCalcola() {
@@ -199,6 +207,33 @@ export default function RothCTool({
 
           <div>
             <p className="label text-xs">Clima mensile medio (comune ai due scenari)</p>
+            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md bg-stone-50 p-2">
+              <select
+                className="input !w-auto flex-1"
+                value={profiloSelezionato}
+                onChange={(e) => setProfiloSelezionato(e.target.value)}
+              >
+                <option value="">Compila con clima tipico di una zona...</option>
+                {PROFILI_CLIMATICI.map((p) => (
+                  <option key={p.nome} value={p.nome}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={!profiloSelezionato}
+                onClick={handleCompilaClimaTipico}
+              >
+                Compila
+              </button>
+            </div>
+            <p className="mb-2 text-xs text-stone-500">
+              Valori indicativi da conoscenza climatologica generale, non misurati da una
+              stazione reale: usali come punto di partenza e sostituiscili con dati verificati
+              della zona specifica quando disponibili.
+            </p>
             <div className="overflow-x-auto rounded-md border border-stone-200">
               <table className="w-full min-w-[480px] text-xs">
                 <thead className="bg-stone-100 text-stone-500">
