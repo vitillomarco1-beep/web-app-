@@ -1,26 +1,60 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { clientiStore, calcoliStore } from '../lib/storage'
-import type { Cliente, Calcolo } from '../types'
+import { clientiStore, calcoliStore, gruppiStore, calcoliGruppoStore } from '../lib/storage'
+import type { Cliente, Calcolo, Gruppo, CalcoloGruppo } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
+
+interface VoceRecente {
+  id: string
+  nomeCalcolo: string
+  tipoAttivita: Calcolo['dati']['tipoAttivita']
+  createdAt: string
+  beneficioNettoTotaleTCO2: number
+  titolare: string
+  link: string
+}
 
 export default function DashboardPage() {
   const [clienti, setClienti] = useState<Cliente[]>([])
   const [calcoli, setCalcoli] = useState<Calcolo[]>([])
+  const [gruppi, setGruppi] = useState<Gruppo[]>([])
+  const [calcoliGruppo, setCalcoliGruppo] = useState<CalcoloGruppo[]>([])
 
   useEffect(() => {
     setClienti(clientiStore.all())
     setCalcoli(calcoliStore.all())
+    setGruppi(gruppiStore.all())
+    setCalcoliGruppo(calcoliGruppoStore.all())
   }, [])
 
-  const totaleCrediti = calcoli.reduce(
+  const tuttiICalcoli = [...calcoli, ...calcoliGruppo]
+  const totaleCrediti = tuttiICalcoli.reduce(
     (sum, c) => sum + c.risultato.beneficioNettoTotaleTCO2,
     0,
   )
-  const ultimiCalcoli = [...calcoli]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 5)
+
+  const voci: VoceRecente[] = [
+    ...calcoli.map((c) => ({
+      id: c.id,
+      nomeCalcolo: c.dati.nomeCalcolo,
+      tipoAttivita: c.dati.tipoAttivita,
+      createdAt: c.createdAt,
+      beneficioNettoTotaleTCO2: c.risultato.beneficioNettoTotaleTCO2,
+      titolare: clienti.find((cl) => cl.id === c.clientId)?.ragioneSociale ?? 'Cliente eliminato',
+      link: `/clienti/${c.clientId}/calcoli/${c.id}`,
+    })),
+    ...calcoliGruppo.map((c) => ({
+      id: c.id,
+      nomeCalcolo: c.dati.nomeCalcolo,
+      tipoAttivita: c.dati.tipoAttivita,
+      createdAt: c.createdAt,
+      beneficioNettoTotaleTCO2: c.risultato.beneficioNettoTotaleTCO2,
+      titolare: `👥 ${gruppi.find((g) => g.id === c.gruppoId)?.nome ?? 'Gruppo eliminato'}`,
+      link: `/gruppi/${c.gruppoId}/calcoli/${c.id}`,
+    })),
+  ]
+  const ultimiCalcoli = voci.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5)
 
   return (
     <div className="space-y-8">
@@ -35,11 +69,12 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-lg font-semibold text-stone-900">Ambiti di riferimento</h2>
         <p className="mt-1 text-sm text-stone-500">
-          Le tre metodologie di certificazione su cui si basa il calcolatore.
+          Le tre metodologie di certificazione su cui si basa il calcolatore (calcoli singoli e di
+          gruppo).
         </p>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {ATTIVITA_OPZIONI.map((opt) => {
-            const calcoliAmbito = calcoli.filter((c) => c.dati.tipoAttivita === opt.tipo)
+            const calcoliAmbito = tuttiICalcoli.filter((c) => c.dati.tipoAttivita === opt.tipo)
             const creditiAmbito = calcoliAmbito.reduce(
               (s, c) => s + c.risultato.beneficioNettoTotaleTCO2,
               0,
@@ -72,14 +107,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
           <p className="text-sm text-stone-500">Clienti gestiti</p>
           <p className="mt-1 text-3xl font-bold text-stone-900">{clienti.length}</p>
         </div>
         <div className="card">
+          <p className="text-sm text-stone-500">Gruppi di gestori</p>
+          <p className="mt-1 text-3xl font-bold text-stone-900">{gruppi.length}</p>
+        </div>
+        <div className="card">
           <p className="text-sm text-stone-500">Calcoli effettuati</p>
-          <p className="mt-1 text-3xl font-bold text-stone-900">{calcoli.length}</p>
+          <p className="mt-1 text-3xl font-bold text-stone-900">{tuttiICalcoli.length}</p>
         </div>
         <div className="card">
           <p className="text-sm text-stone-500">Crediti netti totali stimati</p>
@@ -105,7 +144,7 @@ export default function DashboardPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-stone-50 text-xs uppercase text-stone-500">
               <tr>
-                <th className="px-4 py-3">Cliente</th>
+                <th className="px-4 py-3">Cliente / Gruppo</th>
                 <th className="px-4 py-3">Calcolo</th>
                 <th className="px-4 py-3">Tipo attività</th>
                 <th className="px-4 py-3">Data</th>
@@ -113,36 +152,23 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {ultimiCalcoli.map((c) => {
-                const cliente = clienti.find((cl) => cl.id === c.clientId)
-                return (
-                  <tr key={c.id} className="hover:bg-stone-50">
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/clienti/${c.clientId}`}
-                        className="font-medium text-forest-700 hover:underline"
-                      >
-                        {cliente?.ragioneSociale ?? 'Cliente eliminato'}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/clienti/${c.clientId}/calcoli/${c.id}`}
-                        className="hover:underline"
-                      >
-                        {c.dati.nomeCalcolo}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-stone-600">
-                      {TIPO_ATTIVITA_LABEL[c.dati.tipoAttivita]}
-                    </td>
-                    <td className="px-4 py-3 text-stone-500">{formatDate(c.createdAt)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-forest-700">
-                      {formatTCO2(c.risultato.beneficioNettoTotaleTCO2)} t CO₂eq
-                    </td>
-                  </tr>
-                )
-              })}
+              {ultimiCalcoli.map((v) => (
+                <tr key={v.id} className="hover:bg-stone-50">
+                  <td className="px-4 py-3 font-medium text-stone-700">{v.titolare}</td>
+                  <td className="px-4 py-3">
+                    <Link to={v.link} className="hover:underline">
+                      {v.nomeCalcolo}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-stone-600">
+                    {TIPO_ATTIVITA_LABEL[v.tipoAttivita]}
+                  </td>
+                  <td className="px-4 py-3 text-stone-500">{formatDate(v.createdAt)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-forest-700">
+                    {formatTCO2(v.beneficioNettoTotaleTCO2)} t CO₂eq
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

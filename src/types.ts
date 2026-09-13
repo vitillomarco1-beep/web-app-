@@ -146,6 +146,39 @@ export interface Calcolo {
   updatedAt: string
 }
 
+/** Un'azienda partecipante a un gruppo di gestori, con la quota facoltativa di
+ * riparto dei crediti (e quindi, indicativamente, dei costi di certificazione). */
+export interface MembroGruppo {
+  clienteId: string
+  quotaPercento?: number
+}
+
+/**
+ * Gruppo di gestori (allegato, varie sezioni: "i gestori o i gruppi di gestori...").
+ * Il regolamento consente a più aziende di certificarsi insieme, con
+ * quantificazione e monitoraggio effettuati a livello di gruppo — utile per
+ * ripartire i costi di certificazione tra più aziende collaboranti.
+ */
+export interface Gruppo {
+  id: string
+  nome: string
+  referente?: string
+  note?: string
+  membri: MembroGruppo[]
+  createdAt: string
+}
+
+/** Calcolo condiviso di un gruppo di gestori: stessa struttura del calcolo di un
+ * singolo cliente, ma riferito all'intero gruppo (area di attività complessiva). */
+export interface CalcoloGruppo {
+  id: string
+  gruppoId: string
+  dati: DatiCalcolo
+  risultato: RisultatoCalcolo
+  createdAt: string
+  updatedAt: string
+}
+
 export type StatoNormativa = 'da_valutare' | 'in_implementazione' | 'implementato' | 'monitorato'
 
 export type AmbitoNormativa = TipoAttivita | 'trasversale' | 'nuovo_ambito'

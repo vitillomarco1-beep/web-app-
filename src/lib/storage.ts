@@ -1,8 +1,10 @@
-import type { Cliente, Calcolo, AggiornamentoNormativo } from '../types'
+import type { Cliente, Calcolo, AggiornamentoNormativo, Gruppo, CalcoloGruppo } from '../types'
 
 const CLIENTS_KEY = 'cfc.clienti.v1'
 const CALCS_KEY = 'cfc.calcoli.v1'
 const NORMATIVA_KEY = 'cfc.normativa.v1'
+const GRUPPI_KEY = 'cfc.gruppi.v1'
+const CALCS_GRUPPO_KEY = 'cfc.calcoliGruppo.v1'
 
 function readJSON<T>(key: string, fallback: T): T {
   try {
@@ -90,6 +92,60 @@ export const normativaStore = {
     writeJSON(
       NORMATIVA_KEY,
       this.all().filter((n) => n.id !== id),
+    )
+  },
+}
+
+export const gruppiStore = {
+  all(): Gruppo[] {
+    return readJSON<Gruppo[]>(GRUPPI_KEY, [])
+  },
+  get(id: string): Gruppo | undefined {
+    return this.all().find((g) => g.id === id)
+  },
+  save(gruppo: Gruppo) {
+    const all = this.all()
+    const idx = all.findIndex((g) => g.id === gruppo.id)
+    if (idx >= 0) all[idx] = gruppo
+    else all.unshift(gruppo)
+    writeJSON(GRUPPI_KEY, all)
+  },
+  remove(id: string) {
+    writeJSON(
+      GRUPPI_KEY,
+      this.all().filter((g) => g.id !== id),
+    )
+    // rimuove a cascata i calcoli di gruppo associati
+    writeJSON(
+      CALCS_GRUPPO_KEY,
+      calcoliGruppoStore.all().filter((c) => c.gruppoId !== id),
+    )
+  },
+}
+
+export const calcoliGruppoStore = {
+  all(): CalcoloGruppo[] {
+    return readJSON<CalcoloGruppo[]>(CALCS_GRUPPO_KEY, [])
+  },
+  byGruppo(gruppoId: string): CalcoloGruppo[] {
+    return this.all()
+      .filter((c) => c.gruppoId === gruppoId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  },
+  get(id: string): CalcoloGruppo | undefined {
+    return this.all().find((c) => c.id === id)
+  },
+  save(calcolo: CalcoloGruppo) {
+    const all = this.all()
+    const idx = all.findIndex((c) => c.id === calcolo.id)
+    if (idx >= 0) all[idx] = calcolo
+    else all.unshift(calcolo)
+    writeJSON(CALCS_GRUPPO_KEY, all)
+  },
+  remove(id: string) {
+    writeJSON(
+      CALCS_GRUPPO_KEY,
+      this.all().filter((c) => c.id !== id),
     )
   },
 }
