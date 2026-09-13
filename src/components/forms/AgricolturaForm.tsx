@@ -3,6 +3,7 @@ import type { DatiAgricolturaAgroforestazione } from '../../types'
 import { calcolaBilancio, FATTORE_INCERTEZZA_MINIMO } from '../../lib/carbonEngine'
 import ChecklistPanel from '../ChecklistPanel'
 import ResultPanel from '../ResultPanel'
+import RothCTool from './RothCTool'
 import { CHECKLIST_AGRICOLTURA } from '../../lib/checklist'
 
 function defaultData(): DatiAgricolturaAgroforestazione {
@@ -157,6 +158,14 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel }: Prop
           sez. 2.4) per lo scenario di attività e per lo scenario di riferimento, in tonnellate di
           CO₂ equivalente per l'intero periodo di certificazione.
         </p>
+
+        <RothCTool
+          areaAttivitaHa={dati.areaAttivitaHa}
+          durataPeriodoCertificazioneAnni={dati.durataPeriodoCertificazioneAnni}
+          onApplica={(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2) =>
+            setDati({ ...dati, assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2 })
+          }
+        />
 
         <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <legend className="mb-1 text-sm font-semibold text-stone-800">
