@@ -6,8 +6,15 @@ import { calcolaBilancio } from '../lib/carbonEngine'
 import { calcoliStore, clientiStore } from '../lib/storage'
 import AgricolturaForm from '../components/forms/AgricolturaForm'
 import ImboschimentoForm from '../components/forms/ImboschimentoForm'
+import ZootecniaForm from '../components/forms/ZootecniaForm'
 
-const OPZIONI: { tipo: TipoAttivita; titolo: string; descrizione: string; icona: string }[] = [
+const OPZIONI: {
+  tipo: TipoAttivita
+  titolo: string
+  descrizione: string
+  icona: string
+  inPreparazione?: boolean
+}[] = [
   {
     tipo: 'agricoltura_agroforestazione',
     titolo: 'Agricoltura e agroforestazione su suoli minerali',
@@ -21,6 +28,14 @@ const OPZIONI: { tipo: TipoAttivita; titolo: string; descrizione: string; icona:
     descrizione:
       'Nuovo impianto boschivo su prati, terre coltivate o altri terreni con bassa copertura arborea preesistente.',
     icona: '🌳',
+  },
+  {
+    tipo: 'zootecnia',
+    titolo: 'Zootecnia',
+    descrizione:
+      'Fermentazione enterica, gestione effluenti, alimentazione e pascolo. Raccogli fin da ora i dati del cliente: il calcolo sarà attivato alla pubblicazione della metodologia UE dedicata.',
+    icona: '🐄',
+    inPreparazione: true,
   },
 ]
 
@@ -75,7 +90,14 @@ export default function NewCalculationPage() {
               onClick={() => setTipo(opt.tipo)}
               className="card text-left transition hover:border-forest-400 hover:shadow-md"
             >
-              <span className="text-3xl">{opt.icona}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-3xl">{opt.icona}</span>
+                {opt.inPreparazione && (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                    In preparazione
+                  </span>
+                )}
+              </div>
               <p className="mt-3 font-semibold text-stone-900">{opt.titolo}</p>
               <p className="mt-1 text-sm text-stone-500">{opt.descrizione}</p>
             </button>
@@ -86,10 +108,14 @@ export default function NewCalculationPage() {
           <button className="text-sm text-stone-500 hover:underline" onClick={() => setTipo(null)}>
             ← Cambia tipo di attività
           </button>
-          {tipo === 'agricoltura_agroforestazione' ? (
+          {tipo === 'agricoltura_agroforestazione' && (
             <AgricolturaForm onSubmit={handleSave} submitLabel="Crea calcolo" />
-          ) : (
+          )}
+          {tipo === 'imboschimento' && (
             <ImboschimentoForm onSubmit={handleSave} submitLabel="Crea calcolo" />
+          )}
+          {tipo === 'zootecnia' && (
+            <ZootecniaForm onSubmit={handleSave} submitLabel="Salva scheda cliente" />
           )}
         </div>
       )}

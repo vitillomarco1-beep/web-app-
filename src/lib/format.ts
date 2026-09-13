@@ -15,4 +15,15 @@ export function formatDate(iso: string): string {
 export const TIPO_ATTIVITA_LABEL: Record<string, string> = {
   agricoltura_agroforestazione: 'Agricoltura e agroforestazione su suoli minerali',
   imboschimento: 'Imboschimento',
+  zootecnia: 'Zootecnia (in preparazione)',
+}
+
+export const TIPOLOGIA_ALLEVAMENTO_LABEL: Record<string, string> = {
+  bovini_da_latte: 'Bovini da latte',
+  bovini_da_carne: 'Bovini da carne',
+  suini: 'Suini',
+  ovicaprini: 'Ovicaprini',
+  avicoli: 'Avicoli',
+  misto: 'Allevamento misto',
+  altro: 'Altro',
 }

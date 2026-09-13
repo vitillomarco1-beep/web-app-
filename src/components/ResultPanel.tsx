@@ -2,6 +2,20 @@ import type { RisultatoCalcolo } from '../types'
 import { formatTCO2 } from '../lib/format'
 
 export default function ResultPanel({ risultato }: { risultato: RisultatoCalcolo }) {
+  if (!risultato.metodologiaDisponibile) {
+    return (
+      <div className="card space-y-2 border-amber-200 bg-amber-50">
+        <h3 className="font-semibold text-stone-900">Calcolo non ancora disponibile</h3>
+        <p className="text-sm text-stone-600">
+          Per questa attività non esiste ancora un atto delegato dell'UE che ne stabilisca la
+          metodologia di certificazione. I dati aziendali e le pratiche inserite restano salvati
+          nel fascicolo del cliente: il bilancio in t CO₂eq verrà calcolato non appena la
+          normativa sarà pubblicata e la metodologia implementata.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="card space-y-4 border-forest-200 bg-forest-50/50">
       <h3 className="font-semibold text-stone-900">Risultato del bilancio</h3>

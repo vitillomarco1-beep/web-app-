@@ -6,6 +6,7 @@ import type { DatiCalcolo } from '../types'
 import ResultPanel from '../components/ResultPanel'
 import AgricolturaForm from '../components/forms/AgricolturaForm'
 import ImboschimentoForm from '../components/forms/ImboschimentoForm'
+import ZootecniaForm from '../components/forms/ZootecniaForm'
 import { formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 
 export default function CalculationDetailPage() {
@@ -73,19 +74,29 @@ export default function CalculationDetailPage() {
       </div>
 
       {editMode ? (
-        calcolo.dati.tipoAttivita === 'agricoltura_agroforestazione' ? (
-          <AgricolturaForm
-            initial={calcolo.dati}
-            onSubmit={handleUpdate}
-            submitLabel="Salva modifiche"
-          />
-        ) : (
-          <ImboschimentoForm
-            initial={calcolo.dati}
-            onSubmit={handleUpdate}
-            submitLabel="Salva modifiche"
-          />
-        )
+        <>
+          {calcolo.dati.tipoAttivita === 'agricoltura_agroforestazione' && (
+            <AgricolturaForm
+              initial={calcolo.dati}
+              onSubmit={handleUpdate}
+              submitLabel="Salva modifiche"
+            />
+          )}
+          {calcolo.dati.tipoAttivita === 'imboschimento' && (
+            <ImboschimentoForm
+              initial={calcolo.dati}
+              onSubmit={handleUpdate}
+              submitLabel="Salva modifiche"
+            />
+          )}
+          {calcolo.dati.tipoAttivita === 'zootecnia' && (
+            <ZootecniaForm
+              initial={calcolo.dati}
+              onSubmit={handleUpdate}
+              submitLabel="Salva modifiche"
+            />
+          )}
+        </>
       ) : (
         <ResultPanel risultato={calcolo.risultato} />
       )}

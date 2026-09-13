@@ -52,6 +52,47 @@ export const CHECKLIST_AGRICOLTURA: ChecklistItemDef[] = [
   },
 ]
 
+/**
+ * Nessuna metodologia UE esiste ancora per la zootecnia: questa checklist raccoglie le
+ * pratiche di mitigazione più diffuse in letteratura/politiche nazionali (fermentazione
+ * enterica, gestione effluenti, alimentazione), utile per preparare il fascicolo del
+ * cliente. Andrà rivista sui requisiti reali non appena sarà pubblicato l'atto delegato
+ * dedicato.
+ */
+export const CHECKLIST_ZOOTECNIA: ChecklistItemDef[] = [
+  {
+    key: 'additivi_alimentari',
+    label:
+      'Uso di additivi alimentari per la riduzione del metano enterico (es. 3-NOP, alghe, tannini)',
+    riferimento: 'Pratica di mitigazione comune — in attesa di metodologia UE',
+  },
+  {
+    key: 'gestione_effluenti',
+    label: 'Digestione anaerobica o altro trattamento avanzato degli effluenti zootecnici',
+    riferimento: 'Pratica di mitigazione comune — in attesa di metodologia UE',
+  },
+  {
+    key: 'stoccaggio_coperto',
+    label: 'Stoccaggio coperto/impermeabilizzato degli effluenti per ridurre le emissioni',
+    riferimento: 'Pratica di mitigazione comune — in attesa di metodologia UE',
+  },
+  {
+    key: 'pascolo_rotazionale',
+    label: 'Pascolo rotazionale o gestione del pascolo a basso impatto',
+    riferimento: 'Pratica di mitigazione comune — in attesa di metodologia UE',
+  },
+  {
+    key: 'efficienza_alimentare',
+    label: 'Alimentazione di precisione / miglioramento dell’efficienza alimentare del bestiame',
+    riferimento: 'Pratica di mitigazione comune — in attesa di metodologia UE',
+  },
+  {
+    key: 'genetica',
+    label: 'Selezione genetica orientata alla riduzione dell’intensità di emissione per capo',
+    riferimento: 'Pratica di mitigazione comune — in attesa di metodologia UE',
+  },
+]
+
 export const CHECKLIST_IMBOSCHIMENTO: ChecklistItemDef[] = [
   {
     key: 'superficie_minima',

@@ -169,6 +169,22 @@ function finalizzaRisultato(
     beneficioNettoRiduzioneEmissioniTCO2,
     beneficioNettoTotaleTCO2,
     deficitCreditiTCO2,
+    metodologiaDisponibile: true,
+  }
+}
+
+/**
+ * Nessun atto delegato UE definisce ancora una metodologia di certificazione per le
+ * attività zootecniche: restituiamo un risultato "vuoto" segnalato come non
+ * disponibile, in attesa che la normativa venga pubblicata.
+ */
+function calcolaZootecnia(): RisultatoCalcolo {
+  return {
+    beneficioNettoAssorbimentoTCO2: 0,
+    beneficioNettoRiduzioneEmissioniTCO2: 0,
+    beneficioNettoTotaleTCO2: 0,
+    deficitCreditiTCO2: 0,
+    metodologiaDisponibile: false,
   }
 }
 
@@ -178,5 +194,7 @@ export function calcolaBilancio(dati: DatiCalcolo): RisultatoCalcolo {
       return calcolaAgricolturaAgroforestazione(dati)
     case 'imboschimento':
       return calcolaImboschimento(dati)
+    case 'zootecnia':
+      return calcolaZootecnia()
   }
 }
