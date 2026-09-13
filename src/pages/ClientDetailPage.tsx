@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { clientiStore, calcoliStore } from '../lib/storage'
 import type { Cliente, Calcolo, FascicoloAgeaMeta } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
+import { ATTIVITA_OPZIONI } from '../lib/attivita'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
 
 export default function ClientDetailPage() {
@@ -44,6 +45,9 @@ export default function ClientDetailPage() {
   }
 
   const totaleCrediti = calcoli.reduce((s, c) => s + c.risultato.beneficioNettoTotaleTCO2, 0)
+  const ambitiAttivi = ATTIVITA_OPZIONI.filter((opt) =>
+    calcoli.some((c) => c.dati.tipoAttivita === opt.tipo),
+  )
 
   return (
     <div className="space-y-6">
@@ -58,6 +62,18 @@ export default function ClientDetailPage() {
               {[cliente.referente, cliente.comune, cliente.provincia].filter(Boolean).join(' · ') ||
                 'Nessun dettaglio aggiuntivo'}
             </p>
+            {ambitiAttivi.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ambitiAttivi.map((opt) => (
+                  <span
+                    key={opt.tipo}
+                    className="inline-flex items-center gap-1 rounded-full bg-forest-100 px-2.5 py-0.5 text-xs font-medium text-forest-800"
+                  >
+                    {opt.icona} {opt.titolo}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <button
             className="btn-primary"

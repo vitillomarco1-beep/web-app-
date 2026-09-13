@@ -4,40 +4,10 @@ import { v4 as uuidv4 } from 'uuid'
 import type { TipoAttivita, DatiCalcolo, Calcolo } from '../types'
 import { calcolaBilancio } from '../lib/carbonEngine'
 import { calcoliStore, clientiStore } from '../lib/storage'
+import { ATTIVITA_OPZIONI } from '../lib/attivita'
 import AgricolturaForm from '../components/forms/AgricolturaForm'
 import ImboschimentoForm from '../components/forms/ImboschimentoForm'
 import ZootecniaForm from '../components/forms/ZootecniaForm'
-
-const OPZIONI: {
-  tipo: TipoAttivita
-  titolo: string
-  descrizione: string
-  icona: string
-  inPreparazione?: boolean
-}[] = [
-  {
-    tipo: 'agricoltura_agroforestazione',
-    titolo: 'Agricoltura e agroforestazione su suoli minerali',
-    descrizione:
-      'Pratiche su terre coltivate e prati: gestione colture, lavorazione conservativa, agroforestazione, riduzione N2O.',
-    icona: '🌾',
-  },
-  {
-    tipo: 'imboschimento',
-    titolo: 'Imboschimento',
-    descrizione:
-      'Nuovo impianto boschivo su prati, terre coltivate o altri terreni con bassa copertura arborea preesistente.',
-    icona: '🌳',
-  },
-  {
-    tipo: 'zootecnia',
-    titolo: 'Zootecnia',
-    descrizione:
-      'Fermentazione enterica, gestione effluenti, alimentazione e pascolo. Raccogli fin da ora i dati del cliente: il calcolo sarà attivato alla pubblicazione della metodologia UE dedicata.',
-    icona: '🐄',
-    inPreparazione: true,
-  },
-]
 
 export default function NewCalculationPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -84,7 +54,7 @@ export default function NewCalculationPage() {
 
       {!tipo ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {OPZIONI.map((opt) => (
+          {ATTIVITA_OPZIONI.map((opt) => (
             <button
               key={opt.tipo}
               onClick={() => setTipo(opt.tipo)}
