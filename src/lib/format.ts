@@ -12,6 +12,12 @@ export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium' }).format(d)
 }
 
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export const TIPO_ATTIVITA_LABEL: Record<string, string> = {
   agricoltura_agroforestazione: 'Agricoltura e agroforestazione su suoli minerali',
   imboschimento: 'Imboschimento',

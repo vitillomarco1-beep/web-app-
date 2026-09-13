@@ -2,11 +2,19 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { clientiStore, calcoliStore } from '../lib/storage'
-import type { Cliente } from '../types'
+import { eliminaFascicoloAgea } from '../lib/fileStore'
+import type { Cliente, FascicoloAgeaMeta } from '../types'
+import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
+
+function nuovoFormId() {
+  return uuidv4()
+}
 
 export default function ClientsPage() {
   const [clienti, setClienti] = useState<Cliente[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [formId, setFormId] = useState(nuovoFormId)
+  const [fascicoloAgea, setFascicoloAgea] = useState<FascicoloAgeaMeta | undefined>()
   const [form, setForm] = useState({
     ragioneSociale: '',
     referente: '',
@@ -20,27 +28,42 @@ export default function ClientsPage() {
     setClienti(clientiStore.all())
   }, [])
 
+  function resetForm() {
+    setForm({ ragioneSociale: '', referente: '', email: '', telefono: '', comune: '', provincia: '' })
+    setFormId(nuovoFormId())
+    setFascicoloAgea(undefined)
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.ragioneSociale.trim()) return
     const cliente: Cliente = {
-      id: uuidv4(),
+      id: formId,
       ragioneSociale: form.ragioneSociale.trim(),
       referente: form.referente.trim() || undefined,
       email: form.email.trim() || undefined,
       telefono: form.telefono.trim() || undefined,
       comune: form.comune.trim() || undefined,
       provincia: form.provincia.trim() || undefined,
+      fascicoloAgea,
       createdAt: new Date().toISOString(),
     }
     clientiStore.save(cliente)
     setClienti(clientiStore.all())
-    setForm({ ragioneSociale: '', referente: '', email: '', telefono: '', comune: '', provincia: '' })
+    resetForm()
     setShowForm(false)
   }
 
-  function handleDelete(id: string) {
+  function handleCancelForm() {
+    // Se è stato caricato un PDF prima di annullare, evitiamo di lasciarlo orfano.
+    if (fascicoloAgea) eliminaFascicoloAgea(formId)
+    resetForm()
+    setShowForm(false)
+  }
+
+  async function handleDelete(id: string) {
     if (!confirm('Eliminare il cliente e tutti i suoi calcoli?')) return
+    await eliminaFascicoloAgea(id)
     clientiStore.remove(id)
     setClienti(clientiStore.all())
   }
@@ -54,7 +77,10 @@ export default function ClientsPage() {
             Gestisci i clienti per cui calcolare il bilancio dei crediti di carbonio.
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
+        <button
+          className="btn-primary"
+          onClick={() => (showForm ? handleCancelForm() : setShowForm(true))}
+        >
           {showForm ? 'Annulla' : '+ Nuovo cliente'}
         </button>
       </div>
@@ -114,6 +140,13 @@ export default function ClientsPage() {
               />
             </div>
           </div>
+
+          <FascicoloAgeaUploader
+            clienteId={formId}
+            meta={fascicoloAgea}
+            onChange={setFascicoloAgea}
+          />
+
           <div className="flex justify-end gap-2">
             <button type="submit" className="btn-primary">
               Salva cliente
@@ -146,6 +179,11 @@ export default function ClientsPage() {
                     </p>
                   )}
                   {c.email && <p>{c.email}</p>}
+                  {c.fascicoloAgea && (
+                    <p className="flex items-center gap-1 text-forest-700">
+                      📄 Fascicolo AGEA allegato
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between">

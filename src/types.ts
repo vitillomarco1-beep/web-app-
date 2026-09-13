@@ -1,5 +1,13 @@
 export type TipoAttivita = 'agricoltura_agroforestazione' | 'imboschimento' | 'zootecnia'
 
+/** Metadati del fascicolo aziendale AGEA caricato per il cliente (il PDF vero e
+ * proprio è salvato a parte, in IndexedDB, tramite src/lib/fileStore.ts). */
+export interface FascicoloAgeaMeta {
+  nomeFile: string
+  dimensioneByte: number
+  caricatoIl: string
+}
+
 export interface Cliente {
   id: string
   ragioneSociale: string
@@ -9,6 +17,7 @@ export interface Cliente {
   comune?: string
   provincia?: string
   note?: string
+  fascicoloAgea?: FascicoloAgeaMeta
   createdAt: string
 }
 

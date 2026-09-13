@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { clientiStore, calcoliStore } from '../lib/storage'
-import type { Cliente, Calcolo } from '../types'
+import type { Cliente, Calcolo, FascicoloAgeaMeta } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
+import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
 
 export default function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -36,6 +37,12 @@ export default function ClientDetailPage() {
     setCalcoli(calcoliStore.byClient(clientId!))
   }
 
+  function handleFascicoloChange(fascicoloAgea: FascicoloAgeaMeta | undefined) {
+    const aggiornato = { ...cliente!, fascicoloAgea }
+    clientiStore.save(aggiornato)
+    setCliente(aggiornato)
+  }
+
   const totaleCrediti = calcoli.reduce((s, c) => s + c.risultato.beneficioNettoTotaleTCO2, 0)
 
   return (
@@ -66,6 +73,14 @@ export default function ClientDetailPage() {
         <p className="text-2xl font-bold text-forest-700">
           {formatTCO2(totaleCrediti)} <span className="text-sm font-medium">t CO₂eq</span>
         </p>
+      </div>
+
+      <div className="card">
+        <FascicoloAgeaUploader
+          clienteId={cliente.id}
+          meta={cliente.fascicoloAgea}
+          onChange={handleFascicoloChange}
+        />
       </div>
 
       <h2 className="text-lg font-semibold text-stone-900">Calcoli</h2>
