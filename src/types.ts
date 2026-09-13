@@ -145,3 +145,27 @@ export interface Calcolo {
   createdAt: string
   updatedAt: string
 }
+
+export type StatoNormativa = 'da_valutare' | 'in_implementazione' | 'implementato' | 'monitorato'
+
+export type AmbitoNormativa = TipoAttivita | 'trasversale' | 'nuovo_ambito'
+
+/**
+ * Traccia le novità normative (nuovi regolamenti/direttive UE, bozze, atti delegati)
+ * rilevanti per il calcolo dei crediti di carbonio, con le note su cosa comportano
+ * per l'app e lo stato di recepimento. Il documento ufficiale (PDF), se presente, è
+ * salvato in IndexedDB tramite src/lib/fileStore.ts.
+ */
+export interface AggiornamentoNormativo {
+  id: string
+  titolo: string
+  riferimentoNormativo?: string
+  dataPubblicazione?: string
+  ambito: AmbitoNormativa
+  sintesi?: string
+  impattoSulCalcolo?: string
+  stato: StatoNormativa
+  documento?: FascicoloAgeaMeta
+  createdAt: string
+  updatedAt: string
+}

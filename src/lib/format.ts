@@ -33,3 +33,23 @@ export const TIPOLOGIA_ALLEVAMENTO_LABEL: Record<string, string> = {
   misto: 'Allevamento misto',
   altro: 'Altro',
 }
+
+export const AMBITO_NORMATIVA_LABEL: Record<string, string> = {
+  ...TIPO_ATTIVITA_LABEL,
+  trasversale: 'Trasversale / generale',
+  nuovo_ambito: 'Nuovo ambito non ancora coperto',
+}
+
+export const STATO_NORMATIVA_LABEL: Record<string, string> = {
+  da_valutare: 'Da valutare',
+  in_implementazione: 'In implementazione',
+  implementato: 'Implementato',
+  monitorato: 'Monitorato',
+}
+
+export const STATO_NORMATIVA_STILE: Record<string, string> = {
+  da_valutare: 'bg-amber-100 text-amber-800',
+  in_implementazione: 'bg-blue-100 text-blue-800',
+  implementato: 'bg-forest-100 text-forest-800',
+  monitorato: 'bg-stone-200 text-stone-700',
+}

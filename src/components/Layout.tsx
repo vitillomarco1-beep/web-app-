@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 const navItems = [
   { to: '/', label: 'Panoramica', end: true },
   { to: '/clienti', label: 'Clienti', end: false },
+  { to: '/normativa', label: 'Normativa', end: false },
 ]
 
 export default function Layout() {

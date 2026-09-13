@@ -1,7 +1,8 @@
-import type { Cliente, Calcolo } from '../types'
+import type { Cliente, Calcolo, AggiornamentoNormativo } from '../types'
 
 const CLIENTS_KEY = 'cfc.clienti.v1'
 const CALCS_KEY = 'cfc.calcoli.v1'
+const NORMATIVA_KEY = 'cfc.normativa.v1'
 
 function readJSON<T>(key: string, fallback: T): T {
   try {
@@ -67,6 +68,28 @@ export const calcoliStore = {
     writeJSON(
       CALCS_KEY,
       this.all().filter((c) => c.id !== id),
+    )
+  },
+}
+
+export const normativaStore = {
+  all(): AggiornamentoNormativo[] {
+    return readJSON<AggiornamentoNormativo[]>(NORMATIVA_KEY, [])
+  },
+  get(id: string): AggiornamentoNormativo | undefined {
+    return this.all().find((n) => n.id === id)
+  },
+  save(voce: AggiornamentoNormativo) {
+    const all = this.all()
+    const idx = all.findIndex((n) => n.id === voce.id)
+    if (idx >= 0) all[idx] = voce
+    else all.unshift(voce)
+    writeJSON(NORMATIVA_KEY, all)
+  },
+  remove(id: string) {
+    writeJSON(
+      NORMATIVA_KEY,
+      this.all().filter((n) => n.id !== id),
     )
   },
 }

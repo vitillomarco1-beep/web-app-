@@ -5,6 +5,7 @@ import ClientsPage from './pages/ClientsPage'
 import ClientDetailPage from './pages/ClientDetailPage'
 import NewCalculationPage from './pages/NewCalculationPage'
 import CalculationDetailPage from './pages/CalculationDetailPage'
+import NormativaPage from './pages/NormativaPage'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/clienti/:clientId" element={<ClientDetailPage />} />
         <Route path="/clienti/:clientId/nuovo-calcolo" element={<NewCalculationPage />} />
         <Route path="/clienti/:clientId/calcoli/:calcId" element={<CalculationDetailPage />} />
+        <Route path="/normativa" element={<NormativaPage />} />
       </Route>
     </Routes>
   )
