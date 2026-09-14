@@ -98,7 +98,11 @@ export default function CalculationDetailPage() {
           )}
         </>
       ) : (
-        <ResultPanel risultato={calcolo.risultato} />
+        <ResultPanel
+          risultato={calcolo.risultato}
+          dati={calcolo.dati}
+          nomeTitolare={cliente.ragioneSociale}
+        />
       )}
     </div>
   )

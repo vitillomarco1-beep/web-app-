@@ -100,7 +100,11 @@ export default function GroupCalculationDetailPage() {
         </>
       ) : (
         <>
-          <ResultPanel risultato={calcolo.risultato} />
+          <ResultPanel
+            risultato={calcolo.risultato}
+            dati={calcolo.dati}
+            nomeTitolare={`Gruppo ${gruppo.nome}`}
+          />
 
           {calcolo.risultato.metodologiaDisponibile && (
             <div className="card space-y-3">

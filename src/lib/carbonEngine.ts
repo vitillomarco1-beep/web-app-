@@ -2,6 +2,7 @@ import type {
   DatiAgricolturaAgroforestazione,
   DatiCalcolo,
   DatiImboschimento,
+  DettaglioCalcolo,
   RisultatoCalcolo,
 } from '../types'
 
@@ -36,6 +37,16 @@ interface EquazioniInput {
   inc: number
 }
 
+interface EquazioniOutput {
+  beneficioNettoAssorbimentoTCO2: number
+  beneficioNettoRiduzioneEmissioniTCO2: number
+  beneficioLordoAssorbimentoTCO2: number
+  beneficioLordoRiduzioneEmissioniTCO2: number
+  pesoAssorbimentoPerGes: number
+  gesAssociatiQuotaAssorbimentoTCO2: number
+  gesAssociatiQuotaRiduzioneTCO2: number
+}
+
 /**
  * Applica le equazioni 1 e 2 dell'allegato. Convenzione di segno "intuitiva":
  * un assorbimento di carbonio è positivo (a differenza della convenzione "AC" del
@@ -53,7 +64,7 @@ function applicaEquazioni1e2({
   emissioniAgricoleRiferimento,
   gesAssociati,
   inc,
-}: EquazioniInput) {
+}: EquazioniInput): EquazioniOutput {
   const beneficioLordoAssorbimento = (assorbimentiAttivita - assorbimentiRiferimento) * (1 - inc)
   const beneficioLordoRiduzioneEmissioni =
     (emissioniSuoloRiferimento -
@@ -65,15 +76,17 @@ function applicaEquazioni1e2({
 
   let gesPerAssorbimento = 0
   let gesPerRiduzione = 0
+  let peso = 0
 
   const generaAssorbimento = beneficioLordoAssorbimento !== 0
   const generaRiduzione = beneficioLordoRiduzioneEmissioni !== 0
 
   if (generaAssorbimento && generaRiduzione && totaleLordo !== 0) {
-    const peso = beneficioLordoAssorbimento / totaleLordo
+    peso = beneficioLordoAssorbimento / totaleLordo
     gesPerAssorbimento = gesAssociati * peso
     gesPerRiduzione = gesAssociati * (1 - peso)
   } else if (generaAssorbimento) {
+    peso = 1
     gesPerAssorbimento = gesAssociati
   } else {
     gesPerRiduzione = gesAssociati
@@ -82,6 +95,11 @@ function applicaEquazioni1e2({
   return {
     beneficioNettoAssorbimentoTCO2: beneficioLordoAssorbimento - gesPerAssorbimento,
     beneficioNettoRiduzioneEmissioniTCO2: beneficioLordoRiduzioneEmissioni - gesPerRiduzione,
+    beneficioLordoAssorbimentoTCO2: beneficioLordoAssorbimento,
+    beneficioLordoRiduzioneEmissioniTCO2: beneficioLordoRiduzioneEmissioni,
+    pesoAssorbimentoPerGes: peso,
+    gesAssociatiQuotaAssorbimentoTCO2: gesPerAssorbimento,
+    gesAssociatiQuotaRiduzioneTCO2: gesPerRiduzione,
   }
 }
 
@@ -93,28 +111,30 @@ function calcolaAgricolturaAgroforestazione(
   // Sezione 2.3.3: aggiornamento al ribasso del livello di riferimento ESA per le
   // pratiche che riducono le emissioni N2O dai suoli agricoli gestiti (1%/anno).
   let emissioniAgricoleRiferimento = dati.emissioniAgricoleRiferimentoTCO2
+  let emissioniAgricoleRiferimentoAggiornatoTCO2: number | undefined
   if (dati.applicaAggiornamentoRiferimentoN2O) {
     const anni = anniTrascorsiDa(dati.dataInizioPeriodoAttivita)
     const riduzione = Math.min(1, 0.01 * anni)
     emissioniAgricoleRiferimento = dati.emissioniAgricoleRiferimentoTCO2 * (1 - riduzione)
+    emissioniAgricoleRiferimentoAggiornatoTCO2 = emissioniAgricoleRiferimento
   }
 
-  const { beneficioNettoAssorbimentoTCO2, beneficioNettoRiduzioneEmissioniTCO2 } =
-    applicaEquazioni1e2({
-      assorbimentiAttivita: dati.assorbimentiAttivitaTCO2,
-      assorbimentiRiferimento: dati.assorbimentiRiferimentoTCO2,
-      emissioniSuoloAttivita: dati.emissioniSuoloAttivitaTCO2,
-      emissioniSuoloRiferimento: dati.emissioniSuoloRiferimentoTCO2,
-      emissioniAgricoleAttivita: dati.emissioniAgricoleAttivitaTCO2,
-      emissioniAgricoleRiferimento,
-      gesAssociati: dati.gesAssociatiTCO2,
-      inc,
-    })
+  const eq = applicaEquazioni1e2({
+    assorbimentiAttivita: dati.assorbimentiAttivitaTCO2,
+    assorbimentiRiferimento: dati.assorbimentiRiferimentoTCO2,
+    emissioniSuoloAttivita: dati.emissioniSuoloAttivitaTCO2,
+    emissioniSuoloRiferimento: dati.emissioniSuoloRiferimentoTCO2,
+    emissioniAgricoleAttivita: dati.emissioniAgricoleAttivitaTCO2,
+    emissioniAgricoleRiferimento,
+    gesAssociati: dati.gesAssociatiTCO2,
+    inc,
+  })
 
   return finalizzaRisultato(
-    beneficioNettoAssorbimentoTCO2,
-    beneficioNettoRiduzioneEmissioniTCO2,
+    eq,
     dati.deficitCreditiPrecedenteTCO2 ?? 0,
+    inc,
+    emissioniAgricoleRiferimentoAggiornatoTCO2,
   )
 }
 
@@ -123,17 +143,16 @@ function calcolaImboschimento(dati: DatiImboschimento): RisultatoCalcolo {
 
   // Sezione 2.3.2: agli assorbimenti da imboschimento si applica un livello di
   // riferimento pari a zero.
-  const { beneficioNettoAssorbimentoTCO2, beneficioNettoRiduzioneEmissioniTCO2 } =
-    applicaEquazioni1e2({
-      assorbimentiAttivita: dati.assorbimentiAttivitaTCO2,
-      assorbimentiRiferimento: 0,
-      emissioniSuoloAttivita: dati.emissioniSuoloAttivitaTCO2,
-      emissioniSuoloRiferimento: dati.emissioniSuoloRiferimentoTCO2,
-      emissioniAgricoleAttivita: dati.emissioniAgricoleAttivitaTCO2,
-      emissioniAgricoleRiferimento: dati.emissioniAgricoleRiferimentoTCO2,
-      gesAssociati: dati.gesAssociatiTCO2,
-      inc,
-    })
+  const eq = applicaEquazioni1e2({
+    assorbimentiAttivita: dati.assorbimentiAttivitaTCO2,
+    assorbimentiRiferimento: 0,
+    emissioniSuoloAttivita: dati.emissioniSuoloAttivitaTCO2,
+    emissioniSuoloRiferimento: dati.emissioniSuoloRiferimentoTCO2,
+    emissioniAgricoleAttivita: dati.emissioniAgricoleAttivitaTCO2,
+    emissioniAgricoleRiferimento: dati.emissioniAgricoleRiferimentoTCO2,
+    gesAssociati: dati.gesAssociatiTCO2,
+    inc,
+  })
 
   // Sezione 2.2: lavorazioni su prati permanenti nel contesto dell'imboschimento
   // comportano una perdita forfettaria del 12% dello stock di carbonio esistente.
@@ -143,19 +162,23 @@ function calcolaImboschimento(dati: DatiImboschimento): RisultatoCalcolo {
   }
 
   const risultato = finalizzaRisultato(
-    beneficioNettoAssorbimentoTCO2 - aggiustamentoLavorazionePratiTCO2,
-    beneficioNettoRiduzioneEmissioniTCO2,
+    { ...eq, beneficioNettoAssorbimentoTCO2: eq.beneficioNettoAssorbimentoTCO2 - aggiustamentoLavorazionePratiTCO2 },
     dati.deficitCreditiPrecedenteTCO2 ?? 0,
+    inc,
+    undefined,
   )
   risultato.aggiustamentoLavorazionePratiTCO2 = aggiustamentoLavorazionePratiTCO2
   return risultato
 }
 
 function finalizzaRisultato(
-  beneficioNettoAssorbimentoTCO2: number,
-  beneficioNettoRiduzioneEmissioniTCO2: number,
+  eq: EquazioniOutput,
   deficitPrecedente: number,
+  inc: number,
+  emissioniAgricoleRiferimentoAggiornatoTCO2: number | undefined,
 ): RisultatoCalcolo {
+  const { beneficioNettoAssorbimentoTCO2, beneficioNettoRiduzioneEmissioniTCO2 } = eq
+
   // Allegato, sezione 2.1, ultimo comma: un beneficio negativo diventa un deficit
   // di crediti da sottrarre nel periodo di certificazione successivo.
   const totaleGrezzo =
@@ -164,12 +187,23 @@ function finalizzaRisultato(
   const beneficioNettoTotaleTCO2 = Math.max(0, totaleGrezzo)
   const deficitCreditiTCO2 = totaleGrezzo < 0 ? -totaleGrezzo : 0
 
+  const dettaglio: DettaglioCalcolo = {
+    fattoreIncertezzaEffettivo: inc,
+    emissioniAgricoleRiferimentoAggiornatoTCO2,
+    beneficioLordoAssorbimentoTCO2: eq.beneficioLordoAssorbimentoTCO2,
+    beneficioLordoRiduzioneEmissioniTCO2: eq.beneficioLordoRiduzioneEmissioniTCO2,
+    pesoAssorbimentoPerGes: eq.pesoAssorbimentoPerGes,
+    gesAssociatiQuotaAssorbimentoTCO2: eq.gesAssociatiQuotaAssorbimentoTCO2,
+    gesAssociatiQuotaRiduzioneTCO2: eq.gesAssociatiQuotaRiduzioneTCO2,
+  }
+
   return {
     beneficioNettoAssorbimentoTCO2,
     beneficioNettoRiduzioneEmissioniTCO2,
     beneficioNettoTotaleTCO2,
     deficitCreditiTCO2,
     metodologiaDisponibile: true,
+    dettaglio,
   }
 }
 

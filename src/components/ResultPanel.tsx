@@ -1,7 +1,29 @@
-import type { RisultatoCalcolo } from '../types'
+import { useState } from 'react'
+import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { formatTCO2 } from '../lib/format'
 
-export default function ResultPanel({ risultato }: { risultato: RisultatoCalcolo }) {
+interface Props {
+  risultato: RisultatoCalcolo
+  dati?: DatiCalcolo
+  nomeTitolare?: string
+}
+
+export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
+  const [generandoReport, setGenerandoReport] = useState(false)
+
+  // Import dinamico: jsPDF porta con sé dipendenze pesanti (html2canvas, ecc.) che
+  // non servono al resto dell'app — le carichiamo solo quando serve il report.
+  async function handleGeneraReport() {
+    if (!dati || !nomeTitolare) return
+    setGenerandoReport(true)
+    try {
+      const { apriReportCalcoloPdf } = await import('../lib/reportPdf')
+      apriReportCalcoloPdf(nomeTitolare, dati, risultato)
+    } finally {
+      setGenerandoReport(false)
+    }
+  }
+
   if (!risultato.metodologiaDisponibile) {
     return (
       <div className="card space-y-2 border-amber-200 bg-amber-50">
@@ -18,7 +40,19 @@ export default function ResultPanel({ risultato }: { risultato: RisultatoCalcolo
 
   return (
     <div className="card space-y-4 border-forest-200 bg-forest-50/50">
-      <h3 className="font-semibold text-stone-900">Risultato del bilancio</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold text-stone-900">Risultato del bilancio</h3>
+        {dati && nomeTitolare && (
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={generandoReport}
+            onClick={handleGeneraReport}
+          >
+            {generandoReport ? 'Generazione in corso…' : '📄 Genera report PDF'}
+          </button>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-lg bg-white p-4">
@@ -50,6 +84,18 @@ export default function ResultPanel({ risultato }: { risultato: RisultatoCalcolo
         <span className="font-medium">Bilancio netto totale certificabile</span>
         <span className="text-2xl font-bold">
           {formatTCO2(risultato.beneficioNettoTotaleTCO2)} t CO₂eq
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between px-1 text-sm text-stone-600">
+        <span>
+          Numero di unità di credito certificabili{' '}
+          <span className="text-xs text-stone-400">
+            (1 unità = 1 t CO₂eq, arrotondato per difetto)
+          </span>
+        </span>
+        <span className="text-lg font-bold text-forest-700">
+          {Math.floor(risultato.beneficioNettoTotaleTCO2)} unità
         </span>
       </div>
 

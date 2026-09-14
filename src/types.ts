@@ -127,6 +127,18 @@ export interface DatiZootecnia extends DatiGenerali {
 
 export type DatiCalcolo = DatiAgricolturaAgroforestazione | DatiImboschimento | DatiZootecnia
 
+/** Passaggi intermedi del calcolo, esposti per la trasparenza verso il cliente
+ * (es. nel report PDF): non servono al motore di calcolo, solo a documentarlo. */
+export interface DettaglioCalcolo {
+  fattoreIncertezzaEffettivo: number
+  emissioniAgricoleRiferimentoAggiornatoTCO2?: number
+  beneficioLordoAssorbimentoTCO2: number
+  beneficioLordoRiduzioneEmissioniTCO2: number
+  pesoAssorbimentoPerGes: number
+  gesAssociatiQuotaAssorbimentoTCO2: number
+  gesAssociatiQuotaRiduzioneTCO2: number
+}
+
 export interface RisultatoCalcolo {
   beneficioNettoAssorbimentoTCO2: number
   beneficioNettoRiduzioneEmissioniTCO2: number
@@ -135,6 +147,7 @@ export interface RisultatoCalcolo {
   aggiustamentoLavorazionePratiTCO2?: number
   /** false finché per questa attività non esiste ancora una metodologia di calcolo ufficiale */
   metodologiaDisponibile: boolean
+  dettaglio?: DettaglioCalcolo
 }
 
 export interface Calcolo {
