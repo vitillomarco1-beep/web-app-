@@ -13,12 +13,20 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
 
   // Import dinamico: jsPDF porta con sé dipendenze pesanti (html2canvas, ecc.) che
   // non servono al resto dell'app — le carichiamo solo quando serve il report.
+  // La scheda va aperta subito, in modo sincrono, prima dell'import: se si aprisse
+  // solo a caricamento completato Chrome bloccherebbe il popup perché non lo
+  // riconoscerebbe più come diretta conseguenza del click dell'utente.
   async function handleGeneraReport() {
     if (!dati || !nomeTitolare) return
+    const finestra = window.open('', '_blank')
+    if (!finestra) {
+      alert('Il browser ha bloccato l\'apertura del report. Consenti i popup per questo sito e riprova.')
+      return
+    }
     setGenerandoReport(true)
     try {
-      const { apriReportCalcoloPdf } = await import('../lib/reportPdf')
-      apriReportCalcoloPdf(nomeTitolare, dati, risultato)
+      const { mostraReportCalcoloPdf } = await import('../lib/reportPdf')
+      mostraReportCalcoloPdf(finestra, nomeTitolare, dati, risultato)
     } finally {
       setGenerandoReport(false)
     }
