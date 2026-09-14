@@ -3,6 +3,7 @@ import { simulaRothC, RAPPORTO_DPM_RPM_DEFAULT } from '../../lib/rothc'
 import type { MeseClima, ScenarioRothCInput, RisultatoRothC } from '../../lib/rothc'
 import { PROFILI_CLIMATICI } from '../../lib/climaTipico'
 import { formatTCO2 } from '../../lib/format'
+import type { DettaglioRothC } from '../../types'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -25,7 +26,11 @@ function scenarioVuoto(): ScenarioRothCInput {
 interface Props {
   areaAttivitaHa: number
   durataPeriodoCertificazioneAnni: number
-  onApplica: (assorbimentiAttivitaTCO2: number, assorbimentiRiferimentoTCO2: number) => void
+  onApplica: (
+    assorbimentiAttivitaTCO2: number,
+    assorbimentiRiferimentoTCO2: number,
+    dettaglio: DettaglioRothC,
+  ) => void
 }
 
 export default function RothCTool({
@@ -80,7 +85,24 @@ export default function RothCTool({
     const assorbimentiRiferimentoTCO2 = arrotonda(
       risultato.riferimento.variazioneCO2eqTHa * areaAttivitaHa,
     )
-    onApplica(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2)
+    const dettaglio: DettaglioRothC = {
+      argillaPercento,
+      socInizialeTCHa,
+      durataAnni,
+      riferimento: {
+        apportoResiduiTCHaAnno: riferimento.apportoResiduiTCHaAnno,
+        apportoAmmendantiTCHaAnno: riferimento.apportoAmmendantiTCHaAnno,
+        quotaCoperturaVegetativa: riferimento.quotaCoperturaVegetativa,
+        ...risultato.riferimento,
+      },
+      attivita: {
+        apportoResiduiTCHaAnno: attivita.apportoResiduiTCHaAnno,
+        apportoAmmendantiTCHaAnno: attivita.apportoAmmendantiTCHaAnno,
+        quotaCoperturaVegetativa: attivita.quotaCoperturaVegetativa,
+        ...risultato.attivita,
+      },
+    }
+    onApplica(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglio)
   }
 
   function ScenarioFields({

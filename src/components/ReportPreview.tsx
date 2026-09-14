@@ -1,7 +1,17 @@
 import { useState } from 'react'
 import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { formatDate, formatTCO2, TIPO_ATTIVITA_LABEL } from '../lib/format'
-import { DISCLAIMER_REPORT, calcolaPassaggi, checklistPer, haQuantificazione } from '../lib/reportSteps'
+import {
+  DISCLAIMER_REPORT,
+  GWP_VALORI,
+  SPIEGAZIONE_CONVERSIONE_CO2EQ,
+  calcolaPassaggi,
+  checklistPer,
+  descrizioneScenari,
+  haQuantificazione,
+  introduzioneRothC,
+  righeConfrontoRothC,
+} from '../lib/reportSteps'
 
 interface Props {
   nomeTitolare: string
@@ -112,6 +122,46 @@ export default function ReportPreview({ nomeTitolare, dati, risultato }: Props) 
             </div>
           )}
 
+          {haQuantificazione(dati) && (
+            <div className="rounded-md border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+              <p className="mb-1 font-semibold text-stone-800">
+                Come si interpretano lo scenario di riferimento e quello di attività
+              </p>
+              <p>{descrizioneScenari(dati)}</p>
+            </div>
+          )}
+
+          {dati.tipoAttivita === 'agricoltura_agroforestazione' && dati.dettaglioRothC && (
+            <div className="space-y-2">
+              <div className="rounded-md border border-forest-200 bg-forest-50/40 p-4 text-sm text-stone-600">
+                <p className="mb-1 font-semibold text-stone-800">
+                  Dettaglio della simulazione RothC per gli assorbimenti di carbonio
+                </p>
+                <p>{introduzioneRothC(dati.dettaglioRothC)}</p>
+              </div>
+              <div className="overflow-hidden rounded-md border border-stone-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-forest-600 text-xs uppercase text-white">
+                    <tr>
+                      <th className="px-3 py-2">Passaggio della simulazione</th>
+                      <th className="px-3 py-2 text-right">Scenario di riferimento</th>
+                      <th className="px-3 py-2 text-right">Scenario di attività</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {righeConfrontoRothC(dati.dettaglioRothC).map((riga, i) => (
+                      <tr key={i}>
+                        <td className="px-3 py-2 font-medium text-stone-800">{riga.etichetta}</td>
+                        <td className="px-3 py-2 text-right">{riga.riferimento}</td>
+                        <td className="px-3 py-2 text-right">{riga.attivita}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {passaggi.length > 0 && (
             <ReportTable
               titolo="Passaggi del calcolo (equazioni 1 e 2 dell'allegato)"
@@ -173,6 +223,32 @@ export default function ReportPreview({ nomeTitolare, dati, risultato }: Props) 
           )}
         </>
       )}
+
+      <div className="overflow-hidden rounded-md border border-stone-200">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-forest-600 text-xs uppercase text-white">
+            <tr>
+              <th className="px-3 py-2" colSpan={3}>
+                Conversione dei gas serra in CO₂ equivalente
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {GWP_VALORI.map((g) => (
+              <tr key={g.formula}>
+                <td className="px-3 py-2 font-medium text-stone-800">
+                  {g.gas} ({g.formula})
+                </td>
+                <td className="px-3 py-2 text-right font-semibold text-forest-700">GWP = {g.gwp}</td>
+                <td className="px-3 py-2 text-xs text-stone-500">{g.nota}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="border-t border-stone-200 bg-white p-3 text-xs text-stone-600">
+          {SPIEGAZIONE_CONVERSIONE_CO2EQ}
+        </p>
+      </div>
 
       <p className="border-t border-stone-200 pt-4 text-xs italic text-stone-400">{DISCLAIMER_REPORT}</p>
     </div>

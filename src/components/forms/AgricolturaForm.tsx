@@ -162,8 +162,8 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel }: Prop
         <RothCTool
           areaAttivitaHa={dati.areaAttivitaHa}
           durataPeriodoCertificazioneAnni={dati.durataPeriodoCertificazioneAnni}
-          onApplica={(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2) =>
-            setDati({ ...dati, assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2 })
+          onApplica={(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC) =>
+            setDati({ ...dati, assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC })
           }
         />
 
@@ -178,7 +178,13 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel }: Prop
               step="0.01"
               className="input"
               value={dati.assorbimentiAttivitaTCO2}
-              onChange={(e) => setDati({ ...dati, assorbimentiAttivitaTCO2: num(e.target.value) })}
+              onChange={(e) =>
+                setDati({
+                  ...dati,
+                  assorbimentiAttivitaTCO2: num(e.target.value),
+                  dettaglioRothC: undefined,
+                })
+              }
             />
           </div>
           <div>
@@ -189,7 +195,11 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel }: Prop
               className="input"
               value={dati.assorbimentiRiferimentoTCO2}
               onChange={(e) =>
-                setDati({ ...dati, assorbimentiRiferimentoTCO2: num(e.target.value) })
+                setDati({
+                  ...dati,
+                  assorbimentiRiferimentoTCO2: num(e.target.value),
+                  dettaglioRothC: undefined,
+                })
               }
             />
           </div>

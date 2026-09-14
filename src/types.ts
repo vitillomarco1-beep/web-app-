@@ -65,6 +65,30 @@ export interface DatiQuantificazione {
   deficitCreditiPrecedenteTCO2?: number
 }
 
+/** Un pacchetto di parametri/risultati RothC per uno dei due scenari (riferimento o
+ * attività): conservato per poter mostrare in modo trasparente, nel report verso il
+ * cliente, come si è arrivati al numero di tonnellate di CO2 assorbite. */
+export interface DettaglioScenarioRothC {
+  apportoResiduiTCHaAnno: number
+  apportoAmmendantiTCHaAnno: number
+  quotaCoperturaVegetativa: number
+  socFinaleTCHa: number
+  variazioneSocTCHa: number
+  variazioneCO2eqTHa: number
+}
+
+/** Sintesi dei parametri e risultati della simulazione RothC usata per stimare gli
+ * assorbimenti di carbonio (si veda lib/rothc.ts): conservata insieme al calcolo per
+ * documentare, passo per passo, come sono stati ottenuti gli scenari di riferimento e
+ * di attività — non solo il loro valore finale in t CO2. */
+export interface DettaglioRothC {
+  argillaPercento: number
+  socInizialeTCHa: number
+  durataAnni: number
+  riferimento: DettaglioScenarioRothC
+  attivita: DettaglioScenarioRothC
+}
+
 export interface DatiAgricolturaAgroforestazione extends DatiGenerali, DatiQuantificazione {
   tipoAttivita: 'agricoltura_agroforestazione'
   /** sezione 1.1.1.1 lett. a)-c): pratiche selezionate, solo a scopo di riepilogo */
@@ -79,6 +103,11 @@ export interface DatiAgricolturaAgroforestazione extends DatiGenerali, DatiQuant
   }
   /** sezione 2.3.3: aggiornamento al ribasso del livello di riferimento per pratiche di riduzione N2O */
   applicaAggiornamentoRiferimentoN2O: boolean
+  /** Presente solo se gli assorbimenti sono stati compilati tramite il simulatore
+   * RothC integrato (pulsante "Usa questi valori nel calcolo"): assente se inseriti
+   * manualmente o cancellato non appena l'utente modifica i due campi a mano, per non
+   * mostrare un dettaglio non più corrispondente ai valori effettivi. */
+  dettaglioRothC?: DettaglioRothC
   checklist: ChecklistAmmissibilita
 }
 

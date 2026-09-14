@@ -2,7 +2,17 @@ import { jsPDF } from 'jspdf'
 import autoTableRaw, { type UserOptions } from 'jspdf-autotable'
 import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { TIPO_ATTIVITA_LABEL, formatDate } from './format'
-import { DISCLAIMER_REPORT, calcolaPassaggi, checklistPer, haQuantificazione } from './reportSteps'
+import {
+  DISCLAIMER_REPORT,
+  GWP_VALORI,
+  SPIEGAZIONE_CONVERSIONE_CO2EQ,
+  calcolaPassaggi,
+  checklistPer,
+  descrizioneScenari,
+  haQuantificazione,
+  introduzioneRothC,
+  righeConfrontoRothC,
+} from './reportSteps'
 
 /** Evita che jspdf-autotable spezzi una riga a metà tra due pagine (di default può
  * troncare il testo di una cella lasciandone la coda orfana sulla pagina successiva
@@ -20,6 +30,21 @@ const AMBER_BG: [number, number, number] = [255, 251, 235]
 
 function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(v)
+}
+
+/** Disegna un paragrafo di testo con a capo automatico, come riga singola di una
+ * autoTable "plain" così eredita lo stesso comportamento di spostamento pagina delle
+ * altre tabelle del report invece di dover gestire manualmente i salti pagina. */
+function paragrafo(doc: jsPDF, testo: string, startY: number, marginX: number): number {
+  autoTable(doc, {
+    startY,
+    margin: { left: marginX, right: marginX },
+    body: [[testo]],
+    theme: 'plain',
+    styles: { fontSize: 8.7, textColor: STONE, cellPadding: { top: 2, bottom: 2, left: 0, right: 0 } },
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (doc as any).lastAutoTable.finalY + 4
 }
 
 /** Costruisce il documento PDF di riepilogo di un calcolo, con tutti i passaggi
@@ -121,6 +146,40 @@ export function costruisciReportCalcoloPdf(
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     y = (doc as any).lastAutoTable.finalY + 7
+
+    y = paragrafo(
+      doc,
+      'Come si interpretano lo scenario di riferimento e quello di attività: ' +
+        descrizioneScenari(dati),
+      y,
+      marginX,
+    )
+
+    if (dati.tipoAttivita === 'agricoltura_agroforestazione' && dati.dettaglioRothC) {
+      y = paragrafo(
+        doc,
+        'Dettaglio della simulazione RothC per gli assorbimenti di carbonio: ' +
+          introduzioneRothC(dati.dettaglioRothC),
+        y,
+        marginX,
+      )
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        head: [['Passaggio della simulazione', 'Scenario di riferimento', 'Scenario di attività']],
+        body: righeConfrontoRothC(dati.dettaglioRothC).map((r) => [
+          r.etichetta,
+          r.riferimento,
+          r.attivita,
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: FOREST, textColor: 255, fontStyle: 'bold', fontSize: 9.5 },
+        styles: { fontSize: 8.7, textColor: STONE, cellPadding: 2.5 },
+        columnStyles: { 1: { halign: 'right', cellWidth: 35 }, 2: { halign: 'right', cellWidth: 35 } },
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      y = (doc as any).lastAutoTable.finalY + 7
+    }
   }
 
   const passaggi = calcolaPassaggi(dati, risultato)
@@ -223,6 +282,24 @@ export function costruisciReportCalcoloPdf(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     y = (doc as any).lastAutoTable.finalY + 8
   }
+
+  if (y > doc.internal.pageSize.getHeight() - 60) {
+    doc.addPage()
+    y = 20
+  }
+  autoTable(doc, {
+    startY: y,
+    margin: { left: marginX, right: marginX },
+    head: [['Conversione dei gas serra in CO2 equivalente', 'GWP', '']],
+    body: GWP_VALORI.map((g) => [`${g.gas} (${g.formula})`, `${g.gwp}`, g.nota]),
+    theme: 'grid',
+    headStyles: { fillColor: FOREST, textColor: 255, fontStyle: 'bold', fontSize: 9.5 },
+    styles: { fontSize: 8.7, textColor: STONE, cellPadding: 2.5 },
+    columnStyles: { 1: { halign: 'right', cellWidth: 20 }, 2: { fontSize: 7.8, textColor: STONE_LIGHT } },
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  y = (doc as any).lastAutoTable.finalY + 4
+  y = paragrafo(doc, SPIEGAZIONE_CONVERSIONE_CO2EQ, y, marginX)
 
   if (y > doc.internal.pageSize.getHeight() - 20) {
     doc.addPage()
