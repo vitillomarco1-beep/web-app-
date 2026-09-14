@@ -8,6 +8,7 @@ import {
   calcolaPassaggi,
   checklistPer,
   descrizioneScenari,
+  formulaBilancioNetto,
   haQuantificazione,
   introduzioneRothC,
   righeConfrontoRothC,
@@ -163,16 +164,38 @@ export default function ReportPreview({ nomeTitolare, dati, risultato }: Props) 
           )}
 
           {passaggi.length > 0 && (
-            <ReportTable
-              titolo="Passaggi del calcolo (equazioni 1 e 2 dell'allegato)"
-              righe={passaggi.map((p) => [p.etichetta, p.valore] as [string, string])}
-              allineaDestra
-            />
+            <div className="overflow-hidden rounded-md border border-stone-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-forest-600 text-xs uppercase text-white">
+                  <tr>
+                    <th className="px-3 py-2" colSpan={2}>
+                      Passaggi del calcolo (equazioni 1 e 2 dell'allegato)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {passaggi.map((p, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 align-top font-medium text-stone-800">
+                        {p.etichetta}
+                        {p.formula && (
+                          <p className="mt-0.5 font-mono text-xs font-normal text-stone-500">{p.formula}</p>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right align-top">{p.valore}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
-          <div className="flex items-center justify-between rounded-lg bg-forest-600 p-4 text-white">
-            <span className="font-medium">Bilancio netto totale certificabile</span>
-            <span className="text-xl font-bold">{n(risultato.beneficioNettoTotaleTCO2)} t CO₂eq</span>
+          <div className="rounded-lg bg-forest-600 p-4 text-white">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Bilancio netto totale certificabile</span>
+              <span className="text-xl font-bold">{n(risultato.beneficioNettoTotaleTCO2)} t CO₂eq</span>
+            </div>
+            <p className="mt-1 font-mono text-xs text-forest-100">{formulaBilancioNetto(dati, risultato)}</p>
           </div>
 
           <div className="flex items-center justify-between px-1 text-sm text-stone-600">

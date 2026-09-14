@@ -9,6 +9,7 @@ import {
   calcolaPassaggi,
   checklistPer,
   descrizioneScenari,
+  formulaBilancioNetto,
   haQuantificazione,
   introduzioneRothC,
   righeConfrontoRothC,
@@ -188,11 +189,29 @@ export function costruisciReportCalcoloPdf(
       startY: y,
       margin: { left: marginX, right: marginX },
       head: [['Passaggi del calcolo (equazioni 1 e 2 dell\'allegato)', 'Valore']],
-      body: passaggi.map((p) => [p.etichetta, p.valore]),
+      body: passaggi.map((p) => [
+        p.formula ? `${p.etichetta}\n${p.formula}` : p.etichetta,
+        p.valore,
+      ]),
       theme: 'grid',
       headStyles: { fillColor: FOREST, textColor: 255, fontStyle: 'bold', fontSize: 9.5 },
-      styles: { fontSize: 9, textColor: STONE, cellPadding: 2.5 },
+      styles: { fontSize: 9, textColor: STONE, cellPadding: 2.5, valign: 'top' },
       columnStyles: { 1: { halign: 'right', cellWidth: 45 } },
+      didParseCell: (data) => {
+        // Nella prima colonna, la seconda riga (dopo il \n) è il calcolo coi numeri
+        // reali sostituiti: la rendiamo più piccola e più chiara per distinguerla
+        // dall'etichetta, mantenendo entrambe nella stessa cella così jspdf-autotable
+        // calcola correttamente l'altezza della riga in automatico. Restiamo su
+        // Helvetica (non un font monospaziato): i font base di jsPDF non garantiscono
+        // la stessa larghezza dei caratteri di Helvetica per il calcolo dell'a-capo,
+        // e cambiare font qui produceva testo che sconfinava fuori dalla cella.
+        if (data.section === 'body' && data.column.index === 0) {
+          const testo = data.cell.raw?.toString() ?? ''
+          if (testo.includes('\n')) {
+            data.cell.styles.fontSize = 8
+          }
+        }
+      },
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     y = (doc as any).lastAutoTable.finalY + 8
@@ -219,7 +238,16 @@ export function costruisciReportCalcoloPdf(
     y + boxHeight / 2 + 1.5,
     { align: 'right', baseline: 'middle' },
   )
-  y += boxHeight + 5
+  y += boxHeight + 4
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...STONE_LIGHT)
+  const righeFormulaBilancio = doc.splitTextToSize(
+    formulaBilancioNetto(dati, risultato),
+    pageWidth - marginX * 2,
+  )
+  doc.text(righeFormulaBilancio, marginX, y)
+  y += righeFormulaBilancio.length * 3.5 + 4
 
   // Passaggio finale: dal bilancio in t CO2eq al numero esatto di unità di credito.
   // Nel quadro UE (e nella generalità degli standard MRV) 1 unità certificata = 1 t

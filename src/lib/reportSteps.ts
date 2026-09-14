@@ -12,6 +12,10 @@ import type { ChecklistItemDef } from './checklist'
 export interface RigaReport {
   etichetta: string
   valore: string
+  /** Il calcolo con i numeri reali di questo caso già sostituiti nella formula
+   * (non solo il risultato), per poter verificare passo per passo come si arriva
+   * al numero finale — es. "(120 - (-20)) × (1 - 8,0%) = 140 × 0,92 = 128,8". */
+  formula?: string
 }
 
 /** Logica condivisa tra il report PDF (jsPDF) e l'anteprima a schermo (HTML), così
@@ -36,69 +40,123 @@ export function checklistPer(
   }
 }
 
+/** Formatta un numero fra parentesi quando è negativo, per non confondere il segno
+ * dell'operazione con quello del valore in formule come "120 - (-20)". */
+function op(v: number): string {
+  return v < 0 ? `(${n2(v)})` : n2(v)
+}
+
 export function calcolaPassaggi(dati: DatiCalcolo, risultato: RisultatoCalcolo): RigaReport[] {
   const d = risultato.dettaglio
-  if (!d) return []
+  if (!d || !haQuantificazione(dati)) return []
   const passaggi: RigaReport[] = []
 
+  const incInserito = dati.fattoreIncertezza * 100
+  const incEffettivo = d.fattoreIncertezzaEffettivo * 100
   passaggi.push({
     etichetta: 'Fattore di riduzione per incertezza (INC) applicato',
-    valore: `${(d.fattoreIncertezzaEffettivo * 100).toFixed(1)}%`,
+    valore: `${n2(incEffettivo)}%`,
+    formula: `max(8% minimo, ${n2(incInserito)}% inserito) = ${n2(incEffettivo)}%`,
   })
+
+  const esaRifOriginale = dati.emissioniAgricoleRiferimentoTCO2
+  const esaRif = d.emissioniAgricoleRiferimentoAggiornatoTCO2 ?? esaRifOriginale
   if (d.emissioniAgricoleRiferimentoAggiornatoTCO2 !== undefined) {
+    const riduzionePercento =
+      esaRifOriginale !== 0 ? (1 - d.emissioniAgricoleRiferimentoAggiornatoTCO2 / esaRifOriginale) * 100 : 0
     passaggi.push({
       etichetta: 'Livello di riferimento ESA aggiornato (sez. 2.3.3, -1%/anno)',
       valore: `${formatTCO2(d.emissioniAgricoleRiferimentoAggiornatoTCO2)} t CO2eq`,
+      formula: `${op(esaRifOriginale)} × (1 - ${n2(riduzionePercento)}%) = ${n2(d.emissioniAgricoleRiferimentoAggiornatoTCO2)} t CO2eq`,
     })
   }
+
+  const assorbAttivita = dati.assorbimentiAttivitaTCO2
+  const assorbRiferimento = dati.assorbimentiRiferimentoTCO2
+  const fattoreInc = 1 - d.fattoreIncertezzaEffettivo
   passaggi.push({
     etichetta: 'Beneficio lordo — assorbimento di carbonio',
     valore: `${formatTCO2(d.beneficioLordoAssorbimentoTCO2)} t CO2eq`,
+    formula:
+      `(${op(assorbAttivita)} - ${op(assorbRiferimento)}) × (1 - ${n2(incEffettivo)}%) = ` +
+      `${op(assorbAttivita - assorbRiferimento)} × ${n2(fattoreInc)} = ${n2(d.beneficioLordoAssorbimentoTCO2)} t CO2eq`,
   })
+
+  const eslAttivita = dati.emissioniSuoloAttivitaTCO2
+  const eslRiferimento = dati.emissioniSuoloRiferimentoTCO2
+  const esaAttivita = dati.emissioniAgricoleAttivitaTCO2
+  const sommaLordaRiduzione = eslRiferimento - eslAttivita + (esaRif - esaAttivita)
   passaggi.push({
     etichetta: 'Beneficio lordo — riduzione emissioni dal suolo',
     valore: `${formatTCO2(d.beneficioLordoRiduzioneEmissioniTCO2)} t CO2eq`,
+    formula:
+      `(${op(eslRiferimento)} - ${op(eslAttivita)} + (${op(esaRif)} - ${op(esaAttivita)})) × ` +
+      `(1 - ${n2(incEffettivo)}%) = ${op(sommaLordaRiduzione)} × ${n2(fattoreInc)} = ` +
+      `${n2(d.beneficioLordoRiduzioneEmissioniTCO2)} t CO2eq`,
   })
+
   if (d.gesAssociatiQuotaAssorbimentoTCO2 !== 0) {
     passaggi.push({
       etichetta: 'GES associati sottratti — quota assorbimento',
       valore: `-${formatTCO2(d.gesAssociatiQuotaAssorbimentoTCO2)} t CO2eq`,
+      formula: `${op(dati.gesAssociatiTCO2)} × ${n2(d.pesoAssorbimentoPerGes * 100)}% = ${n2(d.gesAssociatiQuotaAssorbimentoTCO2)} t CO2eq`,
     })
   }
   if (d.gesAssociatiQuotaRiduzioneTCO2 !== 0) {
     passaggi.push({
       etichetta: 'GES associati sottratti — quota riduzione emissioni',
       valore: `-${formatTCO2(d.gesAssociatiQuotaRiduzioneTCO2)} t CO2eq`,
+      formula: `${op(dati.gesAssociatiTCO2)} × ${n2((1 - d.pesoAssorbimentoPerGes) * 100)}% = ${n2(d.gesAssociatiQuotaRiduzioneTCO2)} t CO2eq`,
     })
   }
+
   passaggi.push({
     etichetta: 'Beneficio netto — assorbimento di carbonio',
     valore: `${formatTCO2(risultato.beneficioNettoAssorbimentoTCO2)} t CO2eq`,
+    formula: `${op(d.beneficioLordoAssorbimentoTCO2)} - ${op(d.gesAssociatiQuotaAssorbimentoTCO2)} = ${n2(risultato.beneficioNettoAssorbimentoTCO2)} t CO2eq`,
   })
   passaggi.push({
     etichetta: 'Beneficio netto — riduzione emissioni dal suolo',
     valore: `${formatTCO2(risultato.beneficioNettoRiduzioneEmissioniTCO2)} t CO2eq`,
+    formula: `${op(d.beneficioLordoRiduzioneEmissioniTCO2)} - ${op(d.gesAssociatiQuotaRiduzioneTCO2)} = ${n2(risultato.beneficioNettoRiduzioneEmissioniTCO2)} t CO2eq`,
   })
+
   if (risultato.aggiustamentoLavorazionePratiTCO2) {
+    const stock = (dati as DatiImboschimento).stockCarbonioSueloPreesistenteTCO2 ?? 0
     passaggi.push({
       etichetta: 'Detrazione per lavorazione di prati permanenti (12%, sez. 2.2)',
       valore: `-${formatTCO2(risultato.aggiustamentoLavorazionePratiTCO2)} t CO2eq`,
+      formula: `12% × ${n2(stock)} = ${n2(risultato.aggiustamentoLavorazionePratiTCO2)} t CO2eq`,
     })
   }
-  if (
-    risultato.deficitCreditiTCO2 > 0 ||
-    (dati as DatiAgricolturaAgroforestazione).deficitCreditiPrecedenteTCO2
-  ) {
-    const deficitPrecedente =
-      'deficitCreditiPrecedenteTCO2' in dati ? (dati.deficitCreditiPrecedenteTCO2 ?? 0) : 0
-    if (deficitPrecedente > 0) {
-      passaggi.push({
-        etichetta: 'Deficit di crediti riportato dal periodo precedente',
-        valore: `-${formatTCO2(deficitPrecedente)} t CO2eq`,
-      })
-    }
+
+  const deficitPrecedente = dati.deficitCreditiPrecedenteTCO2 ?? 0
+  if (deficitPrecedente > 0) {
+    passaggi.push({
+      etichetta: 'Deficit di crediti riportato dal periodo precedente',
+      valore: `-${formatTCO2(deficitPrecedente)} t CO2eq`,
+    })
   }
   return passaggi
+}
+
+/** Il passaggio finale, dai due benefici netti al bilancio complessivo mostrato nel
+ * riquadro di risultato: stessa formula usata da calcolaBilancio (carbonEngine.ts),
+ * con i numeri di questo calcolo già sostituiti. */
+export function formulaBilancioNetto(dati: DatiCalcolo, risultato: RisultatoCalcolo): string {
+  const deficitPrecedente = haQuantificazione(dati) ? (dati.deficitCreditiPrecedenteTCO2 ?? 0) : 0
+  const totaleGrezzo =
+    risultato.beneficioNettoAssorbimentoTCO2 +
+    risultato.beneficioNettoRiduzioneEmissioniTCO2 -
+    deficitPrecedente
+  const base =
+    `${op(risultato.beneficioNettoAssorbimentoTCO2)} + ${op(risultato.beneficioNettoRiduzioneEmissioniTCO2)}` +
+    (deficitPrecedente ? ` - ${n2(deficitPrecedente)}` : '') +
+    ` = ${n2(totaleGrezzo)} t CO2eq`
+  if (totaleGrezzo < 0) {
+    return `${base} → negativo: diventa un deficit di ${n2(-totaleGrezzo)} t CO2eq da riportare, bilancio certificabile 0 t CO2eq.`
+  }
+  return base
 }
 
 export const DISCLAIMER_REPORT =
