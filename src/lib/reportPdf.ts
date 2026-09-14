@@ -1,14 +1,8 @@
 import { jsPDF } from 'jspdf'
 import autoTableRaw, { type UserOptions } from 'jspdf-autotable'
-import type {
-  DatiAgricolturaAgroforestazione,
-  DatiCalcolo,
-  DatiImboschimento,
-  RisultatoCalcolo,
-} from '../types'
+import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { TIPO_ATTIVITA_LABEL, formatDate } from './format'
-import { CHECKLIST_AGRICOLTURA, CHECKLIST_IMBOSCHIMENTO, CHECKLIST_ZOOTECNIA } from './checklist'
-import type { ChecklistItemDef } from './checklist'
+import { DISCLAIMER_REPORT, calcolaPassaggi, checklistPer, haQuantificazione } from './reportSteps'
 
 /** Evita che jspdf-autotable spezzi una riga a metà tra due pagine (di default può
  * troncare il testo di una cella lasciandone la coda orfana sulla pagina successiva
@@ -26,23 +20,6 @@ const AMBER_BG: [number, number, number] = [255, 251, 235]
 
 function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(v)
-}
-
-function haQuantificazione(
-  dati: DatiCalcolo,
-): dati is DatiAgricolturaAgroforestazione | DatiImboschimento {
-  return dati.tipoAttivita !== 'zootecnia'
-}
-
-function checklistPer(dati: DatiCalcolo): { items: ChecklistItemDef[]; valori: Record<string, boolean> } | null {
-  switch (dati.tipoAttivita) {
-    case 'agricoltura_agroforestazione':
-      return { items: CHECKLIST_AGRICOLTURA, valori: dati.checklist }
-    case 'imboschimento':
-      return { items: CHECKLIST_IMBOSCHIMENTO, valori: dati.checklist }
-    case 'zootecnia':
-      return { items: CHECKLIST_ZOOTECNIA, valori: dati.checklist }
-  }
 }
 
 /** Costruisce il documento PDF di riepilogo di un calcolo, con tutti i passaggi
@@ -146,68 +123,13 @@ export function costruisciReportCalcoloPdf(
     y = (doc as any).lastAutoTable.finalY + 7
   }
 
-  const d = risultato.dettaglio
-  if (d) {
-    const passaggi: [string, string][] = []
-    passaggi.push([
-      'Fattore di riduzione per incertezza (INC) applicato',
-      `${(d.fattoreIncertezzaEffettivo * 100).toFixed(1)}%`,
-    ])
-    if (d.emissioniAgricoleRiferimentoAggiornatoTCO2 !== undefined) {
-      passaggi.push([
-        'Livello di riferimento ESA aggiornato (sez. 2.3.3, -1%/anno)',
-        `${n(d.emissioniAgricoleRiferimentoAggiornatoTCO2)} t CO2eq`,
-      ])
-    }
-    passaggi.push([
-      'Beneficio lordo — assorbimento di carbonio',
-      `${n(d.beneficioLordoAssorbimentoTCO2)} t CO2eq`,
-    ])
-    passaggi.push([
-      'Beneficio lordo — riduzione emissioni dal suolo',
-      `${n(d.beneficioLordoRiduzioneEmissioniTCO2)} t CO2eq`,
-    ])
-    if (d.gesAssociatiQuotaAssorbimentoTCO2 !== 0) {
-      passaggi.push([
-        'GES associati sottratti — quota assorbimento',
-        `-${n(d.gesAssociatiQuotaAssorbimentoTCO2)} t CO2eq`,
-      ])
-    }
-    if (d.gesAssociatiQuotaRiduzioneTCO2 !== 0) {
-      passaggi.push([
-        'GES associati sottratti — quota riduzione emissioni',
-        `-${n(d.gesAssociatiQuotaRiduzioneTCO2)} t CO2eq`,
-      ])
-    }
-    passaggi.push([
-      'Beneficio netto — assorbimento di carbonio',
-      `${n(risultato.beneficioNettoAssorbimentoTCO2)} t CO2eq`,
-    ])
-    passaggi.push([
-      'Beneficio netto — riduzione emissioni dal suolo',
-      `${n(risultato.beneficioNettoRiduzioneEmissioniTCO2)} t CO2eq`,
-    ])
-    if (risultato.aggiustamentoLavorazionePratiTCO2) {
-      passaggi.push([
-        'Detrazione per lavorazione di prati permanenti (12%, sez. 2.2)',
-        `-${n(risultato.aggiustamentoLavorazionePratiTCO2)} t CO2eq`,
-      ])
-    }
-    if (risultato.deficitCreditiTCO2 > 0 || (dati as DatiAgricolturaAgroforestazione).deficitCreditiPrecedenteTCO2) {
-      const deficitPrecedente = 'deficitCreditiPrecedenteTCO2' in dati ? dati.deficitCreditiPrecedenteTCO2 ?? 0 : 0
-      if (deficitPrecedente > 0) {
-        passaggi.push([
-          'Deficit di crediti riportato dal periodo precedente',
-          `-${n(deficitPrecedente)} t CO2eq`,
-        ])
-      }
-    }
-
+  const passaggi = calcolaPassaggi(dati, risultato)
+  if (passaggi.length > 0) {
     autoTable(doc, {
       startY: y,
       margin: { left: marginX, right: marginX },
       head: [['Passaggi del calcolo (equazioni 1 e 2 dell\'allegato)', 'Valore']],
-      body: passaggi,
+      body: passaggi.map((p) => [p.etichetta, p.valore]),
       theme: 'grid',
       headStyles: { fillColor: FOREST, textColor: 255, fontStyle: 'bold', fontSize: 9.5 },
       styles: { fontSize: 9, textColor: STONE, cellPadding: 2.5 },
@@ -312,16 +234,7 @@ export function costruisciReportCalcoloPdf(
   doc.setFont('helvetica', 'italic')
   doc.setFontSize(7.8)
   doc.setTextColor(...STONE_LIGHT)
-  const disclaimer =
-    'Tutti i valori sono espressi in tonnellate di CO2 equivalente (t CO2eq): le eventuali ' +
-    'emissioni di CH4 e N2O incluse nei dati di input si intendono già convertite in CO2eq ' +
-    'utilizzando i potenziali di riscaldamento globale (GWP) del regolamento delegato (UE) ' +
-    "2020/1044 o dell'ultima relazione di valutazione IPCC, come richiesto dall'allegato, " +
-    'sez. 2.2. Documento generato automaticamente dal Carbon Farming Calculator sulla base dei ' +
-    "dati inseriti dal consulente. È uno strumento di supporto professionale: non sostituisce " +
-    'la verifica di un organismo di certificazione accreditato ai sensi del regolamento ' +
-    '(UE) 2024/3012.'
-  const righe = doc.splitTextToSize(disclaimer, pageWidth - marginX * 2)
+  const righe = doc.splitTextToSize(DISCLAIMER_REPORT, pageWidth - marginX * 2)
   doc.text(righe, marginX, y)
 
   return doc

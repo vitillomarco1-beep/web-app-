@@ -1,0 +1,212 @@
+import { useState } from 'react'
+import type { DatiCalcolo, RisultatoCalcolo } from '../types'
+import { formatDate, formatTCO2, TIPO_ATTIVITA_LABEL } from '../lib/format'
+import { DISCLAIMER_REPORT, calcolaPassaggi, checklistPer, haQuantificazione } from '../lib/reportSteps'
+
+interface Props {
+  nomeTitolare: string
+  dati: DatiCalcolo
+  risultato: RisultatoCalcolo
+}
+
+function n(v: number): string {
+  return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(v)
+}
+
+/** Anteprima del report di calcolo come contenuto nativo della pagina (non un
+ * embed del PDF): l'anteprima pubblicata di quest'app viene mostrata in un
+ * contesto con permessi ristretti, dove un iframe o una nuova scheda con il blob
+ * del PDF possono essere bloccati indipendentemente dal codice. Questa vista
+ * mostra sempre gli stessi dati/passaggi del PDF scaricabile (stessa fonte:
+ * lib/reportSteps.ts), garantendo la trasparenza richiesta anche in quel
+ * contesto; il pulsante "Scarica PDF" resta disponibile per generare il file
+ * vero e proprio quando l'app è ospitata su un dominio senza queste restrizioni.
+ */
+export default function ReportPreview({ nomeTitolare, dati, risultato }: Props) {
+  const [scaricando, setScaricando] = useState(false)
+
+  async function handleScaricaPdf() {
+    setScaricando(true)
+    try {
+      const { costruisciReportCalcoloPdf } = await import('../lib/reportPdf')
+      const doc = costruisciReportCalcoloPdf(nomeTitolare, dati, risultato)
+      doc.save(`report-${dati.nomeCalcolo.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`)
+    } finally {
+      setScaricando(false)
+    }
+  }
+
+  const passaggi = calcolaPassaggi(dati, risultato)
+  const checklist = checklistPer(dati)
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-5 p-5 sm:p-8">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 pb-4">
+        <div>
+          <h2 className="text-lg font-bold text-stone-900">Report di calcolo — crediti di carbonio</h2>
+          <p className="mt-1 text-sm text-stone-500">
+            {nomeTitolare} — {dati.nomeCalcolo}
+          </p>
+          <p className="text-sm text-stone-500">Metodologia: {TIPO_ATTIVITA_LABEL[dati.tipoAttivita]}</p>
+          <p className="text-xs text-stone-400">
+            Documento generato il {new Intl.DateTimeFormat('it-IT', { dateStyle: 'long' }).format(new Date())}
+          </p>
+        </div>
+        <button type="button" className="btn-secondary shrink-0" disabled={scaricando} onClick={handleScaricaPdf}>
+          {scaricando ? 'Generazione…' : '⬇️ Scarica PDF'}
+        </button>
+      </div>
+
+      <ReportTable
+        titolo="Dati generali"
+        righe={[
+          ['Area di attività', `${n(dati.areaAttivitaHa)} ha`],
+          ['Data inizio periodo di attività', formatDate(dati.dataInizioPeriodoAttivita)],
+          ['Durata periodo di certificazione', `${dati.durataPeriodoCertificazioneAnni} anni`],
+        ]}
+      />
+
+      {!risultato.metodologiaDisponibile ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Per questa metodologia non esiste ancora un atto delegato dell'UE che ne stabilisca la
+          metodologia di certificazione: il bilancio in t CO₂eq non è ancora calcolabile. I dati
+          aziendali sono comunque registrati, pronti per quando la normativa sarà pubblicata.
+        </div>
+      ) : (
+        <>
+          {haQuantificazione(dati) && (
+            <div className="overflow-hidden rounded-md border border-stone-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-forest-600 text-xs uppercase text-white">
+                  <tr>
+                    <th className="px-3 py-2">Dati di input (quantificazione)</th>
+                    <th className="px-3 py-2">Scenario di attività</th>
+                    <th className="px-3 py-2">Scenario di riferimento</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-stone-800">Assorbimenti di carbonio (t CO2)</td>
+                    <td className="px-3 py-2">{n(dati.assorbimentiAttivitaTCO2)}</td>
+                    <td className="px-3 py-2">{n(dati.assorbimentiRiferimentoTCO2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-stone-800">Emissioni dal suolo — ESL (t CO2eq)</td>
+                    <td className="px-3 py-2">{n(dati.emissioniSuoloAttivitaTCO2)}</td>
+                    <td className="px-3 py-2">{n(dati.emissioniSuoloRiferimentoTCO2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-stone-800">
+                      Emissioni agricole N2O — ESA (t CO2eq)
+                    </td>
+                    <td className="px-3 py-2">{n(dati.emissioniAgricoleAttivitaTCO2)}</td>
+                    <td className="px-3 py-2">{n(dati.emissioniAgricoleRiferimentoTCO2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-stone-800">GES associati (t CO2eq)</td>
+                    <td className="px-3 py-2">{n(dati.gesAssociatiTCO2)}</td>
+                    <td className="px-3 py-2">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {passaggi.length > 0 && (
+            <ReportTable
+              titolo="Passaggi del calcolo (equazioni 1 e 2 dell'allegato)"
+              righe={passaggi.map((p) => [p.etichetta, p.valore] as [string, string])}
+              allineaDestra
+            />
+          )}
+
+          <div className="flex items-center justify-between rounded-lg bg-forest-600 p-4 text-white">
+            <span className="font-medium">Bilancio netto totale certificabile</span>
+            <span className="text-xl font-bold">{n(risultato.beneficioNettoTotaleTCO2)} t CO₂eq</span>
+          </div>
+
+          <div className="flex items-center justify-between px-1 text-sm text-stone-600">
+            <span>
+              Numero di unità di credito certificabili{' '}
+              <span className="text-xs text-stone-400">
+                (1 unità certificata = 1 t CO₂eq; arrotondamento per difetto)
+              </span>
+            </span>
+            <span className="text-lg font-bold text-forest-700">
+              {Math.floor(risultato.beneficioNettoTotaleTCO2)} unità
+            </span>
+          </div>
+
+          {risultato.deficitCreditiTCO2 > 0 && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              Attenzione: risultato negativo. Deficit di {formatTCO2(risultato.deficitCreditiTCO2)} t
+              CO₂eq da riportare al periodo di certificazione successivo.
+            </div>
+          )}
+
+          {checklist && (
+            <div className="overflow-hidden rounded-md border border-stone-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-forest-600 text-xs uppercase text-white">
+                  <tr>
+                    <th className="px-3 py-2">Requisiti di ammissibilità e addizionalità</th>
+                    <th className="px-3 py-2">Stato</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {checklist.items.map((item) => {
+                    const soddisfatto = checklist.valori[item.key]
+                    return (
+                      <tr key={item.key}>
+                        <td className="px-3 py-2">{item.label}</td>
+                        <td
+                          className={`px-3 py-2 font-medium ${soddisfatto ? 'text-forest-700' : 'text-amber-700'}`}
+                        >
+                          {soddisfatto ? 'Soddisfatto' : 'Da verificare'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      <p className="border-t border-stone-200 pt-4 text-xs italic text-stone-400">{DISCLAIMER_REPORT}</p>
+    </div>
+  )
+}
+
+function ReportTable({
+  titolo,
+  righe,
+  allineaDestra,
+}: {
+  titolo: string
+  righe: [string, string][]
+  allineaDestra?: boolean
+}) {
+  return (
+    <div className="overflow-hidden rounded-md border border-stone-200">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-forest-600 text-xs uppercase text-white">
+          <tr>
+            <th className="px-3 py-2" colSpan={2}>
+              {titolo}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100">
+          {righe.map(([etichetta, valore], i) => (
+            <tr key={i}>
+              <td className="px-3 py-2 font-medium text-stone-800">{etichetta}</td>
+              <td className={`px-3 py-2 ${allineaDestra ? 'text-right' : ''}`}>{valore}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

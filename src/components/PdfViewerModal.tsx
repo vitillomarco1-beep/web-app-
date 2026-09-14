@@ -1,16 +1,19 @@
 import { useEffect } from 'react'
+import type { ReactNode } from 'react'
 
 interface Props {
-  url: string
   titolo: string
   onClose: () => void
+  children: ReactNode
 }
 
-/** Mostra un PDF in un overlay all'interno della pagina, invece che in una nuova
- * scheda: aprire una nuova scheda con window.open() richiede i permessi di popup,
- * che nel contesto sandboxato di un'anteprima pubblicata possono essere negati a
- * prescindere dal codice — un iframe nella pagina stessa non ha questo problema. */
-export default function PdfViewerModal({ url, titolo, onClose }: Props) {
+/** Overlay generico per mostrare un documento all'interno della pagina, invece che
+ * in una nuova scheda o in un iframe con un blob: un iframe/embed con src blob:
+ * può essere bloccato dalle policy di sicurezza (CSP) di un'anteprima pubblicata
+ * indipendentemente dal codice, così come window.open() può essere negato dai
+ * permessi di popup. Il contenuto (markup nativo o un canvas) va quindi renderizzato
+ * direttamente nel DOM della pagina stessa: si vedano ReportPreview e PdfCanvasViewer. */
+export default function PdfViewerModal({ titolo, onClose, children }: Props) {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -27,9 +30,7 @@ export default function PdfViewerModal({ url, titolo, onClose }: Props) {
           Chiudi ✕
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-white shadow-xl">
-        <iframe src={url} title={titolo} className="h-full w-full border-0" />
-      </div>
+      <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-xl">{children}</div>
     </div>
   )
 }

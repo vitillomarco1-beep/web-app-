@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { formatTCO2 } from '../lib/format'
 import PdfViewerModal from './PdfViewerModal'
+import ReportPreview from './ReportPreview'
 
 interface Props {
   risultato: RisultatoCalcolo
@@ -10,30 +11,7 @@ interface Props {
 }
 
 export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
-  const [generandoReport, setGenerandoReport] = useState(false)
-  const [reportUrl, setReportUrl] = useState<string | null>(null)
-
-  // Import dinamico: jsPDF porta con sé dipendenze pesanti (html2canvas, ecc.) che
-  // non servono al resto dell'app — le carichiamo solo quando serve il report.
-  // Il PDF viene mostrato in un overlay nella pagina (non in una nuova scheda):
-  // window.open() richiede permessi di popup che, nel contesto sandboxato di
-  // un'anteprima pubblicata, possono essere negati a prescindere dal codice.
-  async function handleGeneraReport() {
-    if (!dati || !nomeTitolare) return
-    setGenerandoReport(true)
-    try {
-      const { costruisciReportCalcoloPdf } = await import('../lib/reportPdf')
-      const doc = costruisciReportCalcoloPdf(nomeTitolare, dati, risultato)
-      setReportUrl(URL.createObjectURL(doc.output('blob')))
-    } finally {
-      setGenerandoReport(false)
-    }
-  }
-
-  function handleChiudiReport() {
-    if (reportUrl) URL.revokeObjectURL(reportUrl)
-    setReportUrl(null)
-  }
+  const [mostraReport, setMostraReport] = useState(false)
 
   if (!risultato.metodologiaDisponibile) {
     return (
@@ -54,13 +32,8 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold text-stone-900">Risultato del bilancio</h3>
         {dati && nomeTitolare && (
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={generandoReport}
-            onClick={handleGeneraReport}
-          >
-            {generandoReport ? 'Generazione in corso…' : '📄 Genera report PDF'}
+          <button type="button" className="btn-secondary" onClick={() => setMostraReport(true)}>
+            📄 Visualizza report del calcolo
           </button>
         )}
       </div>
@@ -118,12 +91,13 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
         </div>
       )}
 
-      {reportUrl && (
+      {mostraReport && dati && nomeTitolare && (
         <PdfViewerModal
-          url={reportUrl}
-          titolo={`Report di calcolo — ${nomeTitolare ?? ''}`}
-          onClose={handleChiudiReport}
-        />
+          titolo={`Report di calcolo — ${nomeTitolare}`}
+          onClose={() => setMostraReport(false)}
+        >
+          <ReportPreview nomeTitolare={nomeTitolare} dati={dati} risultato={risultato} />
+        </PdfViewerModal>
       )}
     </div>
   )
