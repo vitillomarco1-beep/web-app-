@@ -327,21 +327,3 @@ export function costruisciReportCalcoloPdf(
   return doc
 }
 
-/** Genera il report e lo mostra in una scheda già aperta (come blob), invece di
- * forzarne il download: più affidabile in contesti sandboxati (es. anteprime
- * pubblicate). La scheda va aperta *prima* di generare il PDF (sincronamente nel
- * gestore del click) perché jsPDF viene caricato in modo asincrono: se si chiamasse
- * window.open() solo a import completato, Chrome non lo riconoscerebbe più come
- * popup richiesto direttamente dall'utente e lo bloccherebbe. */
-export function mostraReportCalcoloPdf(
-  finestra: Window,
-  nomeTitolare: string,
-  dati: DatiCalcolo,
-  risultato: RisultatoCalcolo,
-): void {
-  const doc = costruisciReportCalcoloPdf(nomeTitolare, dati, risultato)
-  const blob = doc.output('blob')
-  const url = URL.createObjectURL(blob)
-  finestra.location.href = url
-  setTimeout(() => URL.revokeObjectURL(url), 60_000)
-}

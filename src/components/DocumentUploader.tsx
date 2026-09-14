@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FascicoloAgeaMeta } from '../types'
 import { formatDate, formatFileSize } from '../lib/format'
+import PdfViewerModal from './PdfViewerModal'
 
 interface Props {
   meta?: FascicoloAgeaMeta
@@ -29,6 +30,7 @@ export default function DocumentUploader({
 }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [viewUrl, setViewUrl] = useState<string | null>(null)
 
   async function handleFile(file: File) {
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -64,12 +66,15 @@ export default function DocumentUploader({
         setError('File non trovato: prova a ricaricarlo.')
         return
       }
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank', 'noopener')
-      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      setViewUrl(URL.createObjectURL(blob))
     } catch {
       setError('Impossibile aprire il file.')
     }
+  }
+
+  function handleCloseView() {
+    if (viewUrl) URL.revokeObjectURL(viewUrl)
+    setViewUrl(null)
   }
 
   async function handleRemove() {
@@ -128,6 +133,10 @@ export default function DocumentUploader({
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      {viewUrl && (
+        <PdfViewerModal url={viewUrl} titolo={meta?.nomeFile ?? etichetta} onClose={handleCloseView} />
+      )}
     </div>
   )
 }
