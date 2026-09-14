@@ -96,7 +96,7 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
           titolo={`Report di calcolo — ${nomeTitolare}`}
           onClose={() => setMostraReport(false)}
         >
-          <ReportPreview nomeTitolare={nomeTitolare} dati={dati} risultato={risultato} />
+          <ReportPreview nomeTitolare={nomeTitolare} dati={dati} />
         </PdfViewerModal>
       )}
     </div>

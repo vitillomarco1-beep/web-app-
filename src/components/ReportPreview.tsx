@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { DatiCalcolo, RisultatoCalcolo } from '../types'
+import type { DatiCalcolo } from '../types'
+import { calcolaBilancio } from '../lib/carbonEngine'
 import { formatDate, formatTCO2, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import {
   DISCLAIMER_REPORT,
@@ -17,7 +18,6 @@ import {
 interface Props {
   nomeTitolare: string
   dati: DatiCalcolo
-  risultato: RisultatoCalcolo
 }
 
 function n(v: number): string {
@@ -32,15 +32,22 @@ function n(v: number): string {
  * lib/reportSteps.ts), garantendo la trasparenza richiesta anche in quel
  * contesto; il pulsante "Scarica PDF" resta disponibile per generare il file
  * vero e proprio quando l'app è ospitata su un dominio senza queste restrizioni.
+ *
+ * Il risultato viene sempre ricalcolato da "dati" con il motore attuale (mai letto
+ * da un risultato eventualmente già salvato): un calcolo creato prima
+ * dell'introduzione del dettaglio dei passaggi avrebbe altrimenti un risultato
+ * salvato privo di quel dettaglio, e il report lo mostrerebbe incompleto pur
+ * essendo aggiornato all'ultima versione dell'app.
  */
-export default function ReportPreview({ nomeTitolare, dati, risultato }: Props) {
+export default function ReportPreview({ nomeTitolare, dati }: Props) {
   const [scaricando, setScaricando] = useState(false)
+  const risultato = calcolaBilancio(dati)
 
   async function handleScaricaPdf() {
     setScaricando(true)
     try {
       const { costruisciReportCalcoloPdf } = await import('../lib/reportPdf')
-      const doc = costruisciReportCalcoloPdf(nomeTitolare, dati, risultato)
+      const doc = costruisciReportCalcoloPdf(nomeTitolare, dati)
       doc.save(`report-${dati.nomeCalcolo.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`)
     } finally {
       setScaricando(false)

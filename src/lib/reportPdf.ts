@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import autoTableRaw, { type UserOptions } from 'jspdf-autotable'
-import type { DatiCalcolo, RisultatoCalcolo } from '../types'
+import type { DatiCalcolo } from '../types'
+import { calcolaBilancio } from './carbonEngine'
 import { TIPO_ATTIVITA_LABEL, formatDate } from './format'
 import {
   DISCLAIMER_REPORT,
@@ -50,12 +51,13 @@ function paragrafo(doc: jsPDF, testo: string, startY: number, marginX: number): 
 
 /** Costruisce il documento PDF di riepilogo di un calcolo, con tutti i passaggi
  * intermedi (non solo il risultato finale) per la massima trasparenza verso il
- * cliente. */
-export function costruisciReportCalcoloPdf(
-  nomeTitolare: string,
-  dati: DatiCalcolo,
-  risultato: RisultatoCalcolo,
-): jsPDF {
+ * cliente. Il risultato viene sempre ricalcolato da "dati" con il motore attuale,
+ * invece di usare quello eventualmente salvato: un calcolo creato prima
+ * dell'introduzione del dettaglio dei passaggi avrebbe altrimenti un risultato
+ * salvato privo di quel dettaglio, e il report lo mostrerebbe incompleto pur
+ * essendo aggiornato all'ultima versione. */
+export function costruisciReportCalcoloPdf(nomeTitolare: string, dati: DatiCalcolo): jsPDF {
+  const risultato = calcolaBilancio(dati)
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const marginX = 18
   const pageWidth = doc.internal.pageSize.getWidth()
