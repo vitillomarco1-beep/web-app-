@@ -212,10 +212,15 @@ export interface SimulazioneZootecnia {
    * il referto di laboratorio è fatto sulla razione unifeed, non sui singoli
    * componenti. */
   modalitaMetano?: 'daAlimenti' | 'daRazioneMiscelata'
-  /** Presente solo in modalità "daRazioneMiscelata". */
+  /** Presente solo in modalità "daRazioneMiscelata": quantità tal quale
+   * distribuita alla mandria e l'analisi di laboratorio della razione già
+   * miscelata (stessa struttura completa usata per un singolo alimento — si
+   * veda lib/analisiAlimenti.ts — perché il referto di un campione di TMR ha
+   * lo stesso formato di quello di un singolo alimento, e non sappiamo ancora
+   * su quali parametri si baserà una futura normativa). */
   razioneMiscelata?: {
-    sostanzaSeccaTotaleTAnno: number
-    ndfPercento: number
+    quantitaTAnno: number
+    analisiAlimento?: AnalisiAlimento
   }
 }
 

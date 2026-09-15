@@ -41,28 +41,40 @@ function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 3 }).format(v)
 }
 
-interface RigaMangimeProps {
-  mangime: MangimeSimulazione
-  onUpdate: (patch: Partial<MangimeSimulazione>) => void
-  onRemove: () => void
+interface AnalisiAlimentoBlockProps {
+  analisi: AnalisiAlimento
+  onChange: (patch: Partial<AnalisiAlimento>) => void
+  /** Se assenti, non esiste un valore di riferimento (alimento personalizzato o
+   * razione miscelata): niente "Ripristina default", e il messaggio lo dice
+   * esplicitamente invece di lasciare 0 senza spiegazione. */
+  defaultSostanzaSeccaPercento?: number
+  defaultCarbonioPercento?: number
+  /** A cosa servono sostanza secca/carbonio in questo contesto (cambia solo il
+   * testo esplicativo): per riga di alimento è l'assorbimento di CO2, per la
+   * razione miscelata è la stima del metano enterico. */
+  usoLabel?: string
 }
 
-/** Una riga di alimento: nome (dall'elenco o personalizzato), quantità,
- * sostanza secca/carbonio (che guidano il calcolo di assorbimento CO2) e,
- * facoltativamente, l'analisi di laboratorio completa del referto (fibra,
- * proteine, minerali, energia, ecc.) — raccolta per completezza del fascicolo
- * anche se oggi non entra in alcun calcolo. */
-function RigaMangime({ mangime: m, onUpdate, onRemove }: RigaMangimeProps) {
+/** Sostanza secca/carbonio (che guidano il calcolo indicato da usoLabel) e,
+ * facoltativamente, l'intera analisi di laboratorio del referto (proteine,
+ * fibra, grassi, minerali, energia, fermentazione, digeribilità nel tempo) —
+ * raccolta per completezza del fascicolo anche dove oggi non entra in un
+ * calcolo, così da non doverci tornare sopra quando cambierà la normativa.
+ * Riusato sia per la riga di un singolo alimento sia per un'unica razione
+ * miscelata completa (TMR). */
+function AnalisiAlimentoBlock({
+  analisi,
+  onChange,
+  defaultSostanzaSeccaPercento,
+  defaultCarbonioPercento,
+  usoLabel = "calcolarne l'assorbimento",
+}: AnalisiAlimentoBlockProps) {
   const [apertoAnalisiCompleta, setApertoAnalisiCompleta] = useState(false)
-  const rif: MangimeRiferimento | undefined = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
-  const isCustom = !rif
-  const analisi = m.analisiAlimento ?? {}
+  const haRiferimento = defaultSostanzaSeccaPercento != null
   const haAnalisiPropria =
     analisi.sostanzaSeccaPercento != null && analisi.carbonioSostanzaSeccaPercento != null
-  const sostanzaSeccaDisplay =
-    analisi.sostanzaSeccaPercento ?? (rif ? rif.frazioneSostanzaSecca * 100 : 0)
-  const carbonioDisplay =
-    analisi.carbonioSostanzaSeccaPercento ?? (rif ? rif.frazioneCarbonioSostanzaSecca * 100 : 0)
+  const sostanzaSeccaDisplay = analisi.sostanzaSeccaPercento ?? defaultSostanzaSeccaPercento ?? 0
+  const carbonioDisplay = analisi.carbonioSostanzaSeccaPercento ?? defaultCarbonioPercento ?? 0
   const suggerimentoCeneri =
     analisi.ceneriPercento != null ? suggerisciCarbonioDaCeneri(analisi.ceneriPercento) : undefined
 
@@ -71,8 +83,157 @@ function RigaMangime({ mangime: m, onUpdate, onRemove }: RigaMangimeProps) {
     return isNaN(parsed) ? 0 : parsed
   }
 
-  function aggiornaAnalisi(patch: Partial<AnalisiAlimento>) {
-    onUpdate({ analisiAlimento: { ...analisi, ...patch } })
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-2 sm:grid-cols-[8rem_8rem_1fr_auto] sm:items-center">
+        <div>
+          <label className="text-[11px] text-stone-500">Sostanza secca %</label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            className="input !py-1 text-xs"
+            value={sostanzaSeccaDisplay}
+            onChange={(e) =>
+              onChange({ sostanzaSeccaPercento: num(e.target.value), carbonioSostanzaSeccaPercento: carbonioDisplay })
+            }
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-stone-500">Carbonio % s.s.</label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            className="input !py-1 text-xs"
+            value={carbonioDisplay}
+            onChange={(e) =>
+              onChange({ sostanzaSeccaPercento: sostanzaSeccaDisplay, carbonioSostanzaSeccaPercento: num(e.target.value) })
+            }
+          />
+        </div>
+        <p className="text-[11px] text-stone-400">
+          {haAnalisiPropria
+            ? 'Valori da analisi di laboratorio specifica.'
+            : haRiferimento
+              ? "Valori indicativi di default — sostituiscili con l'analisi di laboratorio se disponibile."
+              : `Nessun valore di riferimento: inserisci sostanza secca e frazione di carbonio per ${usoLabel}.`}
+        </p>
+        {haAnalisiPropria && haRiferimento && (
+          <button
+            type="button"
+            className="text-left text-[11px] text-forest-700 underline"
+            onClick={() => onChange({ sostanzaSeccaPercento: undefined, carbonioSostanzaSeccaPercento: undefined })}
+          >
+            Ripristina default
+          </button>
+        )}
+      </div>
+
+      <div className="border-t border-stone-100 pt-2">
+        <button
+          type="button"
+          className="text-[11px] font-medium text-stone-500 underline"
+          onClick={() => setApertoAnalisiCompleta((a) => !a)}
+        >
+          🧪 {apertoAnalisiCompleta ? 'Nascondi' : 'Inserisci'} analisi di laboratorio completa
+          (facoltativa)
+        </button>
+        {apertoAnalisiCompleta && (
+          <div className="mt-2 space-y-3">
+            <p className="text-[11px] text-stone-400">
+              Dal referto di laboratorio (fieno, insilato, granella, razione miscelata…): tutti i
+              valori sono sulla sostanza secca salvo dove indicato. Solo sostanza secca e carbonio
+              (sopra) entrano nei calcoli oggi — il resto è raccolto per completezza del fascicolo,
+              utile anche se una futura normativa si baserà su altri parametri di questo referto
+              (es. NDF per il metano enterico, già usato più sotto).
+            </p>
+            <div>
+              <label className="text-[11px] text-stone-500">Umidità (% tal quale)</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.1"
+                className="input !py-1 w-32 text-xs"
+                value={analisi.umiditaPercento ?? 0}
+                onChange={(e) => onChange({ umiditaPercento: num(e.target.value) })}
+              />
+            </div>
+            {GRUPPI_ANALISI_ALIMENTO.map((gruppo) => (
+              <div key={gruppo.titolo}>
+                <p className="text-[11px] font-medium text-stone-600">{gruppo.titolo}</p>
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {gruppo.campi.map((campo) => (
+                    <div key={campo.key}>
+                      <label className="text-[11px] text-stone-500">
+                        {campo.label} <span className="text-stone-400">({campo.unita})</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={analisi[campo.key] ?? 0}
+                        onChange={(e) => onChange({ [campo.key]: num(e.target.value) })}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {gruppo.titolo.startsWith('Minerali') && (
+                  <div className="mt-1">
+                    {suggerimentoCeneri ? (
+                      <div className="flex flex-wrap items-center gap-2 rounded bg-forest-50 px-2 py-1">
+                        <p className="text-[11px] text-stone-500">
+                          Carbonio da ceneri: {suggerimentoCeneri.formula}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-[11px] font-medium text-forest-700 underline"
+                          onClick={() =>
+                            onChange({
+                              sostanzaSeccaPercento: sostanzaSeccaDisplay,
+                              carbonioSostanzaSeccaPercento: suggerimentoCeneri.valore,
+                            })
+                          }
+                        >
+                          Usa questo valore
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-stone-400">
+                        Inserisci le ceneri (% s.s.) per una stima più precisa del carbonio, basata
+                        sulla sola sostanza organica invece del default fisso.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+interface RigaMangimeProps {
+  mangime: MangimeSimulazione
+  onUpdate: (patch: Partial<MangimeSimulazione>) => void
+  onRemove: () => void
+}
+
+/** Una riga di alimento: nome (dall'elenco o personalizzato), quantità, e il
+ * blocco di analisi (sostanza secca/carbonio + laboratorio completo). */
+function RigaMangime({ mangime: m, onUpdate, onRemove }: RigaMangimeProps) {
+  const rif: MangimeRiferimento | undefined = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
+  const isCustom = !rif
+  const analisi = m.analisiAlimento ?? {}
+
+  function num(v: string): number {
+    const parsed = parseFloat(v)
+    return isNaN(parsed) ? 0 : parsed
   }
 
   return (
@@ -140,134 +301,13 @@ function RigaMangime({ mangime: m, onUpdate, onRemove }: RigaMangimeProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-2 sm:grid-cols-[8rem_8rem_1fr_auto] sm:items-center">
-        <div>
-          <label className="text-[11px] text-stone-500">Sostanza secca %</label>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step="0.1"
-            className="input !py-1 text-xs"
-            value={sostanzaSeccaDisplay}
-            onChange={(e) =>
-              aggiornaAnalisi({ sostanzaSeccaPercento: num(e.target.value), carbonioSostanzaSeccaPercento: carbonioDisplay })
-            }
-          />
-        </div>
-        <div>
-          <label className="text-[11px] text-stone-500">Carbonio % s.s.</label>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step="0.1"
-            className="input !py-1 text-xs"
-            value={carbonioDisplay}
-            onChange={(e) =>
-              aggiornaAnalisi({ sostanzaSeccaPercento: sostanzaSeccaDisplay, carbonioSostanzaSeccaPercento: num(e.target.value) })
-            }
-          />
-        </div>
-        <p className="text-[11px] text-stone-400">
-          {haAnalisiPropria
-            ? "Valori da analisi di laboratorio specifica dell'alimento."
-            : rif
-              ? "Valori indicativi di default — sostituiscili con l'analisi di laboratorio dell'alimento se disponibile."
-              : 'Alimento personalizzato: inserisci sostanza secca e frazione di carbonio per calcolarne l\'assorbimento (nessun default disponibile).'}
-        </p>
-        {haAnalisiPropria && rif && (
-          <button
-            type="button"
-            className="text-left text-[11px] text-forest-700 underline"
-            onClick={() => aggiornaAnalisi({ sostanzaSeccaPercento: undefined, carbonioSostanzaSeccaPercento: undefined })}
-          >
-            Ripristina default
-          </button>
-        )}
-      </div>
-
-      <div className="border-t border-stone-100 pt-2">
-        <button
-          type="button"
-          className="text-[11px] font-medium text-stone-500 underline"
-          onClick={() => setApertoAnalisiCompleta((a) => !a)}
-        >
-          🧪 {apertoAnalisiCompleta ? 'Nascondi' : 'Inserisci'} analisi di laboratorio completa
-          (facoltativa)
-        </button>
-        {apertoAnalisiCompleta && (
-          <div className="mt-2 space-y-3">
-            <p className="text-[11px] text-stone-400">
-              Dal referto di laboratorio dell'alimento (fieno, insilato, granella…): tutti i valori
-              sono sulla sostanza secca salvo dove indicato. Non entrano nel calcolo
-              dell'assorbimento di CO2 (che usa solo sostanza secca e carbonio, sopra) — sono
-              raccolti per completezza del fascicolo.
-            </p>
-            <div>
-              <label className="text-[11px] text-stone-500">Umidità (% tal quale)</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step="0.1"
-                className="input !py-1 w-32 text-xs"
-                value={analisi.umiditaPercento ?? 0}
-                onChange={(e) => aggiornaAnalisi({ umiditaPercento: num(e.target.value) })}
-              />
-            </div>
-            {GRUPPI_ANALISI_ALIMENTO.map((gruppo) => (
-              <div key={gruppo.titolo}>
-                <p className="text-[11px] font-medium text-stone-600">{gruppo.titolo}</p>
-                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {gruppo.campi.map((campo) => (
-                    <div key={campo.key}>
-                      <label className="text-[11px] text-stone-500">
-                        {campo.label} <span className="text-stone-400">({campo.unita})</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input !py-1 text-xs"
-                        value={analisi[campo.key] ?? 0}
-                        onChange={(e) => aggiornaAnalisi({ [campo.key]: num(e.target.value) })}
-                      />
-                    </div>
-                  ))}
-                </div>
-                {gruppo.titolo.startsWith('Minerali') && (
-                  <div className="mt-1">
-                    {suggerimentoCeneri ? (
-                      <div className="flex flex-wrap items-center gap-2 rounded bg-forest-50 px-2 py-1">
-                        <p className="text-[11px] text-stone-500">
-                          Carbonio da ceneri: {suggerimentoCeneri.formula}
-                        </p>
-                        <button
-                          type="button"
-                          className="text-[11px] font-medium text-forest-700 underline"
-                          onClick={() =>
-                            aggiornaAnalisi({
-                              sostanzaSeccaPercento: sostanzaSeccaDisplay,
-                              carbonioSostanzaSeccaPercento: suggerimentoCeneri.valore,
-                            })
-                          }
-                        >
-                          Usa questo valore
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-stone-400">
-                        Inserisci le ceneri (% s.s.) per una stima più precisa del carbonio, basata
-                        sulla sola sostanza organica invece del default fisso.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <AnalisiAlimentoBlock
+        analisi={analisi}
+        onChange={(patch) => onUpdate({ analisiAlimento: { ...analisi, ...patch } })}
+        defaultSostanzaSeccaPercento={rif ? rif.frazioneSostanzaSecca * 100 : undefined}
+        defaultCarbonioPercento={rif ? rif.frazioneCarbonioSostanzaSecca * 100 : undefined}
+        usoLabel="calcolarne l'assorbimento"
+      />
     </div>
   )
 }
@@ -355,16 +395,17 @@ export default function SimulazioneZootecniaTool({
   }
 
   const modalitaMetano = sim.modalitaMetano ?? 'daAlimenti'
-  const razioneMiscelata = sim.razioneMiscelata ?? { sostanzaSeccaTotaleTAnno: 0, ndfPercento: 0 }
+  const razioneMiscelata = sim.razioneMiscelata ?? { quantitaTAnno: 0, analisiAlimento: {} }
+  const analisiRazioneMiscelata = razioneMiscelata.analisiAlimento ?? {}
 
   const righeDieta =
     modalitaMetano === 'daRazioneMiscelata'
       ? [
           {
             nomeMangime: 'Razione miscelata (TMR)',
-            quantitaTAnno: razioneMiscelata.sostanzaSeccaTotaleTAnno,
-            sostanzaSeccaPercento: 100,
-            andfomPercento: razioneMiscelata.ndfPercento > 0 ? razioneMiscelata.ndfPercento : undefined,
+            quantitaTAnno: razioneMiscelata.quantitaTAnno,
+            sostanzaSeccaPercento: analisiRazioneMiscelata.sostanzaSeccaPercento ?? 0,
+            andfomPercento: analisiRazioneMiscelata.andfomPercento,
           },
         ]
       : sim.mangimi.map((m) => ({
@@ -378,6 +419,10 @@ export default function SimulazioneZootecniaTool({
 
   function aggiornaRazioneMiscelata(patch: Partial<typeof razioneMiscelata>) {
     onChange({ ...sim, razioneMiscelata: { ...razioneMiscelata, ...patch } })
+  }
+
+  function aggiornaAnalisiRazioneMiscelata(patch: Partial<AnalisiAlimento>) {
+    aggiornaRazioneMiscelata({ analisiAlimento: { ...analisiRazioneMiscelata, ...patch } })
   }
 
   const risultato = calcolaSimulazioneZootecnia(
@@ -514,38 +559,31 @@ export default function SimulazioneZootecniaTool({
                 </div>
 
                 {modalitaMetano === 'daRazioneMiscelata' ? (
-                  <div className="grid grid-cols-1 gap-2 rounded-md bg-stone-50 p-2 sm:grid-cols-2">
+                  <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+                    <p className="text-[11px] text-stone-400">
+                      Un campione della razione unifeed già miscelata ha lo stesso referto di
+                      laboratorio di un singolo alimento (sostanza secca, NDF, proteine, minerali,
+                      energia…): inseriscilo qui per intero, non solo l'NDF, così i dati sono pronti
+                      qualunque parametro finisca per richiedere la normativa futura.
+                    </p>
                     <div>
                       <label className="text-[11px] text-stone-500">
-                        Sostanza secca totale ingerita dalla mandria (t/anno)
+                        Razione distribuita alla mandria (t/anno, tal quale)
                       </label>
                       <input
                         type="number"
                         min={0}
                         step="0.01"
-                        className="input !py-1 text-xs"
-                        value={razioneMiscelata.sostanzaSeccaTotaleTAnno}
-                        onChange={(e) =>
-                          aggiornaRazioneMiscelata({ sostanzaSeccaTotaleTAnno: num(e.target.value) })
-                        }
+                        className="input !py-1 w-48 text-xs"
+                        value={razioneMiscelata.quantitaTAnno}
+                        onChange={(e) => aggiornaRazioneMiscelata({ quantitaTAnno: num(e.target.value) })}
                       />
                     </div>
-                    <div>
-                      <label className="text-[11px] text-stone-500">NDF (aNDFom) della razione (% s.s.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.1"
-                        className="input !py-1 text-xs"
-                        value={razioneMiscelata.ndfPercento}
-                        onChange={(e) => aggiornaRazioneMiscelata({ ndfPercento: num(e.target.value) })}
-                      />
-                    </div>
-                    <p className="text-[11px] text-stone-400 sm:col-span-2">
-                      Dal referto di laboratorio della razione unifeed/TMR già miscelata — comodo
-                      quando l'analisi è fatta sulla razione finita invece che sui singoli alimenti.
-                    </p>
+                    <AnalisiAlimentoBlock
+                      analisi={analisiRazioneMiscelata}
+                      onChange={aggiornaAnalisiRazioneMiscelata}
+                      usoLabel="stimare il metano enterico"
+                    />
                   </div>
                 ) : (
                   <div className="rounded-md bg-stone-50 p-2">
