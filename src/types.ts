@@ -1,3 +1,5 @@
+import type { AnalisiAlimento } from './lib/analisiAlimenti'
+
 export type TipoAttivita = 'agricoltura_agroforestazione' | 'imboschimento' | 'zootecnia'
 
 /** Metadati del fascicolo aziendale AGEA caricato per il cliente (il PDF vero e
@@ -151,12 +153,14 @@ export interface MangimeSimulazione {
    * altro produttore, il cui assorbimento è già suo (o a lui attribuibile) — per
    * evitare un doppio conteggio non entra nel bilancio simulato. */
   autoprodotto: boolean
-  /** Sostanza secca (%) e frazione di carbonio sulla sostanza secca (%) da
-   * un'analisi di laboratorio specifica per questo alimento. Se assenti si usa
-   * il valore indicativo di MANGIMI_RIFERIMENTO (per un alimento personalizzato,
-   * senza analisi, il calcolo resta a zero finché non vengono inseriti). */
-  sostanzaSeccaPercento?: number
-  carbonioSostanzaSeccaPercento?: number
+  /** Analisi di laboratorio specifica per questo alimento (referto fieno/insilato
+   * o simile) — si veda lib/analisiAlimenti.ts. Solo sostanzaSeccaPercento e
+   * carbonioSostanzaSeccaPercento entrano nel calcolo dell'assorbimento di CO2:
+   * se assenti si usa il valore indicativo di MANGIMI_RIFERIMENTO (per un
+   * alimento personalizzato, senza analisi, il calcolo resta a zero finché non
+   * vengono inseriti). Il resto dei campi è raccolto per completezza del
+   * fascicolo, anche se oggi non entra in alcun calcolo. */
+  analisiAlimento?: AnalisiAlimento
 }
 
 /**

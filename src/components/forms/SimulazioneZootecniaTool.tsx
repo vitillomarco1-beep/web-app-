@@ -5,8 +5,14 @@ import {
   INTENSITA_EMISSIVA_RIFERIMENTO,
   MANGIMI_RIFERIMENTO,
   calcolaSimulazioneZootecnia,
+  type MangimeRiferimento,
 } from '../../lib/simulazioneZootecnia'
 import { calcolaStandardizzazioneLatte } from '../../lib/standardizzazioneLatte'
+import {
+  GRUPPI_ANALISI_ALIMENTO,
+  suggerisciCarbonioDaCeneri,
+  type AnalisiAlimento,
+} from '../../lib/analisiAlimenti'
 import { formatTCO2 } from '../../lib/format'
 
 /** Tipologie per cui ha senso proporre la standardizzazione del latte (produzione
@@ -31,6 +37,237 @@ function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia
 
 function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 3 }).format(v)
+}
+
+interface RigaMangimeProps {
+  mangime: MangimeSimulazione
+  onUpdate: (patch: Partial<MangimeSimulazione>) => void
+  onRemove: () => void
+}
+
+/** Una riga di alimento: nome (dall'elenco o personalizzato), quantità,
+ * sostanza secca/carbonio (che guidano il calcolo di assorbimento CO2) e,
+ * facoltativamente, l'analisi di laboratorio completa del referto (fibra,
+ * proteine, minerali, energia, ecc.) — raccolta per completezza del fascicolo
+ * anche se oggi non entra in alcun calcolo. */
+function RigaMangime({ mangime: m, onUpdate, onRemove }: RigaMangimeProps) {
+  const [apertoAnalisiCompleta, setApertoAnalisiCompleta] = useState(false)
+  const rif: MangimeRiferimento | undefined = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
+  const isCustom = !rif
+  const analisi = m.analisiAlimento ?? {}
+  const haAnalisiPropria =
+    analisi.sostanzaSeccaPercento != null && analisi.carbonioSostanzaSeccaPercento != null
+  const sostanzaSeccaDisplay =
+    analisi.sostanzaSeccaPercento ?? (rif ? rif.frazioneSostanzaSecca * 100 : 0)
+  const carbonioDisplay =
+    analisi.carbonioSostanzaSeccaPercento ?? (rif ? rif.frazioneCarbonioSostanzaSecca * 100 : 0)
+  const suggerimentoCeneri =
+    analisi.ceneriPercento != null ? suggerisciCarbonioDaCeneri(analisi.ceneriPercento) : undefined
+
+  function num(v: string): number {
+    const parsed = parseFloat(v)
+    return isNaN(parsed) ? 0 : parsed
+  }
+
+  function aggiornaAnalisi(patch: Partial<AnalisiAlimento>) {
+    onUpdate({ analisiAlimento: { ...analisi, ...patch } })
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_7rem_7rem_auto] sm:items-center">
+        {isCustom ? (
+          <div className="flex gap-1">
+            <input
+              type="text"
+              className="input !py-1 text-xs"
+              placeholder="Nome alimento personalizzato"
+              value={m.nomeMangime}
+              onChange={(e) => onUpdate({ nomeMangime: e.target.value })}
+            />
+            <button
+              type="button"
+              title="Scegli dall'elenco"
+              className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
+              onClick={() =>
+                onUpdate({ nomeMangime: MANGIMI_RIFERIMENTO[0].nome, analisiAlimento: undefined })
+              }
+            >
+              ↩
+            </button>
+          </div>
+        ) : (
+          <select
+            className="input !py-1 text-xs"
+            value={m.nomeMangime}
+            onChange={(e) =>
+              onUpdate({
+                nomeMangime: e.target.value === '__custom__' ? '' : e.target.value,
+                analisiAlimento: undefined,
+              })
+            }
+          >
+            {MANGIMI_RIFERIMENTO.map((r) => (
+              <option key={r.nome} value={r.nome}>
+                {r.nome}
+              </option>
+            ))}
+            <option value="__custom__">➕ Alimento personalizzato…</option>
+          </select>
+        )}
+        <input
+          type="number"
+          min={0}
+          step="0.1"
+          className="input !py-1 text-xs"
+          placeholder="t/anno"
+          value={m.quantitaTAnno}
+          onChange={(e) => onUpdate({ quantitaTAnno: num(e.target.value) })}
+        />
+        <label className="flex items-center gap-1.5 text-xs text-stone-600">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+            checked={m.autoprodotto}
+            onChange={(e) => onUpdate({ autoprodotto: e.target.checked })}
+          />
+          Autoprodotto
+        </label>
+        <button type="button" className="btn-danger !px-2 !py-1 text-xs" onClick={onRemove}>
+          Rimuovi
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-2 sm:grid-cols-[8rem_8rem_1fr_auto] sm:items-center">
+        <div>
+          <label className="text-[11px] text-stone-500">Sostanza secca %</label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            className="input !py-1 text-xs"
+            value={sostanzaSeccaDisplay}
+            onChange={(e) =>
+              aggiornaAnalisi({ sostanzaSeccaPercento: num(e.target.value), carbonioSostanzaSeccaPercento: carbonioDisplay })
+            }
+          />
+        </div>
+        <div>
+          <label className="text-[11px] text-stone-500">Carbonio % s.s.</label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step="0.1"
+            className="input !py-1 text-xs"
+            value={carbonioDisplay}
+            onChange={(e) =>
+              aggiornaAnalisi({ sostanzaSeccaPercento: sostanzaSeccaDisplay, carbonioSostanzaSeccaPercento: num(e.target.value) })
+            }
+          />
+        </div>
+        <p className="text-[11px] text-stone-400">
+          {haAnalisiPropria
+            ? "Valori da analisi di laboratorio specifica dell'alimento."
+            : rif
+              ? "Valori indicativi di default — sostituiscili con l'analisi di laboratorio dell'alimento se disponibile."
+              : 'Alimento personalizzato: inserisci sostanza secca e frazione di carbonio per calcolarne l\'assorbimento (nessun default disponibile).'}
+        </p>
+        {haAnalisiPropria && rif && (
+          <button
+            type="button"
+            className="text-left text-[11px] text-forest-700 underline"
+            onClick={() => aggiornaAnalisi({ sostanzaSeccaPercento: undefined, carbonioSostanzaSeccaPercento: undefined })}
+          >
+            Ripristina default
+          </button>
+        )}
+      </div>
+
+      <div className="border-t border-stone-100 pt-2">
+        <button
+          type="button"
+          className="text-[11px] font-medium text-stone-500 underline"
+          onClick={() => setApertoAnalisiCompleta((a) => !a)}
+        >
+          🧪 {apertoAnalisiCompleta ? 'Nascondi' : 'Inserisci'} analisi di laboratorio completa
+          (facoltativa)
+        </button>
+        {apertoAnalisiCompleta && (
+          <div className="mt-2 space-y-3">
+            <p className="text-[11px] text-stone-400">
+              Dal referto di laboratorio dell'alimento (fieno, insilato, granella…): tutti i valori
+              sono sulla sostanza secca salvo dove indicato. Non entrano nel calcolo
+              dell'assorbimento di CO2 (che usa solo sostanza secca e carbonio, sopra) — sono
+              raccolti per completezza del fascicolo.
+            </p>
+            <div>
+              <label className="text-[11px] text-stone-500">Umidità (% tal quale)</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.1"
+                className="input !py-1 w-32 text-xs"
+                value={analisi.umiditaPercento ?? 0}
+                onChange={(e) => aggiornaAnalisi({ umiditaPercento: num(e.target.value) })}
+              />
+            </div>
+            {GRUPPI_ANALISI_ALIMENTO.map((gruppo) => (
+              <div key={gruppo.titolo}>
+                <p className="text-[11px] font-medium text-stone-600">{gruppo.titolo}</p>
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {gruppo.campi.map((campo) => (
+                    <div key={campo.key}>
+                      <label className="text-[11px] text-stone-500">
+                        {campo.label} <span className="text-stone-400">({campo.unita})</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={analisi[campo.key] ?? 0}
+                        onChange={(e) => aggiornaAnalisi({ [campo.key]: num(e.target.value) })}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {gruppo.titolo.startsWith('Minerali') && (
+                  <div className="mt-1">
+                    {suggerimentoCeneri ? (
+                      <div className="flex flex-wrap items-center gap-2 rounded bg-forest-50 px-2 py-1">
+                        <p className="text-[11px] text-stone-500">
+                          Carbonio da ceneri: {suggerimentoCeneri.formula}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-[11px] font-medium text-forest-700 underline"
+                          onClick={() =>
+                            aggiornaAnalisi({
+                              sostanzaSeccaPercento: sostanzaSeccaDisplay,
+                              carbonioSostanzaSeccaPercento: suggerimentoCeneri.valore,
+                            })
+                          }
+                        >
+                          Usa questo valore
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-stone-400">
+                        Inserisci le ceneri (% s.s.) per una stima più precisa del carbonio, basata
+                        sulla sola sostanza organica invece del default fisso.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 /** Strumento di simulazione — esplicitamente non certificabile — per anticipare un
@@ -158,158 +395,14 @@ export default function SimulazioneZootecniaTool({
             {sim.mangimi.length === 0 && (
               <p className="text-xs text-stone-400">Nessun alimento inserito.</p>
             )}
-            {sim.mangimi.map((m) => {
-              const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
-              const isCustom = !rif
-              const haAnalisiPropria =
-                m.sostanzaSeccaPercento != null && m.carbonioSostanzaSeccaPercento != null
-              const sostanzaSeccaDisplay =
-                m.sostanzaSeccaPercento ?? (rif ? rif.frazioneSostanzaSecca * 100 : 0)
-              const carbonioDisplay =
-                m.carbonioSostanzaSeccaPercento ?? (rif ? rif.frazioneCarbonioSostanzaSecca * 100 : 0)
-
-              return (
-                <div key={m.id} className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_7rem_7rem_auto] sm:items-center">
-                    {isCustom ? (
-                      <div className="flex gap-1">
-                        <input
-                          type="text"
-                          className="input !py-1 text-xs"
-                          placeholder="Nome alimento personalizzato"
-                          value={m.nomeMangime}
-                          onChange={(e) => aggiornaMangime(m.id, { nomeMangime: e.target.value })}
-                        />
-                        <button
-                          type="button"
-                          title="Scegli dall'elenco"
-                          className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
-                          onClick={() =>
-                            aggiornaMangime(m.id, {
-                              nomeMangime: MANGIMI_RIFERIMENTO[0].nome,
-                              sostanzaSeccaPercento: undefined,
-                              carbonioSostanzaSeccaPercento: undefined,
-                            })
-                          }
-                        >
-                          ↩
-                        </button>
-                      </div>
-                    ) : (
-                      <select
-                        className="input !py-1 text-xs"
-                        value={m.nomeMangime}
-                        onChange={(e) => {
-                          if (e.target.value === '__custom__') {
-                            aggiornaMangime(m.id, {
-                              nomeMangime: '',
-                              sostanzaSeccaPercento: undefined,
-                              carbonioSostanzaSeccaPercento: undefined,
-                            })
-                          } else {
-                            aggiornaMangime(m.id, {
-                              nomeMangime: e.target.value,
-                              sostanzaSeccaPercento: undefined,
-                              carbonioSostanzaSeccaPercento: undefined,
-                            })
-                          }
-                        }}
-                      >
-                        {MANGIMI_RIFERIMENTO.map((r) => (
-                          <option key={r.nome} value={r.nome}>
-                            {r.nome}
-                          </option>
-                        ))}
-                        <option value="__custom__">➕ Alimento personalizzato…</option>
-                      </select>
-                    )}
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.1"
-                      className="input !py-1 text-xs"
-                      placeholder="t/anno"
-                      value={m.quantitaTAnno}
-                      onChange={(e) => aggiornaMangime(m.id, { quantitaTAnno: num(e.target.value) })}
-                    />
-                    <label className="flex items-center gap-1.5 text-xs text-stone-600">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
-                        checked={m.autoprodotto}
-                        onChange={(e) => aggiornaMangime(m.id, { autoprodotto: e.target.checked })}
-                      />
-                      Autoprodotto
-                    </label>
-                    <button
-                      type="button"
-                      className="btn-danger !px-2 !py-1 text-xs"
-                      onClick={() => rimuoviMangime(m.id)}
-                    >
-                      Rimuovi
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-2 sm:grid-cols-[8rem_8rem_1fr_auto] sm:items-center">
-                    <div>
-                      <label className="text-[11px] text-stone-500">Sostanza secca %</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.1"
-                        className="input !py-1 text-xs"
-                        value={sostanzaSeccaDisplay}
-                        onChange={(e) =>
-                          aggiornaMangime(m.id, {
-                            sostanzaSeccaPercento: num(e.target.value),
-                            carbonioSostanzaSeccaPercento: carbonioDisplay,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-stone-500">Carbonio % s.s.</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.1"
-                        className="input !py-1 text-xs"
-                        value={carbonioDisplay}
-                        onChange={(e) =>
-                          aggiornaMangime(m.id, {
-                            sostanzaSeccaPercento: sostanzaSeccaDisplay,
-                            carbonioSostanzaSeccaPercento: num(e.target.value),
-                          })
-                        }
-                      />
-                    </div>
-                    <p className="text-[11px] text-stone-400">
-                      {haAnalisiPropria
-                        ? 'Valori da analisi di laboratorio specifica dell\'alimento.'
-                        : rif
-                          ? 'Valori indicativi di default — sostituiscili con l\'analisi di laboratorio dell\'alimento se disponibile.'
-                          : 'Alimento personalizzato: inserisci sostanza secca e frazione di carbonio per calcolarne l\'assorbimento (nessun default disponibile).'}
-                    </p>
-                    {haAnalisiPropria && rif && (
-                      <button
-                        type="button"
-                        className="text-left text-[11px] text-forest-700 underline"
-                        onClick={() =>
-                          aggiornaMangime(m.id, {
-                            sostanzaSeccaPercento: undefined,
-                            carbonioSostanzaSeccaPercento: undefined,
-                          })
-                        }
-                      >
-                        Ripristina default
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {sim.mangimi.map((m) => (
+              <RigaMangime
+                key={m.id}
+                mangime={m}
+                onUpdate={(patch) => aggiornaMangime(m.id, patch)}
+                onRemove={() => rimuoviMangime(m.id)}
+              />
+            ))}
           </div>
 
           {risultato.righeMangimi.length > 0 && (

@@ -136,8 +136,10 @@ type MangimeRigaInput = {
   nomeMangime: string
   quantitaTAnno: number
   autoprodotto: boolean
-  sostanzaSeccaPercento?: number
-  carbonioSostanzaSeccaPercento?: number
+  analisiAlimento?: {
+    sostanzaSeccaPercento?: number
+    carbonioSostanzaSeccaPercento?: number
+  }
 }
 
 /** Calcola, riga per riga, l'assorbimento di CO2 stimato nell'alimento autoprodotto
@@ -150,14 +152,11 @@ type MangimeRigaInput = {
 export function calcolaRigheMangimi(mangimi: MangimeRigaInput[]): RigaMangimeCalcolata[] {
   return mangimi.map((m) => {
     const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
-    const daAnalisiSpecifica =
-      m.sostanzaSeccaPercento != null && m.carbonioSostanzaSeccaPercento != null
-    const frazioneSostanzaSecca = daAnalisiSpecifica
-      ? m.sostanzaSeccaPercento! / 100
-      : (rif?.frazioneSostanzaSecca ?? 0)
-    const frazioneCarbonioSostanzaSecca = daAnalisiSpecifica
-      ? m.carbonioSostanzaSeccaPercento! / 100
-      : (rif?.frazioneCarbonioSostanzaSecca ?? 0)
+    const ss = m.analisiAlimento?.sostanzaSeccaPercento
+    const c = m.analisiAlimento?.carbonioSostanzaSeccaPercento
+    const daAnalisiSpecifica = ss != null && c != null
+    const frazioneSostanzaSecca = daAnalisiSpecifica ? ss! / 100 : (rif?.frazioneSostanzaSecca ?? 0)
+    const frazioneCarbonioSostanzaSecca = daAnalisiSpecifica ? c! / 100 : (rif?.frazioneCarbonioSostanzaSecca ?? 0)
 
     if (!m.autoprodotto) {
       return {
