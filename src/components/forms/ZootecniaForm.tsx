@@ -3,6 +3,7 @@ import type { DatiZootecnia } from '../../types'
 import ChecklistPanel from '../ChecklistPanel'
 import { CHECKLIST_ZOOTECNIA } from '../../lib/checklist'
 import { TIPOLOGIA_ALLEVAMENTO_LABEL } from '../../lib/format'
+import SimulazioneZootecniaTool from './SimulazioneZootecniaTool'
 
 function defaultData(): DatiZootecnia {
   return {
@@ -173,6 +174,13 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel }: Props)
           />
         </div>
       </div>
+
+      <SimulazioneZootecniaTool
+        tipologiaAllevamento={dati.tipologiaAllevamento}
+        numeroCapiMedio={dati.numeroCapiMedio}
+        value={dati.simulazioneZootecnia}
+        onChange={(simulazioneZootecnia) => setDati({ ...dati, simulazioneZootecnia })}
+      />
 
       <div className="card">
         <ChecklistPanel

@@ -130,16 +130,44 @@ export interface DatiImboschimento extends DatiGenerali, DatiQuantificazione {
  * cliente pronto: il motore di calcolo verrà completato non appena sarà pubblicata la
  * direttiva/atto delegato dedicato.
  */
+export type TipologiaAllevamento =
+  | 'bovini_da_latte'
+  | 'bovini_da_carne'
+  | 'suini'
+  | 'ovicaprini'
+  | 'avicoli'
+  | 'misto'
+  | 'altro'
+
+/** Una voce di mangime ingerito dall'allevamento, per la simulazione facoltativa
+ * del bilancio zootecnico (si veda SimulazioneZootecnia). */
+export interface MangimeSimulazione {
+  id: string
+  nomeMangime: string
+  quantitaTAnno: number
+  /** true = coltivato sui terreni dell'azienda stessa; false = acquistato da un
+   * altro produttore, il cui assorbimento è già suo (o a lui attribuibile) — per
+   * evitare un doppio conteggio non entra nel bilancio simulato. */
+  autoprodotto: boolean
+}
+
+/**
+ * Simulazione facoltativa e NON CERTIFICABILE di un possibile bilancio tra
+ * l'assorbimento di carbonio del mangime autoprodotto ingerito dagli animali e le
+ * emissioni dirette dell'allevamento (fermentazione enterica + gestione reflui):
+ * anticipa un'ipotesi di come una futura normativa UE per la zootecnia potrebbe
+ * rendicontare questi due termini, ma nessun atto delegato la definisce oggi. Va
+ * tenuta visivamente e concettualmente separata dal calcolo ufficiale.
+ */
+export interface SimulazioneZootecnia {
+  mangimi: MangimeSimulazione[]
+  /** t CO2eq per capo all'anno, default indicativo per tipologia ma sempre modificabile. */
+  emissioniDirettePerCapoTCO2eqAnno: number
+}
+
 export interface DatiZootecnia extends DatiGenerali {
   tipoAttivita: 'zootecnia'
-  tipologiaAllevamento:
-    | 'bovini_da_latte'
-    | 'bovini_da_carne'
-    | 'suini'
-    | 'ovicaprini'
-    | 'avicoli'
-    | 'misto'
-    | 'altro'
+  tipologiaAllevamento: TipologiaAllevamento
   numeroCapiMedio: number
   /** pratiche di mitigazione previste/adottate, in attesa dei fattori di calcolo ufficiali */
   pratiche: {
@@ -151,6 +179,7 @@ export interface DatiZootecnia extends DatiGenerali {
     alimentazionePrecisione: boolean
   }
   noteMetodologiche?: string
+  simulazioneZootecnia?: SimulazioneZootecnia
   checklist: ChecklistAmmissibilita
 }
 
