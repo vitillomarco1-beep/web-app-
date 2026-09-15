@@ -173,14 +173,16 @@ export interface SimulazioneZootecnia {
    * produzioneGiornalieraStallaKgGiorno × 365 in modalità "giornaliera", oppure
    * sostituita con il valore standardizzato (FPCM/ECM) applicato da analisiLatte. */
   produzioneAnnuaTProdotto: number
-  /** Analisi del latte (produzione tal quale + grasso/proteina/lattosio %)
-   * facilmente reperibili in azienda, usate per standardizzare la produzione in
-   * FPCM, ECM o FCM 3,5% prima di applicarla (con un pulsante esplicito) a
+  /** Analisi del latte (media di stalla per capo + numero di animali in
+   * mungitura + grasso/proteina/lattosio %) facilmente reperibili in azienda,
+   * usate per standardizzare la produzione in FPCM, ECM o FCM 3,5% (per capo e
+   * di mandria) prima di applicarla (con un pulsante esplicito) a
    * produzioneAnnuaTProdotto — si veda lib/standardizzazioneLatte.ts. Tenuta
    * separata da produzioneAnnuaTProdotto apposta, per evitare di ri-standardizzare
    * un valore già standardizzato. */
   analisiLatte?: {
-    produzioneTalQualeTAnno: number
+    mediaStallaKgCapoGiorno: number
+    numeroAnimaliMungitura: number
     grassoPercento: number
     proteinaPercento: number
     lattosioPercento: number

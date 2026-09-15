@@ -49,7 +49,8 @@ export default function SimulazioneZootecniaTool({
   const riferimento = INTENSITA_EMISSIVA_RIFERIMENTO[tipologiaAllevamento]
   const mostraStandardizzazioneLatte = TIPOLOGIE_CON_LATTE.includes(tipologiaAllevamento)
   const analisiLatte = sim.analisiLatte ?? {
-    produzioneTalQualeTAnno: 0,
+    mediaStallaKgCapoGiorno: 0,
+    numeroAnimaliMungitura: 0,
     grassoPercento: 0,
     proteinaPercento: 0,
     lattosioPercento: 0,
@@ -250,22 +251,37 @@ export default function SimulazioneZootecniaTool({
               {apertoAnalisiLatte && (
                 <div className="space-y-3 border-t border-stone-200 p-3">
                   <p className="text-xs text-stone-500">
-                    Inserisci la produzione di latte tal quale e i valori di grasso, proteina e
-                    lattosio delle analisi periodiche (bollettino qualità latte, caseificio o
-                    cooperativa): il latte viene così standardizzato a una composizione fissa,
-                    comparabile nel tempo e tra aziende diverse.
+                    Inserisci la media di stalla al giorno per capo (facile da rilevare al
+                    sopralluogo), il numero di animali in mungitura e i valori di grasso, proteina
+                    e lattosio delle analisi periodiche (bollettino qualità latte, caseificio o
+                    cooperativa): il latte viene così standardizzato per capo e poi moltiplicato
+                    per il numero di animali in mungitura e per 365 giorni, per una produzione
+                    annua di mandria comparabile nel tempo e tra aziende diverse.
                   </p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                     <div>
-                      <label className="label !mb-1 text-xs">Latte tal quale (t/anno)</label>
+                      <label className="label !mb-1 text-xs">Media di stalla (kg/capo/giorno)</label>
                       <input
                         type="number"
                         min={0}
                         step="0.01"
                         className="input !py-1 text-xs"
-                        value={analisiLatte.produzioneTalQualeTAnno}
+                        value={analisiLatte.mediaStallaKgCapoGiorno}
                         onChange={(e) =>
-                          aggiornaAnalisiLatte({ produzioneTalQualeTAnno: num(e.target.value) })
+                          aggiornaAnalisiLatte({ mediaStallaKgCapoGiorno: num(e.target.value) })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label !mb-1 text-xs">Animali in mungitura</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="1"
+                        className="input !py-1 text-xs"
+                        value={analisiLatte.numeroAnimaliMungitura}
+                        onChange={(e) =>
+                          aggiornaAnalisiLatte({ numeroAnimaliMungitura: num(e.target.value) })
                         }
                       />
                     </div>
