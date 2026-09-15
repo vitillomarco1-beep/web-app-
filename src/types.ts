@@ -206,6 +206,17 @@ export interface SimulazioneZootecnia {
    * del metano enterico dalla razione (si veda lib/metanoEnterico.ts). Se
    * assente, Ym è calcolato automaticamente dall'NDF medio della razione. */
   ymMetanoEntericoPercento?: number
+  /** Come ottenere sostanza secca/NDF per la stima del metano enterico: dai
+   * singoli alimenti sopra (pesati sulla sostanza secca) oppure da un'unica
+   * analisi della razione miscelata completa (TMR) già pronta — comodo quando
+   * il referto di laboratorio è fatto sulla razione unifeed, non sui singoli
+   * componenti. */
+  modalitaMetano?: 'daAlimenti' | 'daRazioneMiscelata'
+  /** Presente solo in modalità "daRazioneMiscelata". */
+  razioneMiscelata?: {
+    sostanzaSeccaTotaleTAnno: number
+    ndfPercento: number
+  }
 }
 
 export interface DatiZootecnia extends DatiGenerali {

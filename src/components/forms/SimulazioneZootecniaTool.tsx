@@ -354,15 +354,31 @@ export default function SimulazioneZootecniaTool({
     onChange({ ...sim, mangimi: sim.mangimi.filter((m) => m.id !== id) })
   }
 
-  const risultatoMetano = calcolaMetanoEnterico(
-    sim.mangimi.map((m) => ({
-      nomeMangime: m.nomeMangime,
-      quantitaTAnno: m.quantitaTAnno,
-      sostanzaSeccaPercento: risolviSostanzaSeccaPercento(m.nomeMangime, m.analisiAlimento),
-      andfomPercento: m.analisiAlimento?.andfomPercento,
-    })),
-    sim.ymMetanoEntericoPercento,
-  )
+  const modalitaMetano = sim.modalitaMetano ?? 'daAlimenti'
+  const razioneMiscelata = sim.razioneMiscelata ?? { sostanzaSeccaTotaleTAnno: 0, ndfPercento: 0 }
+
+  const righeDieta =
+    modalitaMetano === 'daRazioneMiscelata'
+      ? [
+          {
+            nomeMangime: 'Razione miscelata (TMR)',
+            quantitaTAnno: razioneMiscelata.sostanzaSeccaTotaleTAnno,
+            sostanzaSeccaPercento: 100,
+            andfomPercento: razioneMiscelata.ndfPercento > 0 ? razioneMiscelata.ndfPercento : undefined,
+          },
+        ]
+      : sim.mangimi.map((m) => ({
+          nomeMangime: m.nomeMangime,
+          quantitaTAnno: m.quantitaTAnno,
+          sostanzaSeccaPercento: risolviSostanzaSeccaPercento(m.nomeMangime, m.analisiAlimento),
+          andfomPercento: m.analisiAlimento?.andfomPercento,
+        }))
+
+  const risultatoMetano = calcolaMetanoEnterico(righeDieta, sim.ymMetanoEntericoPercento)
+
+  function aggiornaRazioneMiscelata(patch: Partial<typeof razioneMiscelata>) {
+    onChange({ ...sim, razioneMiscelata: { ...razioneMiscelata, ...patch } })
+  }
 
   const risultato = calcolaSimulazioneZootecnia(
     sim.mangimi,
@@ -474,10 +490,69 @@ export default function SimulazioneZootecniaTool({
                   approfondimento parziale, <strong>non entra nel bilancio simulato</strong> qui
                   sotto.
                 </p>
-                <div className="rounded-md bg-stone-50 p-2">
-                  <p className="text-stone-600">NDF medio della razione (pesato sulla sostanza secca)</p>
-                  <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaNdf}</p>
+                <div className="flex flex-wrap gap-3 text-[11px] text-stone-600">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="modalitaMetano"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={modalitaMetano === 'daAlimenti'}
+                      onChange={() => onChange({ ...sim, modalitaMetano: 'daAlimenti' })}
+                    />
+                    Da singoli alimenti (sopra)
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="modalitaMetano"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={modalitaMetano === 'daRazioneMiscelata'}
+                      onChange={() => onChange({ ...sim, modalitaMetano: 'daRazioneMiscelata' })}
+                    />
+                    Da analisi della razione miscelata completa (TMR)
+                  </label>
                 </div>
+
+                {modalitaMetano === 'daRazioneMiscelata' ? (
+                  <div className="grid grid-cols-1 gap-2 rounded-md bg-stone-50 p-2 sm:grid-cols-2">
+                    <div>
+                      <label className="text-[11px] text-stone-500">
+                        Sostanza secca totale ingerita dalla mandria (t/anno)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={razioneMiscelata.sostanzaSeccaTotaleTAnno}
+                        onChange={(e) =>
+                          aggiornaRazioneMiscelata({ sostanzaSeccaTotaleTAnno: num(e.target.value) })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-500">NDF (aNDFom) della razione (% s.s.)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.1"
+                        className="input !py-1 text-xs"
+                        value={razioneMiscelata.ndfPercento}
+                        onChange={(e) => aggiornaRazioneMiscelata({ ndfPercento: num(e.target.value) })}
+                      />
+                    </div>
+                    <p className="text-[11px] text-stone-400 sm:col-span-2">
+                      Dal referto di laboratorio della razione unifeed/TMR già miscelata — comodo
+                      quando l'analisi è fatta sulla razione finita invece che sui singoli alimenti.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-md bg-stone-50 p-2">
+                    <p className="text-stone-600">NDF medio della razione (pesato sulla sostanza secca)</p>
+                    <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaNdf}</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-end">
                   <div className="rounded-md bg-stone-50 p-2">
                     <p className="text-stone-600">Fattore di conversione del metano (Ym)</p>
