@@ -30,8 +30,12 @@ function n(v: number): string {
  * del PDF possono essere bloccati indipendentemente dal codice. Questa vista
  * mostra sempre gli stessi dati/passaggi del PDF scaricabile (stessa fonte:
  * lib/reportSteps.ts), garantendo la trasparenza richiesta anche in quel
- * contesto; il pulsante "Scarica PDF" resta disponibile per generare il file
- * vero e proprio quando l'app è ospitata su un dominio senza queste restrizioni.
+ * contesto. Per lo stesso motivo, anche il download avviato da script (doc.save()
+ * di jsPDF) può essere bloccato nella stessa anteprima: resta disponibile per chi
+ * ospita l'app su un dominio senza queste restrizioni, ma l'azione consigliata è
+ * "Stampa / Salva come PDF" (window.print()), che passa dalla stampa nativa del
+ * browser invece che da un download avviato dalla pagina — si veda index.css per
+ * come viene isolato il solo contenuto del report in fase di stampa.
  *
  * Il risultato viene sempre ricalcolato da "dati" con il motore attuale (mai letto
  * da un risultato eventualmente già salvato): un calcolo creato prima
@@ -58,7 +62,7 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
   const checklist = checklistPer(dati)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 p-5 sm:p-8">
+    <div className="report-print-area mx-auto max-w-2xl space-y-5 p-5 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 pb-4">
         <div>
           <h2 className="text-lg font-bold text-stone-900">Report di calcolo — crediti di carbonio</h2>
@@ -70,9 +74,14 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
             Documento generato il {new Intl.DateTimeFormat('it-IT', { dateStyle: 'long' }).format(new Date())}
           </p>
         </div>
-        <button type="button" className="btn-secondary shrink-0" disabled={scaricando} onClick={handleScaricaPdf}>
-          {scaricando ? 'Generazione…' : '⬇️ Scarica PDF'}
-        </button>
+        <div className="flex shrink-0 gap-2 print:hidden">
+          <button type="button" className="btn-primary" onClick={() => window.print()}>
+            🖨️ Stampa / Salva come PDF
+          </button>
+          <button type="button" className="btn-secondary" disabled={scaricando} onClick={handleScaricaPdf}>
+            {scaricando ? 'Generazione…' : '⬇️ Scarica PDF'}
+          </button>
+        </div>
       </div>
 
       <ReportTable

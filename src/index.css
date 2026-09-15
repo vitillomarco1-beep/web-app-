@@ -33,3 +33,30 @@ body {
 .btn-danger {
   @apply inline-flex items-center justify-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50;
 }
+
+/* Stampa/"Salva come PDF" del report di calcolo: nell'anteprima pubblicata di
+ * quest'app, il download avviato da script (doc.save() di jsPDF, equivalente a un
+ * link <a download>) è bloccato dalla sandbox del visualizzatore indipendentemente
+ * dal codice — così come lo erano window.open() e gli iframe con blob: già corretti
+ * in precedenza. La stampa nativa del browser (window.print(), con "Salva come PDF"
+ * come stampante) non passa da nessuno di questi meccanismi, quindi non è soggetta
+ * alla stessa restrizione. Isoliamo in stampa solo l'elemento .report-print-area,
+ * nascondendo il resto della pagina (intestazione dell'app, pulsanti dell'overlay),
+ * col classico pattern CSS che funziona a prescindere da dove quell'elemento si
+ * trovi nell'albero del DOM.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .report-print-area,
+  .report-print-area * {
+    visibility: visible;
+  }
+  .report-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
