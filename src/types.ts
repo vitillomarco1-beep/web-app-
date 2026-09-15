@@ -143,12 +143,20 @@ export type TipologiaAllevamento =
  * del bilancio zootecnico (si veda SimulazioneZootecnia). */
 export interface MangimeSimulazione {
   id: string
+  /** Nome dell'alimento: uno di quelli in MANGIMI_RIFERIMENTO (lib/simulazioneZootecnia.ts)
+   * oppure un nome libero per un alimento personalizzato non in elenco. */
   nomeMangime: string
   quantitaTAnno: number
   /** true = coltivato sui terreni dell'azienda stessa; false = acquistato da un
    * altro produttore, il cui assorbimento è già suo (o a lui attribuibile) — per
    * evitare un doppio conteggio non entra nel bilancio simulato. */
   autoprodotto: boolean
+  /** Sostanza secca (%) e frazione di carbonio sulla sostanza secca (%) da
+   * un'analisi di laboratorio specifica per questo alimento. Se assenti si usa
+   * il valore indicativo di MANGIMI_RIFERIMENTO (per un alimento personalizzato,
+   * senza analisi, il calcolo resta a zero finché non vengono inseriti). */
+  sostanzaSeccaPercento?: number
+  carbonioSostanzaSeccaPercento?: number
 }
 
 /**

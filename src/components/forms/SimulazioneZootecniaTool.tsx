@@ -158,49 +158,158 @@ export default function SimulazioneZootecniaTool({
             {sim.mangimi.length === 0 && (
               <p className="text-xs text-stone-400">Nessun alimento inserito.</p>
             )}
-            {sim.mangimi.map((m) => (
-              <div
-                key={m.id}
-                className="grid grid-cols-1 gap-2 rounded-md border border-stone-200 bg-white p-2 sm:grid-cols-[1fr_7rem_7rem_auto] sm:items-center"
-              >
-                <select
-                  className="input !py-1 text-xs"
-                  value={m.nomeMangime}
-                  onChange={(e) => aggiornaMangime(m.id, { nomeMangime: e.target.value })}
-                >
-                  {MANGIMI_RIFERIMENTO.map((r) => (
-                    <option key={r.nome} value={r.nome}>
-                      {r.nome}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.1"
-                  className="input !py-1 text-xs"
-                  placeholder="t/anno"
-                  value={m.quantitaTAnno}
-                  onChange={(e) => aggiornaMangime(m.id, { quantitaTAnno: num(e.target.value) })}
-                />
-                <label className="flex items-center gap-1.5 text-xs text-stone-600">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
-                    checked={m.autoprodotto}
-                    onChange={(e) => aggiornaMangime(m.id, { autoprodotto: e.target.checked })}
-                  />
-                  Autoprodotto
-                </label>
-                <button
-                  type="button"
-                  className="btn-danger !px-2 !py-1 text-xs"
-                  onClick={() => rimuoviMangime(m.id)}
-                >
-                  Rimuovi
-                </button>
-              </div>
-            ))}
+            {sim.mangimi.map((m) => {
+              const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
+              const isCustom = !rif
+              const haAnalisiPropria =
+                m.sostanzaSeccaPercento != null && m.carbonioSostanzaSeccaPercento != null
+              const sostanzaSeccaDisplay =
+                m.sostanzaSeccaPercento ?? (rif ? rif.frazioneSostanzaSecca * 100 : 0)
+              const carbonioDisplay =
+                m.carbonioSostanzaSeccaPercento ?? (rif ? rif.frazioneCarbonioSostanzaSecca * 100 : 0)
+
+              return (
+                <div key={m.id} className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_7rem_7rem_auto] sm:items-center">
+                    {isCustom ? (
+                      <div className="flex gap-1">
+                        <input
+                          type="text"
+                          className="input !py-1 text-xs"
+                          placeholder="Nome alimento personalizzato"
+                          value={m.nomeMangime}
+                          onChange={(e) => aggiornaMangime(m.id, { nomeMangime: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          title="Scegli dall'elenco"
+                          className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
+                          onClick={() =>
+                            aggiornaMangime(m.id, {
+                              nomeMangime: MANGIMI_RIFERIMENTO[0].nome,
+                              sostanzaSeccaPercento: undefined,
+                              carbonioSostanzaSeccaPercento: undefined,
+                            })
+                          }
+                        >
+                          ↩
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        className="input !py-1 text-xs"
+                        value={m.nomeMangime}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') {
+                            aggiornaMangime(m.id, {
+                              nomeMangime: '',
+                              sostanzaSeccaPercento: undefined,
+                              carbonioSostanzaSeccaPercento: undefined,
+                            })
+                          } else {
+                            aggiornaMangime(m.id, {
+                              nomeMangime: e.target.value,
+                              sostanzaSeccaPercento: undefined,
+                              carbonioSostanzaSeccaPercento: undefined,
+                            })
+                          }
+                        }}
+                      >
+                        {MANGIMI_RIFERIMENTO.map((r) => (
+                          <option key={r.nome} value={r.nome}>
+                            {r.nome}
+                          </option>
+                        ))}
+                        <option value="__custom__">➕ Alimento personalizzato…</option>
+                      </select>
+                    )}
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      className="input !py-1 text-xs"
+                      placeholder="t/anno"
+                      value={m.quantitaTAnno}
+                      onChange={(e) => aggiornaMangime(m.id, { quantitaTAnno: num(e.target.value) })}
+                    />
+                    <label className="flex items-center gap-1.5 text-xs text-stone-600">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+                        checked={m.autoprodotto}
+                        onChange={(e) => aggiornaMangime(m.id, { autoprodotto: e.target.checked })}
+                      />
+                      Autoprodotto
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-danger !px-2 !py-1 text-xs"
+                      onClick={() => rimuoviMangime(m.id)}
+                    >
+                      Rimuovi
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-2 sm:grid-cols-[8rem_8rem_1fr_auto] sm:items-center">
+                    <div>
+                      <label className="text-[11px] text-stone-500">Sostanza secca %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.1"
+                        className="input !py-1 text-xs"
+                        value={sostanzaSeccaDisplay}
+                        onChange={(e) =>
+                          aggiornaMangime(m.id, {
+                            sostanzaSeccaPercento: num(e.target.value),
+                            carbonioSostanzaSeccaPercento: carbonioDisplay,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-500">Carbonio % s.s.</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.1"
+                        className="input !py-1 text-xs"
+                        value={carbonioDisplay}
+                        onChange={(e) =>
+                          aggiornaMangime(m.id, {
+                            sostanzaSeccaPercento: sostanzaSeccaDisplay,
+                            carbonioSostanzaSeccaPercento: num(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <p className="text-[11px] text-stone-400">
+                      {haAnalisiPropria
+                        ? 'Valori da analisi di laboratorio specifica dell\'alimento.'
+                        : rif
+                          ? 'Valori indicativi di default — sostituiscili con l\'analisi di laboratorio dell\'alimento se disponibile.'
+                          : 'Alimento personalizzato: inserisci sostanza secca e frazione di carbonio per calcolarne l\'assorbimento (nessun default disponibile).'}
+                    </p>
+                    {haAnalisiPropria && rif && (
+                      <button
+                        type="button"
+                        className="text-left text-[11px] text-forest-700 underline"
+                        onClick={() =>
+                          aggiornaMangime(m.id, {
+                            sostanzaSeccaPercento: undefined,
+                            carbonioSostanzaSeccaPercento: undefined,
+                          })
+                        }
+                      >
+                        Ripristina default
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           {risultato.righeMangimi.length > 0 && (

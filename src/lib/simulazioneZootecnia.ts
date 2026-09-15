@@ -123,37 +123,74 @@ export interface RigaMangimeCalcolata {
   nomeMangime: string
   quantitaTAnno: number
   autoprodotto: boolean
+  /** true se i valori di sostanza secca/frazione C usati sono un'analisi di
+   * laboratorio specifica dell'alimento (riga), false se è il default indicativo
+   * di MANGIMI_RIFERIMENTO (o se manca del tutto, per un alimento personalizzato
+   * senza analisi). */
+  daAnalisiSpecifica: boolean
   formula: string
   assorbimentoTCO2: number
 }
 
+type MangimeRigaInput = {
+  nomeMangime: string
+  quantitaTAnno: number
+  autoprodotto: boolean
+  sostanzaSeccaPercento?: number
+  carbonioSostanzaSeccaPercento?: number
+}
+
 /** Calcola, riga per riga, l'assorbimento di CO2 stimato nell'alimento autoprodotto
  * (l'alimento acquistato è escluso dal conteggio ma resta visibile in tabella, con
- * la formula che ne mostra il motivo). */
-export function calcolaRigheMangimi(
-  mangimi: { nomeMangime: string; quantitaTAnno: number; autoprodotto: boolean }[],
-): RigaMangimeCalcolata[] {
+ * la formula che ne mostra il motivo). Usa l'analisi di laboratorio specifica
+ * dell'alimento quando presente in riga, altrimenti il default indicativo di
+ * MANGIMI_RIFERIMENTO — per un alimento personalizzato senza analisi il calcolo
+ * resta onestamente a zero, invece di applicare in silenzio i valori di un altro
+ * alimento. */
+export function calcolaRigheMangimi(mangimi: MangimeRigaInput[]): RigaMangimeCalcolata[] {
   return mangimi.map((m) => {
-    const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime) ?? MANGIMI_RIFERIMENTO[0]
+    const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
+    const daAnalisiSpecifica =
+      m.sostanzaSeccaPercento != null && m.carbonioSostanzaSeccaPercento != null
+    const frazioneSostanzaSecca = daAnalisiSpecifica
+      ? m.sostanzaSeccaPercento! / 100
+      : (rif?.frazioneSostanzaSecca ?? 0)
+    const frazioneCarbonioSostanzaSecca = daAnalisiSpecifica
+      ? m.carbonioSostanzaSeccaPercento! / 100
+      : (rif?.frazioneCarbonioSostanzaSecca ?? 0)
+
     if (!m.autoprodotto) {
       return {
         nomeMangime: m.nomeMangime,
         quantitaTAnno: m.quantitaTAnno,
         autoprodotto: false,
+        daAnalisiSpecifica,
         formula: 'Acquistato da fuori: assorbimento già attribuito (o attribuibile) a chi l\'ha coltivato — escluso qui per evitare un doppio conteggio.',
         assorbimentoTCO2: 0,
       }
     }
-    const sostanzaSeccaTAnno = m.quantitaTAnno * rif.frazioneSostanzaSecca
-    const carbonioTAnno = sostanzaSeccaTAnno * rif.frazioneCarbonioSostanzaSecca
+    if (!rif && !daAnalisiSpecifica) {
+      return {
+        nomeMangime: m.nomeMangime,
+        quantitaTAnno: m.quantitaTAnno,
+        autoprodotto: true,
+        daAnalisiSpecifica: false,
+        formula:
+          'Alimento personalizzato senza analisi di sostanza secca/frazione di carbonio: inseriscile nella riga per calcolare l\'assorbimento (nessun valore di riferimento disponibile).',
+        assorbimentoTCO2: 0,
+      }
+    }
+    const sostanzaSeccaTAnno = m.quantitaTAnno * frazioneSostanzaSecca
+    const carbonioTAnno = sostanzaSeccaTAnno * frazioneCarbonioSostanzaSecca
     const assorbimentoTCO2 = carbonioTAnno * CONVERSIONE_C_CO2
     return {
       nomeMangime: m.nomeMangime,
       quantitaTAnno: m.quantitaTAnno,
       autoprodotto: true,
+      daAnalisiSpecifica,
       formula:
-        `${n(m.quantitaTAnno)} t × ${n(rif.frazioneSostanzaSecca)} (sostanza secca) × ` +
-        `${n(rif.frazioneCarbonioSostanzaSecca)} (frazione C) × 44/12 = ${n(assorbimentoTCO2)} t CO2`,
+        `${n(m.quantitaTAnno)} t × ${n(frazioneSostanzaSecca)} (sostanza secca${daAnalisiSpecifica ? ', da analisi' : ', default'}) × ` +
+        `${n(frazioneCarbonioSostanzaSecca)} (frazione C${daAnalisiSpecifica ? ', da analisi' : ', default'}) × 44/12 = ${n(assorbimentoTCO2)} t CO2`,
       assorbimentoTCO2,
     }
   })
@@ -172,7 +209,7 @@ export interface RisultatoSimulazioneZootecnia {
 }
 
 export function calcolaSimulazioneZootecnia(
-  mangimi: { nomeMangime: string; quantitaTAnno: number; autoprodotto: boolean }[],
+  mangimi: MangimeRigaInput[],
   produzioneAnnuaTProdotto: number,
   intensitaEmissivaTCO2eqPerTProdotto: number,
 ): RisultatoSimulazioneZootecnia {
