@@ -161,8 +161,11 @@ export interface MangimeSimulazione {
  */
 export interface SimulazioneZootecnia {
   mangimi: MangimeSimulazione[]
-  /** t CO2eq per capo all'anno, default indicativo per tipologia ma sempre modificabile. */
-  emissioniDirettePerCapoTCO2eqAnno: number
+  /** Produzione annua del prodotto principale (latte, carne, uova) in t/anno. */
+  produzioneAnnuaTProdotto: number
+  /** Intensità emissiva (t CO2eq per t di prodotto), default indicativo per
+   * tipologia da letteratura scientifica ma sempre modificabile. */
+  intensitaEmissivaTCO2eqPerTProdotto: number
 }
 
 export interface DatiZootecnia extends DatiGenerali {

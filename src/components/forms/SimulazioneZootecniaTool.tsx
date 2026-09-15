@@ -2,15 +2,14 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { MangimeSimulazione, SimulazioneZootecnia, TipologiaAllevamento } from '../../types'
 import {
-  FATTORE_EMISSIONE_DIRETTA_TIPOLOGIA,
+  INTENSITA_EMISSIVA_RIFERIMENTO,
   MANGIMI_RIFERIMENTO,
   calcolaSimulazioneZootecnia,
 } from '../../lib/simulazioneZootecnia'
-import { formatTCO2, TIPOLOGIA_ALLEVAMENTO_LABEL } from '../../lib/format'
+import { formatTCO2 } from '../../lib/format'
 
 interface Props {
   tipologiaAllevamento: TipologiaAllevamento
-  numeroCapiMedio: number
   value: SimulazioneZootecnia | undefined
   onChange: (v: SimulazioneZootecnia) => void
 }
@@ -18,22 +17,24 @@ interface Props {
 function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia {
   return {
     mangimi: [],
-    emissioniDirettePerCapoTCO2eqAnno: FATTORE_EMISSIONE_DIRETTA_TIPOLOGIA[tipologia] ?? 0,
+    produzioneAnnuaTProdotto: 0,
+    intensitaEmissivaTCO2eqPerTProdotto:
+      INTENSITA_EMISSIVA_RIFERIMENTO[tipologia]?.defaultTCO2PerTProdotto ?? 0,
   }
 }
 
 /** Strumento di simulazione — esplicitamente non certificabile — per anticipare un
- * possibile bilancio tra assorbimento dell'alimento autoprodotto ed emissioni dirette
- * dell'allevamento, in vista di una futura normativa UE per la zootecnia che oggi
- * non esiste ancora. */
+ * possibile bilancio tra assorbimento dell'alimento autoprodotto ed emissioni
+ * dirette dell'allevamento (espresse per unità di prodotto: latte, carne, uova),
+ * in vista di una futura normativa UE per la zootecnia che oggi non esiste ancora. */
 export default function SimulazioneZootecniaTool({
   tipologiaAllevamento,
-  numeroCapiMedio,
   value,
   onChange,
 }: Props) {
   const [aperto, setAperto] = useState(false)
   const sim = value ?? simulazioneVuota(tipologiaAllevamento)
+  const riferimento = INTENSITA_EMISSIVA_RIFERIMENTO[tipologiaAllevamento]
 
   function num(v: string): number {
     const n = parseFloat(v)
@@ -60,8 +61,8 @@ export default function SimulazioneZootecniaTool({
 
   const risultato = calcolaSimulazioneZootecnia(
     sim.mangimi,
-    sim.emissioniDirettePerCapoTCO2eqAnno,
-    numeroCapiMedio,
+    sim.produzioneAnnuaTProdotto,
+    sim.intensitaEmissivaTCO2eqPerTProdotto,
   )
 
   return (
@@ -86,9 +87,10 @@ export default function SimulazioneZootecniaTool({
             </strong>{' '}
             Questo strumento anticipa un'ipotesi discussa in letteratura — bilanciare
             l'assorbimento di carbonio dell'alimento autoprodotto ingerito dagli animali con le
-            emissioni dirette dell'allevamento (fermentazione enterica + gestione reflui) — a
-            scopo di pianificazione. Il risultato <strong>non entra nel bilancio ufficiale dei
-            crediti</strong> e non va presentato a un cliente come credito certificabile.
+            emissioni dirette dell'allevamento, espresse per unità di prodotto (stessa logica su
+            entrambi i lati) — a scopo di pianificazione. Il risultato{' '}
+            <strong>non entra nel bilancio ufficiale dei crediti</strong> e non va presentato a un
+            cliente come credito certificabile.
           </p>
 
           <div className="space-y-2">
@@ -180,23 +182,46 @@ export default function SimulazioneZootecniaTool({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label text-xs">Emissioni dirette per capo (t CO2eq/capo/anno)</label>
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                className="input"
-                value={sim.emissioniDirettePerCapoTCO2eqAnno}
-                onChange={(e) =>
-                  onChange({ ...sim, emissioniDirettePerCapoTCO2eqAnno: num(e.target.value) })
-                }
-              />
-              <p className="mt-1 text-xs text-stone-400">
-                Default indicativo per {TIPOLOGIA_ALLEVAMENTO_LABEL[tipologiaAllevamento]}:
-                fermentazione enterica + gestione reflui, stima da valori Tier 1 IPCC non
-                verificati alla fonte in questa sessione. Da confermare o sostituire.
-              </p>
+            <div className="space-y-3">
+              <div>
+                <label className="label text-xs">
+                  Produzione annua di {riferimento?.prodotto ?? 'prodotto principale'} (t/anno)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  className="input"
+                  value={sim.produzioneAnnuaTProdotto}
+                  onChange={(e) =>
+                    onChange({ ...sim, produzioneAnnuaTProdotto: num(e.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <label className="label text-xs">Intensità emissiva (t CO2eq per t di prodotto)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  className="input"
+                  value={sim.intensitaEmissivaTCO2eqPerTProdotto}
+                  onChange={(e) =>
+                    onChange({ ...sim, intensitaEmissivaTCO2eqPerTProdotto: num(e.target.value) })
+                  }
+                />
+                {riferimento ? (
+                  <p className="mt-1 text-xs text-stone-400">
+                    Intervallo di letteratura: {formatTCO2(riferimento.rangeMinTCO2PerTProdotto)}–
+                    {formatTCO2(riferimento.rangeMaxTCO2PerTProdotto)} t CO2eq/t. {riferimento.fonte}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-stone-400">
+                    Nessun valore di riferimento per questa tipologia di allevamento (troppo
+                    eterogenea): inserisci un valore da una fonte verificata.
+                  </p>
+                )}
+              </div>
             </div>
             <div className="rounded-md bg-white p-3 text-xs">
               <p className="text-stone-600">Emissioni dirette totali</p>

@@ -177,7 +177,6 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel }: Props)
 
       <SimulazioneZootecniaTool
         tipologiaAllevamento={dati.tipologiaAllevamento}
-        numeroCapiMedio={dati.numeroCapiMedio}
         value={dati.simulazioneZootecnia}
         onChange={(simulazioneZootecnia) => setDati({ ...dati, simulazioneZootecnia })}
       />
