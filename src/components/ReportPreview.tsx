@@ -74,13 +74,19 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
             Documento generato il {new Intl.DateTimeFormat('it-IT', { dateStyle: 'long' }).format(new Date())}
           </p>
         </div>
-        <div className="flex shrink-0 gap-2 print:hidden">
-          <button type="button" className="btn-primary" onClick={() => window.print()}>
-            🖨️ Stampa / Salva come PDF
-          </button>
-          <button type="button" className="btn-secondary" disabled={scaricando} onClick={handleScaricaPdf}>
-            {scaricando ? 'Generazione…' : '⬇️ Scarica PDF'}
-          </button>
+        <div className="flex shrink-0 flex-col items-end gap-1 print:hidden">
+          <div className="flex gap-2">
+            <button type="button" className="btn-primary" onClick={() => window.print()}>
+              🖨️ Stampa / Salva come PDF
+            </button>
+            <button type="button" className="btn-secondary" disabled={scaricando} onClick={handleScaricaPdf}>
+              {scaricando ? 'Generazione…' : '⬇️ Scarica PDF'}
+            </button>
+          </div>
+          <p className="max-w-[16rem] text-right text-xs text-stone-400">
+            Nell'anteprima Claude questi pulsanti possono non rispondere: funzionano una volta
+            pubblicata l'app su un dominio proprio. Il report resta comunque consultabile qui sopra.
+          </p>
         </div>
       </div>
 
