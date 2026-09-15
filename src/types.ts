@@ -202,6 +202,10 @@ export interface SimulazioneZootecnia {
   /** Intensità emissiva (t CO2eq per t di prodotto), default indicativo per
    * tipologia da letteratura scientifica ma sempre modificabile. */
   intensitaEmissivaTCO2eqPerTProdotto: number
+  /** Override manuale del fattore di conversione del metano Ym (%) per la stima
+   * del metano enterico dalla razione (si veda lib/metanoEnterico.ts). Se
+   * assente, Ym è calcolato automaticamente dall'NDF medio della razione. */
+  ymMetanoEntericoPercento?: number
 }
 
 export interface DatiZootecnia extends DatiGenerali {

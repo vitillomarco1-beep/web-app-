@@ -5,6 +5,7 @@ import {
   INTENSITA_EMISSIVA_RIFERIMENTO,
   MANGIMI_RIFERIMENTO,
   calcolaSimulazioneZootecnia,
+  risolviSostanzaSeccaPercento,
   type MangimeRiferimento,
 } from '../../lib/simulazioneZootecnia'
 import { calcolaStandardizzazioneLatte } from '../../lib/standardizzazioneLatte'
@@ -13,6 +14,7 @@ import {
   suggerisciCarbonioDaCeneri,
   type AnalisiAlimento,
 } from '../../lib/analisiAlimenti'
+import { calcolaMetanoEnterico } from '../../lib/metanoEnterico'
 import { formatTCO2 } from '../../lib/format'
 
 /** Tipologie per cui ha senso proporre la standardizzazione del latte (produzione
@@ -281,6 +283,7 @@ export default function SimulazioneZootecniaTool({
 }: Props) {
   const [aperto, setAperto] = useState(false)
   const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
+  const [apertoMetano, setApertoMetano] = useState(false)
   const sim = value ?? simulazioneVuota(tipologiaAllevamento)
   const modalita = sim.modalitaProduzione ?? 'annuale'
   const riferimento = INTENSITA_EMISSIVA_RIFERIMENTO[tipologiaAllevamento]
@@ -350,6 +353,16 @@ export default function SimulazioneZootecniaTool({
   function rimuoviMangime(id: string) {
     onChange({ ...sim, mangimi: sim.mangimi.filter((m) => m.id !== id) })
   }
+
+  const risultatoMetano = calcolaMetanoEnterico(
+    sim.mangimi.map((m) => ({
+      nomeMangime: m.nomeMangime,
+      quantitaTAnno: m.quantitaTAnno,
+      sostanzaSeccaPercento: risolviSostanzaSeccaPercento(m.nomeMangime, m.analisiAlimento),
+      andfomPercento: m.analisiAlimento?.andfomPercento,
+    })),
+    sim.ymMetanoEntericoPercento,
+  )
 
   const risultato = calcolaSimulazioneZootecnia(
     sim.mangimi,
@@ -436,6 +449,95 @@ export default function SimulazioneZootecniaTool({
           <div className="rounded-md bg-white p-3 text-xs">
             <p className="text-stone-600">Assorbimento totale da alimento autoprodotto</p>
             <p className="mt-0.5 text-stone-500">{risultato.formulaAssorbimento}</p>
+          </div>
+
+          <div className="rounded-md border border-stone-200 bg-white">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between px-3 py-2 text-left"
+              onClick={() => setApertoMetano((a) => !a)}
+            >
+              <span className="text-xs font-semibold text-stone-700">
+                🐄💨 Stima metano enterico dalla razione (IPCC Tier 2 — approfondimento)
+              </span>
+              <span className="text-stone-500">{apertoMetano ? '−' : '+'}</span>
+            </button>
+            {apertoMetano && (
+              <div className="space-y-3 border-t border-stone-200 p-3 text-xs">
+                <p className="text-stone-500">
+                  Al variare della fibra (NDF) della razione variano le emissioni di metano in
+                  fermentazione ruminale: questa stima usa l'NDF (aNDFom) inserito nell'analisi di
+                  laboratorio di ciascun alimento (sopra) per stimare il metano enterico con il
+                  metodo Tier 2 IPCC. Copre <strong>solo il metano enterico</strong>, non l'intera
+                  intensità emissiva usata nel bilancio (che da letteratura include anche gestione
+                  reflui ed emissioni a monte della produzione dell'alimento): resta un
+                  approfondimento parziale, <strong>non entra nel bilancio simulato</strong> qui
+                  sotto.
+                </p>
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">NDF medio della razione (pesato sulla sostanza secca)</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaNdf}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-end">
+                  <div className="rounded-md bg-stone-50 p-2">
+                    <p className="text-stone-600">Fattore di conversione del metano (Ym)</p>
+                    <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaYm}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-stone-500">
+                      Ym manuale (%) — lascia vuoto per il calcolo automatico da NDF
+                    </label>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.1"
+                        className="input !py-1 text-xs"
+                        placeholder="automatico"
+                        value={sim.ymMetanoEntericoPercento ?? ''}
+                        onChange={(e) =>
+                          onChange({
+                            ...sim,
+                            ymMetanoEntericoPercento: e.target.value === '' ? undefined : num(e.target.value),
+                          })
+                        }
+                      />
+                      {sim.ymMetanoEntericoPercento != null && (
+                        <button
+                          type="button"
+                          className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
+                          onClick={() => onChange({ ...sim, ymMetanoEntericoPercento: undefined })}
+                        >
+                          Auto
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-stone-400">
+                      Per diete da ingrasso ad alto concentrato (≥90% concentrato) la letteratura
+                      indica Ym ≈ 3,0%: inseriscilo qui a mano, non è riconosciuto automaticamente.
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">Ingestione di energia lorda (GEI)</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaGei}</p>
+                </div>
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">Metano enterico stimato</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaCh4}</p>
+                </div>
+                <div className="rounded-md bg-forest-50 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-stone-700">In CO2 equivalente (GWP CH4)</p>
+                    <span className="font-semibold text-stone-800">
+                      {formatTCO2(risultatoMetano.ch4TCO2eq)} t CO2eq
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaCh4CO2eq}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {mostraStandardizzazioneLatte && (

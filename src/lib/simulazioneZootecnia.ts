@@ -132,7 +132,7 @@ export interface RigaMangimeCalcolata {
   assorbimentoTCO2: number
 }
 
-type MangimeRigaInput = {
+export type MangimeRigaInput = {
   nomeMangime: string
   quantitaTAnno: number
   autoprodotto: boolean
@@ -140,6 +140,21 @@ type MangimeRigaInput = {
     sostanzaSeccaPercento?: number
     carbonioSostanzaSeccaPercento?: number
   }
+}
+
+/** Risolve la sostanza secca (%) di una riga di alimento: l'analisi di
+ * laboratorio specifica se presente, altrimenti il default indicativo di
+ * MANGIMI_RIFERIMENTO (0 per un alimento personalizzato senza analisi). Usata
+ * sia per il calcolo di assorbimento CO2 sia per la stima del metano enterico
+ * dalla razione (si veda lib/metanoEnterico.ts), che deve ripartire sulla
+ * stessa base di sostanza secca. */
+export function risolviSostanzaSeccaPercento(
+  nomeMangime: string,
+  analisiAlimento?: { sostanzaSeccaPercento?: number },
+): number {
+  if (analisiAlimento?.sostanzaSeccaPercento != null) return analisiAlimento.sostanzaSeccaPercento
+  const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === nomeMangime)
+  return rif ? rif.frazioneSostanzaSecca * 100 : 0
 }
 
 /** Calcola, riga per riga, l'assorbimento di CO2 stimato nell'alimento autoprodotto
@@ -152,10 +167,9 @@ type MangimeRigaInput = {
 export function calcolaRigheMangimi(mangimi: MangimeRigaInput[]): RigaMangimeCalcolata[] {
   return mangimi.map((m) => {
     const rif = MANGIMI_RIFERIMENTO.find((r) => r.nome === m.nomeMangime)
-    const ss = m.analisiAlimento?.sostanzaSeccaPercento
     const c = m.analisiAlimento?.carbonioSostanzaSeccaPercento
-    const daAnalisiSpecifica = ss != null && c != null
-    const frazioneSostanzaSecca = daAnalisiSpecifica ? ss! / 100 : (rif?.frazioneSostanzaSecca ?? 0)
+    const daAnalisiSpecifica = m.analisiAlimento?.sostanzaSeccaPercento != null && c != null
+    const frazioneSostanzaSecca = risolviSostanzaSeccaPercento(m.nomeMangime, m.analisiAlimento) / 100
     const frazioneCarbonioSostanzaSecca = daAnalisiSpecifica ? c! / 100 : (rif?.frazioneCarbonioSostanzaSecca ?? 0)
 
     if (!m.autoprodotto) {
