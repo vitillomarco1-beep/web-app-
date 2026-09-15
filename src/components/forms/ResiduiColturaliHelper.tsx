@@ -85,7 +85,7 @@ export default function ResiduiColturaliHelper({ onCalcola }: Props) {
             <div className="col-span-2">
               <label className="label text-xs">
                 Quota di residuo lasciata in campo (%) — il resto (es. paglia raccolta per
-                lettiera/mangime) non torna al suolo
+                lettiera/alimento) non torna al suolo
               </label>
               <input
                 type="number"

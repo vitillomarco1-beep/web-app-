@@ -23,7 +23,7 @@ function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia
 }
 
 /** Strumento di simulazione — esplicitamente non certificabile — per anticipare un
- * possibile bilancio tra assorbimento del mangime autoprodotto ed emissioni dirette
+ * possibile bilancio tra assorbimento dell'alimento autoprodotto ed emissioni dirette
  * dell'allevamento, in vista di una futura normativa UE per la zootecnia che oggi
  * non esiste ancora. */
 export default function SimulazioneZootecniaTool({
@@ -72,7 +72,7 @@ export default function SimulazioneZootecniaTool({
         onClick={() => setAperto((a) => !a)}
       >
         <span className="text-sm font-semibold text-amber-800">
-          🧭 Simulazione bilancio mangime/emissioni (anticipazione, non certificabile)
+          🧭 Simulazione bilancio alimento/emissioni (anticipazione, non certificabile)
         </span>
         <span className="text-amber-700">{aperto ? '−' : '+'}</span>
       </button>
@@ -85,7 +85,7 @@ export default function SimulazioneZootecniaTool({
               zootecnia.
             </strong>{' '}
             Questo strumento anticipa un'ipotesi discussa in letteratura — bilanciare
-            l'assorbimento di carbonio del mangime autoprodotto ingerito dagli animali con le
+            l'assorbimento di carbonio dell'alimento autoprodotto ingerito dagli animali con le
             emissioni dirette dell'allevamento (fermentazione enterica + gestione reflui) — a
             scopo di pianificazione. Il risultato <strong>non entra nel bilancio ufficiale dei
             crediti</strong> e non va presentato a un cliente come credito certificabile.
@@ -93,13 +93,13 @@ export default function SimulazioneZootecniaTool({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="label !mb-0 text-xs">Mangime ingerito dall'allevamento</p>
+              <p className="label !mb-0 text-xs">Alimento ingerito dall'allevamento</p>
               <button type="button" className="btn-secondary !px-2 !py-1 text-xs" onClick={aggiungiMangime}>
-                + Aggiungi mangime
+                + Aggiungi alimento
               </button>
             </div>
             {sim.mangimi.length === 0 && (
-              <p className="text-xs text-stone-400">Nessun mangime inserito.</p>
+              <p className="text-xs text-stone-400">Nessun alimento inserito.</p>
             )}
             {sim.mangimi.map((m) => (
               <div
@@ -151,7 +151,7 @@ export default function SimulazioneZootecniaTool({
               <table className="w-full text-left text-xs">
                 <thead className="bg-stone-100 text-stone-500">
                   <tr>
-                    <th className="px-2 py-1.5">Mangime</th>
+                    <th className="px-2 py-1.5">Alimento</th>
                     <th className="px-2 py-1.5">Calcolo</th>
                     <th className="px-2 py-1.5 text-right">t CO2</th>
                   </tr>
@@ -175,7 +175,7 @@ export default function SimulazioneZootecniaTool({
           )}
 
           <div className="rounded-md bg-white p-3 text-xs">
-            <p className="text-stone-600">Assorbimento totale da mangime autoprodotto</p>
+            <p className="text-stone-600">Assorbimento totale da alimento autoprodotto</p>
             <p className="mt-0.5 text-stone-500">{risultato.formulaAssorbimento}</p>
           </div>
 
@@ -207,7 +207,7 @@ export default function SimulazioneZootecniaTool({
           <div className="rounded-lg bg-amber-600 p-4 text-white">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">
-                Bilancio simulato (mangime autoprodotto − emissioni dirette)
+                Bilancio simulato (alimento autoprodotto − emissioni dirette)
               </span>
               <span className="shrink-0 text-xl font-bold">
                 {formatTCO2(risultato.bilancioSimulatoTCO2)} t CO2eq

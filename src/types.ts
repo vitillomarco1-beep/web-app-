@@ -139,7 +139,7 @@ export type TipologiaAllevamento =
   | 'misto'
   | 'altro'
 
-/** Una voce di mangime ingerito dall'allevamento, per la simulazione facoltativa
+/** Una voce di alimento ingerito dall'allevamento, per la simulazione facoltativa
  * del bilancio zootecnico (si veda SimulazioneZootecnia). */
 export interface MangimeSimulazione {
   id: string
@@ -153,7 +153,7 @@ export interface MangimeSimulazione {
 
 /**
  * Simulazione facoltativa e NON CERTIFICABILE di un possibile bilancio tra
- * l'assorbimento di carbonio del mangime autoprodotto ingerito dagli animali e le
+ * l'assorbimento di carbonio dell'alimento autoprodotto ingerito dagli animali e le
  * emissioni dirette dell'allevamento (fermentazione enterica + gestione reflui):
  * anticipa un'ipotesi di come una futura normativa UE per la zootecnia potrebbe
  * rendicontare questi due termini, ma nessun atto delegato la definisce oggi. Va

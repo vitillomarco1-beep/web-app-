@@ -1,6 +1,6 @@
 /**
  * Simulazione, esplicitamente NON CERTIFICABILE, di un possibile bilancio tra
- * l'assorbimento di carbonio del mangime autoprodotto ingerito dagli animali e le
+ * l'assorbimento di carbonio dell'alimento autoprodotto ingerito dagli animali e le
  * emissioni dirette dell'allevamento (fermentazione enterica + gestione reflui).
  *
  * Nessun atto delegato dell'UE definisce oggi una metodologia per la zootecnia:
@@ -14,7 +14,7 @@
  * costruite a partire da valori Tier 1 IPCC 2006 (Volume 4, cap. 10) reperiti per
  * via indiretta (motore di ricerca, non le tabelle originali) in una sessione con
  * accesso alla rete limitato: non sono stati verificati riga per riga contro la
- * tabella ufficiale. Stessa cautela per la frazione di carbonio dei mangimi (~45%
+ * tabella ufficiale. Stessa cautela per la frazione di carbonio degli alimenti (~45%
  * della sostanza secca, valore tipico generico della biomassa vegetale). Vanno
  * confermati o sostituiti dal consulente con dati verificati prima di qualunque
  * uso diverso dalla pianificazione preliminare.
@@ -62,8 +62,8 @@ export interface RigaMangimeCalcolata {
   assorbimentoTCO2: number
 }
 
-/** Calcola, riga per riga, l'assorbimento di CO2 stimato nel mangime autoprodotto
- * (il mangime acquistato è escluso dal conteggio ma resta visibile in tabella, con
+/** Calcola, riga per riga, l'assorbimento di CO2 stimato nell'alimento autoprodotto
+ * (l'alimento acquistato è escluso dal conteggio ma resta visibile in tabella, con
  * la formula che ne mostra il motivo). */
 export function calcolaRigheMangimi(
   mangimi: { nomeMangime: string; quantitaTAnno: number; autoprodotto: boolean }[],
@@ -119,7 +119,7 @@ export function calcolaSimulazioneZootecnia(
           .filter((r) => r.autoprodotto)
           .map((r) => n(r.assorbimentoTCO2))
           .join(' + ') + ` = ${n(assorbimentoTotaleTCO2)} t CO2`
-      : 'Nessun mangime autoprodotto inserito = 0 t CO2'
+      : 'Nessun alimento autoprodotto inserito = 0 t CO2'
 
   const emissioniTotaliTCO2 = emissioniDirettePerCapoTCO2eqAnno * numeroCapiMedio
   const formulaEmissioni = `${n(emissioniDirettePerCapoTCO2eqAnno)} t CO2eq/capo/anno × ${n(numeroCapiMedio)} capi = ${n(emissioniTotaliTCO2)} t CO2eq`
