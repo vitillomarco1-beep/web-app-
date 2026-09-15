@@ -161,7 +161,16 @@ export interface MangimeSimulazione {
  */
 export interface SimulazioneZootecnia {
   mangimi: MangimeSimulazione[]
-  /** Produzione annua del prodotto principale (latte, carne, uova) in t/anno. */
+  /** Come si è ottenuta produzioneAnnuaTProdotto: un dato annuale reale (più
+   * affidabile) oppure stimato dalla media di stalla del giorno del sopralluogo
+   * moltiplicata per 365 (comodo quando il dato annuale non è disponibile). */
+  modalitaProduzione: 'annuale' | 'giornaliera'
+  /** Presente solo in modalità "giornaliera": media produttiva di stalla al giorno
+   * del sopralluogo/verifica (kg/giorno), da cui si stima produzioneAnnuaTProdotto. */
+  produzioneGiornalieraStallaKgGiorno?: number
+  /** Produzione annua del prodotto principale (latte, carne, uova) in t/anno —
+   * inserita direttamente in modalità "annuale", calcolata da
+   * produzioneGiornalieraStallaKgGiorno × 365 in modalità "giornaliera". */
   produzioneAnnuaTProdotto: number
   /** Intensità emissiva (t CO2eq per t di prodotto), default indicativo per
    * tipologia da letteratura scientifica ma sempre modificabile. */

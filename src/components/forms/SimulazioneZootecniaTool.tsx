@@ -17,10 +17,15 @@ interface Props {
 function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia {
   return {
     mangimi: [],
+    modalitaProduzione: 'annuale',
     produzioneAnnuaTProdotto: 0,
     intensitaEmissivaTCO2eqPerTProdotto:
       INTENSITA_EMISSIVA_RIFERIMENTO[tipologia]?.defaultTCO2PerTProdotto ?? 0,
   }
+}
+
+function n(v: number): string {
+  return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 3 }).format(v)
 }
 
 /** Strumento di simulazione — esplicitamente non certificabile — per anticipare un
@@ -34,11 +39,34 @@ export default function SimulazioneZootecniaTool({
 }: Props) {
   const [aperto, setAperto] = useState(false)
   const sim = value ?? simulazioneVuota(tipologiaAllevamento)
+  const modalita = sim.modalitaProduzione ?? 'annuale'
   const riferimento = INTENSITA_EMISSIVA_RIFERIMENTO[tipologiaAllevamento]
 
   function num(v: string): number {
     const n = parseFloat(v)
     return isNaN(n) ? 0 : n
+  }
+
+  function impostaModalitaAnnuale() {
+    onChange({ ...sim, modalitaProduzione: 'annuale' })
+  }
+
+  function impostaModalitaGiornaliera() {
+    const kgGiorno = sim.produzioneGiornalieraStallaKgGiorno ?? 0
+    onChange({
+      ...sim,
+      modalitaProduzione: 'giornaliera',
+      produzioneGiornalieraStallaKgGiorno: kgGiorno,
+      produzioneAnnuaTProdotto: (kgGiorno * 365) / 1000,
+    })
+  }
+
+  function aggiornaProduzioneGiornaliera(kgGiorno: number) {
+    onChange({
+      ...sim,
+      produzioneGiornalieraStallaKgGiorno: kgGiorno,
+      produzioneAnnuaTProdotto: (kgGiorno * 365) / 1000,
+    })
   }
 
   function aggiungiMangime() {
@@ -184,19 +212,63 @@ export default function SimulazioneZootecniaTool({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-3">
               <div>
-                <label className="label text-xs">
-                  Produzione annua di {riferimento?.prodotto ?? 'prodotto principale'} (t/anno)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  className="input"
-                  value={sim.produzioneAnnuaTProdotto}
-                  onChange={(e) =>
-                    onChange({ ...sim, produzioneAnnuaTProdotto: num(e.target.value) })
-                  }
-                />
+                <p className="label !mb-1 text-xs">
+                  Produzione di {riferimento?.prodotto ?? 'prodotto principale'}
+                </p>
+                <div className="mb-2 flex gap-3 text-xs text-stone-600">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="modalitaProduzione"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={modalita === 'annuale'}
+                      onChange={impostaModalitaAnnuale}
+                    />
+                    Dato annuale
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="modalitaProduzione"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={modalita === 'giornaliera'}
+                      onChange={impostaModalitaGiornaliera}
+                    />
+                    Media di stalla al giorno del sopralluogo
+                  </label>
+                </div>
+
+                {modalita === 'annuale' ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    className="input"
+                    placeholder="t/anno"
+                    value={sim.produzioneAnnuaTProdotto}
+                    onChange={(e) =>
+                      onChange({ ...sim, produzioneAnnuaTProdotto: num(e.target.value) })
+                    }
+                  />
+                ) : (
+                  <div className="space-y-1">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min={0}
+                      className="input"
+                      placeholder="kg/giorno"
+                      value={sim.produzioneGiornalieraStallaKgGiorno ?? 0}
+                      onChange={(e) => aggiornaProduzioneGiornaliera(num(e.target.value))}
+                    />
+                    <p className="text-xs text-stone-400">
+                      {n(sim.produzioneGiornalieraStallaKgGiorno ?? 0)} kg/giorno × 365 giorni ÷
+                      1000 = {n(sim.produzioneAnnuaTProdotto)} t/anno stimate. Meno preciso di un
+                      dato annuale reale (non tiene conto di stagionalità, lattazione, ecc.): usalo
+                      solo se il dato annuale non è disponibile.
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="label text-xs">Intensità emissiva (t CO2eq per t di prodotto)</label>
