@@ -123,24 +123,24 @@ export function costruisciReportCalcoloPdf(nomeTitolare: string, dati: DatiCalco
     autoTable(doc, {
       startY: y,
       margin: { left: marginX, right: marginX },
-      head: [['Dati di input (quantificazione)', 'Scenario di attività', 'Scenario di riferimento']],
+      head: [['Dati di input (quantificazione)', 'Scenario di riferimento', 'Scenario di attività']],
       body: [
         [
           'Assorbimenti di carbonio (t CO2)',
-          n(dati.assorbimentiAttivitaTCO2),
           n(dati.assorbimentiRiferimentoTCO2),
+          n(dati.assorbimentiAttivitaTCO2),
         ],
         [
           'Emissioni dal suolo — ESL (t CO2eq)',
-          n(dati.emissioniSuoloAttivitaTCO2),
           n(dati.emissioniSuoloRiferimentoTCO2),
+          n(dati.emissioniSuoloAttivitaTCO2),
         ],
         [
           'Emissioni agricole N2O — ESA (t CO2eq)',
-          n(dati.emissioniAgricoleAttivitaTCO2),
           n(dati.emissioniAgricoleRiferimentoTCO2),
+          n(dati.emissioniAgricoleAttivitaTCO2),
         ],
-        ['GES associati (t CO2eq)', n(dati.gesAssociatiTCO2), '—'],
+        ['GES associati (t CO2eq)', '—', n(dati.gesAssociatiTCO2)],
       ],
       theme: 'grid',
       headStyles: { fillColor: FOREST, textColor: 255, fontStyle: 'bold', fontSize: 9.5 },

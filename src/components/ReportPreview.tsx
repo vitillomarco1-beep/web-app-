@@ -98,32 +98,32 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
                 <thead className="bg-forest-600 text-xs uppercase text-white">
                   <tr>
                     <th className="px-3 py-2">Dati di input (quantificazione)</th>
-                    <th className="px-3 py-2">Scenario di attività</th>
                     <th className="px-3 py-2">Scenario di riferimento</th>
+                    <th className="px-3 py-2">Scenario di attività</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   <tr>
                     <td className="px-3 py-2 font-medium text-stone-800">Assorbimenti di carbonio (t CO2)</td>
-                    <td className="px-3 py-2">{n(dati.assorbimentiAttivitaTCO2)}</td>
                     <td className="px-3 py-2">{n(dati.assorbimentiRiferimentoTCO2)}</td>
+                    <td className="px-3 py-2">{n(dati.assorbimentiAttivitaTCO2)}</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium text-stone-800">Emissioni dal suolo — ESL (t CO2eq)</td>
-                    <td className="px-3 py-2">{n(dati.emissioniSuoloAttivitaTCO2)}</td>
                     <td className="px-3 py-2">{n(dati.emissioniSuoloRiferimentoTCO2)}</td>
+                    <td className="px-3 py-2">{n(dati.emissioniSuoloAttivitaTCO2)}</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium text-stone-800">
                       Emissioni agricole N2O — ESA (t CO2eq)
                     </td>
-                    <td className="px-3 py-2">{n(dati.emissioniAgricoleAttivitaTCO2)}</td>
                     <td className="px-3 py-2">{n(dati.emissioniAgricoleRiferimentoTCO2)}</td>
+                    <td className="px-3 py-2">{n(dati.emissioniAgricoleAttivitaTCO2)}</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium text-stone-800">GES associati (t CO2eq)</td>
-                    <td className="px-3 py-2">{n(dati.gesAssociatiTCO2)}</td>
                     <td className="px-3 py-2">—</td>
+                    <td className="px-3 py-2">{n(dati.gesAssociatiTCO2)}</td>
                   </tr>
                 </tbody>
               </table>
