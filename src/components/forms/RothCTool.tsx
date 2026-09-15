@@ -4,6 +4,7 @@ import type { MeseClima, ScenarioRothCInput, RisultatoRothC } from '../../lib/ro
 import { PROFILI_CLIMATICI } from '../../lib/climaTipico'
 import { formatTCO2 } from '../../lib/format'
 import type { DettaglioRothC } from '../../types'
+import ResiduiColturaliHelper from './ResiduiColturaliHelper'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -124,6 +125,9 @@ export default function RothCTool({
             onChange={(e) => onChange({ ...valore, apportoResiduiTCHaAnno: num(e.target.value) })}
           />
         </div>
+        <ResiduiColturaliHelper
+          onCalcola={(apportoTCHaAnno) => onChange({ ...valore, apportoResiduiTCHaAnno: apportoTCHaAnno })}
+        />
         <div>
           <label className="label text-xs">Apporto C da ammendanti (t C/ha/anno)</label>
           <input
