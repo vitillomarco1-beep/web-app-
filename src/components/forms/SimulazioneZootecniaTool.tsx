@@ -6,7 +6,12 @@ import {
   MANGIMI_RIFERIMENTO,
   calcolaSimulazioneZootecnia,
 } from '../../lib/simulazioneZootecnia'
+import { calcolaStandardizzazioneLatte } from '../../lib/standardizzazioneLatte'
 import { formatTCO2 } from '../../lib/format'
+
+/** Tipologie per cui ha senso proporre la standardizzazione del latte (produzione
+ * principale — o comunque rilevante — espressa in latte). */
+const TIPOLOGIE_CON_LATTE: TipologiaAllevamento[] = ['bovini_da_latte', 'ovicaprini']
 
 interface Props {
   tipologiaAllevamento: TipologiaAllevamento
@@ -38,13 +43,34 @@ export default function SimulazioneZootecniaTool({
   onChange,
 }: Props) {
   const [aperto, setAperto] = useState(false)
+  const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
   const sim = value ?? simulazioneVuota(tipologiaAllevamento)
   const modalita = sim.modalitaProduzione ?? 'annuale'
   const riferimento = INTENSITA_EMISSIVA_RIFERIMENTO[tipologiaAllevamento]
+  const mostraStandardizzazioneLatte = TIPOLOGIE_CON_LATTE.includes(tipologiaAllevamento)
+  const analisiLatte = sim.analisiLatte ?? {
+    produzioneTalQualeTAnno: 0,
+    grassoPercento: 0,
+    proteinaPercento: 0,
+    lattosioPercento: 0,
+  }
+  const risultatoStandardizzazione = calcolaStandardizzazioneLatte(analisiLatte)
 
   function num(v: string): number {
     const n = parseFloat(v)
     return isNaN(n) ? 0 : n
+  }
+
+  function aggiornaAnalisiLatte(patch: Partial<typeof analisiLatte>) {
+    onChange({ ...sim, analisiLatte: { ...analisiLatte, ...patch } })
+  }
+
+  function applicaStandardizzazione(valoreTAnno: number) {
+    onChange({
+      ...sim,
+      modalitaProduzione: 'annuale',
+      produzioneAnnuaTProdotto: valoreTAnno,
+    })
   }
 
   function impostaModalitaAnnuale() {
@@ -208,6 +234,143 @@ export default function SimulazioneZootecniaTool({
             <p className="text-stone-600">Assorbimento totale da alimento autoprodotto</p>
             <p className="mt-0.5 text-stone-500">{risultato.formulaAssorbimento}</p>
           </div>
+
+          {mostraStandardizzazioneLatte && (
+            <div className="rounded-md border border-stone-200 bg-white">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-2 text-left"
+                onClick={() => setApertoAnalisiLatte((a) => !a)}
+              >
+                <span className="text-xs font-semibold text-stone-700">
+                  📋 Standardizza da analisi del latte (FPCM / ECM / FCM 3,5%)
+                </span>
+                <span className="text-stone-500">{apertoAnalisiLatte ? '−' : '+'}</span>
+              </button>
+              {apertoAnalisiLatte && (
+                <div className="space-y-3 border-t border-stone-200 p-3">
+                  <p className="text-xs text-stone-500">
+                    Inserisci la produzione di latte tal quale e i valori di grasso, proteina e
+                    lattosio delle analisi periodiche (bollettino qualità latte, caseificio o
+                    cooperativa): il latte viene così standardizzato a una composizione fissa,
+                    comparabile nel tempo e tra aziende diverse.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div>
+                      <label className="label !mb-1 text-xs">Latte tal quale (t/anno)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={analisiLatte.produzioneTalQualeTAnno}
+                        onChange={(e) =>
+                          aggiornaAnalisiLatte({ produzioneTalQualeTAnno: num(e.target.value) })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label !mb-1 text-xs">Grasso %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={analisiLatte.grassoPercento}
+                        onChange={(e) => aggiornaAnalisiLatte({ grassoPercento: num(e.target.value) })}
+                      />
+                    </div>
+                    <div>
+                      <label className="label !mb-1 text-xs">Proteina %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={analisiLatte.proteinaPercento}
+                        onChange={(e) =>
+                          aggiornaAnalisiLatte({ proteinaPercento: num(e.target.value) })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label !mb-1 text-xs">Lattosio %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input !py-1 text-xs"
+                        value={analisiLatte.lattosioPercento}
+                        onChange={(e) =>
+                          aggiornaAnalisiLatte({ lattosioPercento: num(e.target.value) })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-forest-50 p-2">
+                      <div>
+                        <p className="text-xs font-medium text-stone-700">
+                          FPCM (4,0% grasso / 3,3% proteina — IDF){' '}
+                          <span className="font-normal text-forest-700">consigliato</span>
+                        </p>
+                        <p className="text-xs text-stone-500">{risultatoStandardizzazione.formulaFpcm}</p>
+                        <p className="text-xs text-stone-400">
+                          Coerente con l'intensità emissiva di riferimento usata sotto (Tsigkas et
+                          al. 2026, espressa in t CO2eq/t di FPCM).
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
+                        onClick={() => applicaStandardizzazione(risultatoStandardizzazione.fpcmTAnno)}
+                      >
+                        Usa FPCM ({n(risultatoStandardizzazione.fpcmTAnno)} t)
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-stone-50 p-2">
+                      <div>
+                        <p className="text-xs font-medium text-stone-700">
+                          ECM (energetico — Sjaunja et al. 1990)
+                        </p>
+                        <p className="text-xs text-stone-500">{risultatoStandardizzazione.formulaEcm}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
+                        onClick={() => applicaStandardizzazione(risultatoStandardizzazione.ecmTAnno)}
+                      >
+                        Usa ECM ({n(risultatoStandardizzazione.ecmTAnno)} t)
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-stone-50 p-2">
+                      <div>
+                        <p className="text-xs font-medium text-stone-700">
+                          FCM 3,5% (grasso — Gaines 1928)
+                        </p>
+                        <p className="text-xs text-stone-500">{risultatoStandardizzazione.formulaFcm35}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary !px-2 !py-1 shrink-0 text-xs"
+                        onClick={() => applicaStandardizzazione(risultatoStandardizzazione.fcm35TAnno)}
+                      >
+                        Usa FCM 3,5% ({n(risultatoStandardizzazione.fcm35TAnno)} t)
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-stone-400">
+                    "Usa ..." imposta il valore scelto come produzione annua (modalità "Dato
+                    annuale") nel campo qui sotto — puoi comunque modificarlo a mano in qualsiasi
+                    momento.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-3">
