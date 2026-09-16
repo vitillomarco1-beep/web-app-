@@ -5,6 +5,7 @@ import { clientiStore, calcoliStore } from '../lib/storage'
 import { eliminaFascicoloAgea } from '../lib/fileStore'
 import type { Cliente, FascicoloAgeaMeta } from '../types'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
+import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
 
 function nuovoFormId() {
   return uuidv4()
@@ -22,6 +23,7 @@ export default function ClientsPage() {
     telefono: '',
     comune: '',
     provincia: '',
+    regione: '',
   })
 
   useEffect(() => {
@@ -29,7 +31,15 @@ export default function ClientsPage() {
   }, [])
 
   function resetForm() {
-    setForm({ ragioneSociale: '', referente: '', email: '', telefono: '', comune: '', provincia: '' })
+    setForm({
+      ragioneSociale: '',
+      referente: '',
+      email: '',
+      telefono: '',
+      comune: '',
+      provincia: '',
+      regione: '',
+    })
     setFormId(nuovoFormId())
     setFascicoloAgea(undefined)
   }
@@ -45,6 +55,7 @@ export default function ClientsPage() {
       telefono: form.telefono.trim() || undefined,
       comune: form.comune.trim() || undefined,
       provincia: form.provincia.trim() || undefined,
+      regione: form.regione || undefined,
       fascicoloAgea,
       createdAt: new Date().toISOString(),
     }
@@ -139,6 +150,25 @@ export default function ClientsPage() {
                 onChange={(e) => setForm({ ...form, provincia: e.target.value })}
               />
             </div>
+            <div>
+              <label className="label">Regione</label>
+              <select
+                className="input"
+                value={form.regione}
+                onChange={(e) => setForm({ ...form, regione: e.target.value })}
+              >
+                <option value="">— non specificata —</option>
+                {REGIONI_ITALIANE.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-stone-400">
+                Usata solo per proporre il link al servizio agrometeorologico pubblico della zona
+                nel simulatore RothC.
+              </p>
+            </div>
           </div>
 
           <FascicoloAgeaUploader
@@ -172,10 +202,11 @@ export default function ClientsPage() {
                 </Link>
                 <div className="mt-2 space-y-1 text-sm text-stone-500">
                   {c.referente && <p>Referente: {c.referente}</p>}
-                  {(c.comune || c.provincia) && (
+                  {(c.comune || c.provincia || c.regione) && (
                     <p>
                       {c.comune}
                       {c.comune && c.provincia ? ' (' + c.provincia + ')' : c.provincia}
+                      {c.regione ? (c.comune || c.provincia ? ' — ' : '') + c.regione : ''}
                     </p>
                   )}
                   {c.email && <p>{c.email}</p>}

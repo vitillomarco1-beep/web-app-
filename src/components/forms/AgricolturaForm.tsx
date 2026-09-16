@@ -51,9 +51,12 @@ interface Props {
   initial?: DatiAgricolturaAgroforestazione
   onSubmit: (dati: DatiAgricolturaAgroforestazione) => void
   submitLabel?: string
+  /** Regione del cliente, passata al simulatore RothC per proporre il link al
+   * servizio agrometeorologico pubblico della zona. */
+  regioneCliente?: string
 }
 
-export default function AgricolturaForm({ initial, onSubmit, submitLabel }: Props) {
+export default function AgricolturaForm({ initial, onSubmit, submitLabel, regioneCliente }: Props) {
   const [dati, setDati] = useState<DatiAgricolturaAgroforestazione>(initial ?? defaultData())
   const [showResult, setShowResult] = useState(false)
 
@@ -162,6 +165,7 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel }: Prop
         <RothCTool
           areaAttivitaHa={dati.areaAttivitaHa}
           durataPeriodoCertificazioneAnni={dati.durataPeriodoCertificazioneAnni}
+          regione={regioneCliente}
           onApplica={(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC) =>
             setDati({ ...dati, assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC })
           }

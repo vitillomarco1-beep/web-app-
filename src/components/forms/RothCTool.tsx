@@ -5,6 +5,7 @@ import { PROFILI_CLIMATICI } from '../../lib/climaTipico'
 import { formatTCO2 } from '../../lib/format'
 import type { DettaglioRothC } from '../../types'
 import ResiduiColturaliHelper from './ResiduiColturaliHelper'
+import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -27,6 +28,9 @@ function scenarioVuoto(): ScenarioRothCInput {
 interface Props {
   areaAttivitaHa: number
   durataPeriodoCertificazioneAnni: number
+  /** Regione del cliente (una delle chiavi di SERVIZI_METEO_REGIONALI), per
+   * proporre il link al servizio agrometeorologico pubblico della zona. */
+  regione?: string
   onApplica: (
     assorbimentiAttivitaTCO2: number,
     assorbimentiRiferimentoTCO2: number,
@@ -37,6 +41,7 @@ interface Props {
 export default function RothCTool({
   areaAttivitaHa,
   durataPeriodoCertificazioneAnni,
+  regione,
   onApplica,
 }: Props) {
   const [aperto, setAperto] = useState(false)
@@ -233,6 +238,26 @@ export default function RothCTool({
 
           <div>
             <p className="label text-xs">Clima mensile medio (comune ai due scenari)</p>
+            {regione && SERVIZI_METEO_REGIONALI[regione] && (
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-forest-200 bg-forest-50 px-3 py-2 text-xs">
+                <span className="text-stone-600">
+                  📍 Dati climatici storici pubblici per <strong>{regione}</strong>:{' '}
+                  {SERVIZI_METEO_REGIONALI[regione].ente}. Scarica i valori mensili della zona e
+                  inseriscili nella tabella qui sotto.
+                  {SERVIZI_METEO_REGIONALI[regione].nota && (
+                    <span className="block text-stone-400">{SERVIZI_METEO_REGIONALI[regione].nota}</span>
+                  )}
+                </span>
+                <a
+                  href={SERVIZI_METEO_REGIONALI[regione].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary !px-2 !py-1 shrink-0"
+                >
+                  Apri il portale ↗
+                </a>
+              </div>
+            )}
             <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md bg-stone-50 p-2">
               <select
                 className="input !w-auto flex-1"

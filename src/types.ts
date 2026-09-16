@@ -18,6 +18,10 @@ export interface Cliente {
   telefono?: string
   comune?: string
   provincia?: string
+  /** Una delle chiavi di SERVIZI_METEO_REGIONALI (lib/serviziMeteoRegionali.ts):
+   * guida il collegamento al servizio agrometeorologico pubblico ufficiale
+   * mostrato nel simulatore RothC. */
+  regione?: string
   note?: string
   fascicoloAgea?: FascicoloAgeaMeta
   createdAt: string

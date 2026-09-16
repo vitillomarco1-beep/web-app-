@@ -59,8 +59,9 @@ export default function ClientDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-stone-900">{cliente.ragioneSociale}</h1>
             <p className="mt-1 text-sm text-stone-500">
-              {[cliente.referente, cliente.comune, cliente.provincia].filter(Boolean).join(' · ') ||
-                'Nessun dettaglio aggiuntivo'}
+              {[cliente.referente, cliente.comune, cliente.provincia, cliente.regione]
+                .filter(Boolean)
+                .join(' · ') || 'Nessun dettaglio aggiuntivo'}
             </p>
             {ambitiAttivi.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">

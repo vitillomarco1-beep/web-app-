@@ -79,7 +79,11 @@ export default function NewCalculationPage() {
             ← Cambia tipo di attività
           </button>
           {tipo === 'agricoltura_agroforestazione' && (
-            <AgricolturaForm onSubmit={handleSave} submitLabel="Crea calcolo" />
+            <AgricolturaForm
+              onSubmit={handleSave}
+              submitLabel="Crea calcolo"
+              regioneCliente={cliente.regione}
+            />
           )}
           {tipo === 'imboschimento' && (
             <ImboschimentoForm onSubmit={handleSave} submitLabel="Crea calcolo" />
