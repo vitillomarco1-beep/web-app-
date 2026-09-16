@@ -15,6 +15,13 @@ import {
   type AnalisiAlimento,
 } from '../../lib/analisiAlimenti'
 import { calcolaMetanoEnterico } from '../../lib/metanoEnterico'
+import {
+  BO_RIFERIMENTO,
+  TECNICHE_SPANDIMENTO,
+  calcolaGestioneReflui,
+  calcolaTdnMedioDieta,
+  type TecnicaSpandimento,
+} from '../../lib/gestioneReflui'
 import { formatTCO2 } from '../../lib/format'
 
 /** Tipologie per cui ha senso proporre la standardizzazione del latte (produzione
@@ -324,6 +331,7 @@ export default function SimulazioneZootecniaTool({
   const [aperto, setAperto] = useState(false)
   const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
   const [apertoMetano, setApertoMetano] = useState(false)
+  const [apertoReflui, setApertoReflui] = useState(false)
   const sim = value ?? simulazioneVuota(tipologiaAllevamento)
   const modalita = sim.modalitaProduzione ?? 'annuale'
   const riferimento = INTENSITA_EMISSIVA_RIFERIMENTO[tipologiaAllevamento]
@@ -406,6 +414,7 @@ export default function SimulazioneZootecniaTool({
             quantitaTAnno: razioneMiscelata.quantitaTAnno,
             sostanzaSeccaPercento: analisiRazioneMiscelata.sostanzaSeccaPercento ?? 0,
             andfomPercento: analisiRazioneMiscelata.andfomPercento,
+            tdnPercento: analisiRazioneMiscelata.tdnPercento,
           },
         ]
       : sim.mangimi.map((m) => ({
@@ -413,12 +422,45 @@ export default function SimulazioneZootecniaTool({
           quantitaTAnno: m.quantitaTAnno,
           sostanzaSeccaPercento: risolviSostanzaSeccaPercento(m.nomeMangime, m.analisiAlimento),
           andfomPercento: m.analisiAlimento?.andfomPercento,
+          tdnPercento: m.analisiAlimento?.tdnPercento,
         }))
 
   const risultatoMetano = calcolaMetanoEnterico(righeDieta, sim.ymMetanoEntericoPercento)
+  const risultatoTdn = calcolaTdnMedioDieta(righeDieta)
 
   function aggiornaRazioneMiscelata(patch: Partial<typeof razioneMiscelata>) {
     onChange({ ...sim, razioneMiscelata: { ...razioneMiscelata, ...patch } })
+  }
+
+  const gestioneReflui = sim.gestioneReflui ?? {
+    sistemaStoccaggio: 'liquido' as const,
+    durataStoccaggioMesi: 6,
+    fasciaClimatica: 'temperata' as const,
+    crostaNaturale: false,
+    azotoEscretoKgAnno: 0,
+    tecnicaSpandimento: 'spaglio' as const,
+  }
+  const boRiferimento = BO_RIFERIMENTO[tipologiaAllevamento]
+  const digeribilitaPercento =
+    gestioneReflui.digeribilitaManualePercento ?? risultatoTdn.tdnPercento ?? 0
+  const boUsato = gestioneReflui.boManualeM3PerKgVs ?? boRiferimento?.valore ?? 0
+  const risultatoReflui = calcolaGestioneReflui({
+    geiMJAnno: risultatoMetano.geiMJAnno,
+    digeribilitaPercento,
+    boM3PerKgVs: boUsato,
+    fonteBo: boRiferimento?.fonte ?? null,
+    sistemaStoccaggio: gestioneReflui.sistemaStoccaggio,
+    durataStoccaggioMesi: gestioneReflui.durataStoccaggioMesi,
+    fasciaClimatica: gestioneReflui.fasciaClimatica,
+    crostaNaturale: gestioneReflui.crostaNaturale,
+    azotoEscretoKgAnno: gestioneReflui.azotoEscretoKgAnno,
+    tecnicaSpandimento: gestioneReflui.tecnicaSpandimento,
+    mcfManualePercento: gestioneReflui.mcfManualePercento,
+    fracGasmManualePercento: gestioneReflui.fracGasmManualePercento,
+  })
+
+  function aggiornaGestioneReflui(patch: Partial<typeof gestioneReflui>) {
+    onChange({ ...sim, gestioneReflui: { ...gestioneReflui, ...patch } })
   }
 
   function aggiornaAnalisiRazioneMiscelata(patch: Partial<AnalisiAlimento>) {
@@ -648,6 +690,238 @@ export default function SimulazioneZootecniaTool({
                     </span>
                   </div>
                   <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaCh4CO2eq}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-md border border-stone-200 bg-white">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between px-3 py-2 text-left"
+              onClick={() => setApertoReflui((a) => !a)}
+            >
+              <span className="text-xs font-semibold text-stone-700">
+                💧 Gestione reflui — emissioni da stoccaggio e spandimento (IPCC Tier 2 — approfondimento)
+              </span>
+              <span className="text-stone-500">{apertoReflui ? '−' : '+'}</span>
+            </button>
+            {apertoReflui && (
+              <div className="space-y-3 border-t border-stone-200 p-3 text-xs">
+                <p className="text-stone-500">
+                  Stima il metano e il protossido di azoto (diretto in stoccaggio, indiretto da
+                  volatilizzazione allo spandimento) dei reflui zootecnici, con il metodo Tier 2
+                  IPCC. Riusa l'energia lorda ingerita già calcolata per il metano enterico (sopra).
+                  Copre <strong>solo stoccaggio e spandimento</strong>, non la lisciviazione: resta
+                  un approfondimento parziale, <strong>non entra nel bilancio simulato</strong> qui
+                  sotto.
+                </p>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[11px] text-stone-500">Sistema di stoccaggio</label>
+                    <select
+                      className="input !py-1 text-xs"
+                      value={gestioneReflui.sistemaStoccaggio}
+                      onChange={(e) =>
+                        aggiornaGestioneReflui({
+                          sistemaStoccaggio: e.target.value as 'liquido' | 'solido',
+                        })
+                      }
+                    >
+                      <option value="liquido">Liquido (vasca/lagone)</option>
+                      <option value="solido">Solido (letame palabile)</option>
+                    </select>
+                  </div>
+                  {gestioneReflui.sistemaStoccaggio === 'liquido' && (
+                    <>
+                      <div>
+                        <label className="text-[11px] text-stone-500">
+                          Durata media di stoccaggio (mesi)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.5"
+                          className="input !py-1 text-xs"
+                          value={gestioneReflui.durataStoccaggioMesi}
+                          onChange={(e) =>
+                            aggiornaGestioneReflui({ durataStoccaggioMesi: num(e.target.value) })
+                          }
+                        />
+                        <p className="mt-1 text-[11px] text-stone-400">
+                          Nelle zone vulnerabili ai nitrati lo spandimento è vietato nei mesi
+                          invernali (Direttiva Nitrati): la permanenza reale in vasca è spesso più
+                          lunga del minimo tecnico — inserisci il valore realistico del cliente.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-stone-500">Fascia climatica media annua</label>
+                        <select
+                          className="input !py-1 text-xs"
+                          value={gestioneReflui.fasciaClimatica}
+                          onChange={(e) =>
+                            aggiornaGestioneReflui({
+                              fasciaClimatica: e.target.value as 'fredda' | 'temperata' | 'calda',
+                            })
+                          }
+                        >
+                          <option value="fredda">Fredda (≤15°C)</option>
+                          <option value="temperata">Temperata (15-25°C)</option>
+                          <option value="calda">Calda (&gt;25°C)</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-1.5 text-[11px] text-stone-600">
+                        <input
+                          type="checkbox"
+                          className="h-3.5 w-3.5 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+                          checked={gestioneReflui.crostaNaturale}
+                          onChange={(e) => aggiornaGestioneReflui({ crostaNaturale: e.target.checked })}
+                        />
+                        Si forma una crosta naturale in superficie
+                      </label>
+                    </>
+                  )}
+                </div>
+
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">Digeribilità della razione (DE%, da TDN medio)</p>
+                  <p className="mt-0.5 text-stone-500">
+                    {risultatoTdn.tdnPercento != null
+                      ? risultatoTdn.formula
+                      : "Nessun valore di TDN inserito nell'analisi degli alimenti: inseriscilo manualmente qui sotto."}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      className="input !py-1 w-32 text-xs"
+                      placeholder="manuale"
+                      value={gestioneReflui.digeribilitaManualePercento ?? ''}
+                      onChange={(e) =>
+                        aggiornaGestioneReflui({
+                          digeribilitaManualePercento: e.target.value === '' ? undefined : num(e.target.value),
+                        })
+                      }
+                    />
+                    <span className="text-[11px] text-stone-400">
+                      % — lascia vuoto per usare il TDN medio della dieta
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="rounded-md bg-stone-50 p-2">
+                    <p className="text-stone-600">Capacità massima di produzione (Bo)</p>
+                    <p className="mt-0.5 text-stone-500">
+                      {boRiferimento
+                        ? `${n(boRiferimento.valore)} m³ CH4/kg VS — ${boRiferimento.fonte}`
+                        : 'Nessun valore di riferimento per questa tipologia: inseriscilo a mano da fonte verificata.'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-stone-500">
+                      Bo manuale (m³/kg VS) — lascia vuoto per usare il riferimento
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      className="input !py-1 text-xs"
+                      placeholder={boRiferimento ? String(boRiferimento.valore) : 'obbligatorio'}
+                      value={gestioneReflui.boManualeM3PerKgVs ?? ''}
+                      onChange={(e) =>
+                        aggiornaGestioneReflui({
+                          boManualeM3PerKgVs: e.target.value === '' ? undefined : num(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">Sostanza volatile escreta (VS)</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaVs}</p>
+                </div>
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">Fattore di conversione del metano (MCF)</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaMcf}</p>
+                </div>
+                <div className="rounded-md bg-forest-50 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-stone-700">Metano da stoccaggio, in CO2 equivalente</p>
+                    <span className="font-semibold text-stone-800">
+                      {formatTCO2(risultatoReflui.ch4TCO2eq)} t CO2eq
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaCh4}</p>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-stone-500">Azoto escreto dalla mandria (kg N/anno)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="1"
+                    className="input !py-1 w-40 text-xs"
+                    value={gestioneReflui.azotoEscretoKgAnno}
+                    onChange={(e) => aggiornaGestioneReflui({ azotoEscretoKgAnno: num(e.target.value) })}
+                  />
+                  <p className="mt-1 text-[11px] text-stone-400">
+                    Spesso già disponibile dal Piano di Utilizzazione Agronomica (PUA), se il
+                    cliente è in zona vulnerabile ai nitrati.
+                  </p>
+                </div>
+                <div className="rounded-md bg-forest-50 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-stone-700">N2O diretto da stoccaggio (EF3 = {risultatoReflui.ef3})</p>
+                    <span className="font-semibold text-stone-800">
+                      {formatTCO2(risultatoReflui.n2oDirettoTCO2eq)} t CO2eq
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oDiretto}</p>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-stone-500">Tecnica di spandimento in campo</label>
+                  <select
+                    className="input !py-1 text-xs"
+                    value={gestioneReflui.tecnicaSpandimento}
+                    onChange={(e) =>
+                      aggiornaGestioneReflui({ tecnicaSpandimento: e.target.value as TecnicaSpandimento })
+                    }
+                  >
+                    {(Object.keys(TECNICHE_SPANDIMENTO) as TecnicaSpandimento[]).map((k) => (
+                      <option key={k} value={k}>
+                        {TECNICHE_SPANDIMENTO[k].label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">Azoto volatilizzato allo spandimento (FracGASM)</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaFracGasm}</p>
+                </div>
+                <div className="rounded-md bg-forest-50 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-stone-700">N2O indiretto da spandimento (EF4 = 0,01)</p>
+                    <span className="font-semibold text-stone-800">
+                      {formatTCO2(risultatoReflui.n2oIndirettoTCO2eq)} t CO2eq
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oIndiretto}</p>
+                </div>
+
+                <div className="rounded-lg bg-amber-600 p-3 text-white">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">Totale reflui (stoccaggio + spandimento)</span>
+                    <span className="shrink-0 text-lg font-bold">
+                      {formatTCO2(risultatoReflui.totaleTCO2eq)} t CO2eq
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-amber-100">{risultatoReflui.formulaTotale}</p>
                 </div>
               </div>
             )}

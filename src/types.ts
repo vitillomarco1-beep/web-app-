@@ -226,6 +226,27 @@ export interface SimulazioneZootecnia {
     quantitaTAnno: number
     analisiAlimento?: AnalisiAlimento
   }
+  /** Stima delle emissioni di metano e protossido di azoto (dirette e
+   * indirette) dai reflui zootecnici, dallo stoccaggio allo spandimento — si
+   * veda lib/gestioneReflui.ts. */
+  gestioneReflui?: {
+    sistemaStoccaggio: 'liquido' | 'solido'
+    /** Durata media di permanenza in stoccaggio prima dello spandimento —
+     * spesso più lunga di quanto tecnicamente necessario per via dei divieti
+     * invernali di spandimento nelle zone vulnerabili ai nitrati. */
+    durataStoccaggioMesi: number
+    fasciaClimatica: 'fredda' | 'temperata' | 'calda'
+    /** Solo per il liquido: presenza di una crosta naturale in superficie. */
+    crostaNaturale: boolean
+    /** Azoto escreto dalla mandria, kg N/anno — spesso già disponibile dal
+     * Piano di Utilizzazione Agronomica in zona vulnerabile ai nitrati. */
+    azotoEscretoKgAnno: number
+    tecnicaSpandimento: 'spaglio' | 'spaglio_interrato' | 'iniezione'
+    digeribilitaManualePercento?: number
+    boManualeM3PerKgVs?: number
+    mcfManualePercento?: number
+    fracGasmManualePercento?: number
+  }
 }
 
 export interface DatiZootecnia extends DatiGenerali {
