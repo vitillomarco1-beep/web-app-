@@ -374,7 +374,11 @@ export default function SimulazioneZootecniaTool({
     onChange({
       ...sim,
       modalitaProduzione: 'annuale',
-      produzioneAnnuaTProdotto: valoreTAnno,
+      // Arrotondato a 2 decimali: il campo sottostante ha step="0.01", un valore
+      // con più decimali (es. dalla standardizzazione) fallirebbe silenziosamente
+      // la validazione nativa del browser al salvataggio, senza alcun messaggio
+      // visibile all'utente.
+      produzioneAnnuaTProdotto: Math.round(valoreTAnno * 100) / 100,
     })
   }
 
@@ -388,7 +392,9 @@ export default function SimulazioneZootecniaTool({
       ...sim,
       modalitaProduzione: 'giornaliera',
       produzioneGiornalieraStallaKgGiorno: kgGiorno,
-      produzioneAnnuaTProdotto: (kgGiorno * 365) / 1000,
+      // Arrotondato a 2 decimali: il campo sottostante ha step="0.01" (si veda
+      // applicaStandardizzazione più sopra per lo stesso motivo).
+      produzioneAnnuaTProdotto: Math.round(((kgGiorno * 365) / 1000) * 100) / 100,
     })
   }
 
@@ -396,7 +402,7 @@ export default function SimulazioneZootecniaTool({
     onChange({
       ...sim,
       produzioneGiornalieraStallaKgGiorno: kgGiorno,
-      produzioneAnnuaTProdotto: (kgGiorno * 365) / 1000,
+      produzioneAnnuaTProdotto: Math.round(((kgGiorno * 365) / 1000) * 100) / 100,
     })
   }
 
