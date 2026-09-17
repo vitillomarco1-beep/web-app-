@@ -89,7 +89,11 @@ export default function NewCalculationPage() {
             <ImboschimentoForm onSubmit={handleSave} submitLabel="Crea calcolo" />
           )}
           {tipo === 'zootecnia' && (
-            <ZootecniaForm onSubmit={handleSave} submitLabel="Salva scheda cliente" />
+            <ZootecniaForm
+              onSubmit={handleSave}
+              submitLabel="Salva scheda cliente"
+              regioneCliente={cliente.regione}
+            />
           )}
         </div>
       )}

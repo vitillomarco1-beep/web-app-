@@ -95,6 +95,7 @@ export default function CalculationDetailPage() {
               initial={calcolo.dati}
               onSubmit={handleUpdate}
               submitLabel="Salva modifiche"
+              regioneCliente={cliente.regione}
             />
           )}
         </>

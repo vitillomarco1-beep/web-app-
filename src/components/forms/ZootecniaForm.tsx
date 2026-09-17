@@ -32,6 +32,9 @@ interface Props {
   initial?: DatiZootecnia
   onSubmit: (dati: DatiZootecnia) => void
   submitLabel?: string
+  /** Regione del cliente, per proporre il link al servizio agrometeorologico
+   * pubblico della zona (clima e THI). */
+  regioneCliente?: string
 }
 
 const PRATICHE_LABELS: [keyof DatiZootecnia['pratiche'], string][] = [
@@ -43,7 +46,7 @@ const PRATICHE_LABELS: [keyof DatiZootecnia['pratiche'], string][] = [
   ['geneticaEfficienza', 'Selezione genetica orientata a minore intensità di emissione'],
 ]
 
-export default function ZootecniaForm({ initial, onSubmit, submitLabel }: Props) {
+export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneCliente }: Props) {
   const [dati, setDati] = useState<DatiZootecnia>(initial ?? defaultData())
 
   function num(v: string): number {
@@ -179,6 +182,7 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel }: Props)
         tipologiaAllevamento={dati.tipologiaAllevamento}
         value={dati.simulazioneZootecnia}
         onChange={(simulazioneZootecnia) => setDati({ ...dati, simulazioneZootecnia })}
+        regione={regioneCliente}
       />
 
       <div className="card">

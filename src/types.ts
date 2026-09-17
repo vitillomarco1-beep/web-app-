@@ -247,6 +247,11 @@ export interface SimulazioneZootecnia {
     mcfManualePercento?: number
     fracGasmManualePercento?: number
   }
+  /** Temperatura e umidità relativa media mensile, per calcolare il THI
+   * (indice di stress da caldo) — si veda lib/thi.ts. Dati da prendere dal
+   * servizio agrometeorologico pubblico della zona (lo stesso link mostrato
+   * qui e nel simulatore RothC). */
+  climaThiMensile?: { temperaturaC: number; umiditaRelativaPercento: number }[]
 }
 
 export interface DatiZootecnia extends DatiGenerali {
