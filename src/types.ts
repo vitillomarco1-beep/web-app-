@@ -223,7 +223,15 @@ export interface SimulazioneZootecnia {
    * lo stesso formato di quello di un singolo alimento, e non sappiamo ancora
    * su quali parametri si baserà una futura normativa). */
   razioneMiscelata?: {
-    quantitaTAnno: number
+    /** Quota di razione per capo al giorno (kg/capo/giorno, tal quale): dato
+     * facilmente reperibile al sopralluogo, come la media di stalla del latte
+     * (si veda standardizzazioneLatte.ts) — preferito a un totale annuo in
+     * tonnellate, che richiede già un calcolo aziendale a monte. */
+    razioneCapoGiornoKg: number
+    /** Numero di capi in stalla alimentati con questa razione (tutta la
+     * mandria in asciutta/lattazione che la riceve, non solo gli animali in
+     * mungitura del pannello latte). */
+    numeroCapiAlimentati: number
     analisiAlimento?: AnalisiAlimento
   }
   /** Stima delle emissioni di metano e protossido di azoto (dirette e

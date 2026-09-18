@@ -425,15 +425,19 @@ export default function SimulazioneZootecniaTool({
   }
 
   const modalitaMetano = sim.modalitaMetano ?? 'daAlimenti'
-  const razioneMiscelata = sim.razioneMiscelata ?? { quantitaTAnno: 0, analisiAlimento: {} }
+  const razioneMiscelata = sim.razioneMiscelata ?? { razioneCapoGiornoKg: 0, numeroCapiAlimentati: 0, analisiAlimento: {} }
   const analisiRazioneMiscelata = razioneMiscelata.analisiAlimento ?? {}
+  const quantitaTAnnoRazione =
+    Math.round(((razioneMiscelata.razioneCapoGiornoKg * razioneMiscelata.numeroCapiAlimentati * 365) / 1000) * 100) / 100
+  const formulaQuantitaRazione =
+    `${n(razioneMiscelata.razioneCapoGiornoKg)} kg/capo/giorno × ${n(razioneMiscelata.numeroCapiAlimentati)} capi in stalla × 365 giorni ÷ 1000 = ${n(quantitaTAnnoRazione)} t/anno tal quale`
 
   const righeDieta =
     modalitaMetano === 'daRazioneMiscelata'
       ? [
           {
             nomeMangime: 'Razione miscelata (TMR)',
-            quantitaTAnno: razioneMiscelata.quantitaTAnno,
+            quantitaTAnno: quantitaTAnnoRazione,
             sostanzaSeccaPercento: analisiRazioneMiscelata.sostanzaSeccaPercento ?? 0,
             andfomPercento: analisiRazioneMiscelata.andfomPercento,
             tdnPercento: analisiRazioneMiscelata.tdnPercento,
@@ -640,19 +644,39 @@ export default function SimulazioneZootecniaTool({
                       energia…): inseriscilo qui per intero, non solo l'NDF, così i dati sono pronti
                       qualunque parametro finisca per richiedere la normativa futura.
                     </p>
-                    <div>
-                      <label className="text-[11px] text-stone-500">
-                        Razione distribuita alla mandria (t/anno, tal quale)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        className="input !py-1 w-48 text-xs"
-                        value={razioneMiscelata.quantitaTAnno}
-                        onChange={(e) => aggiornaRazioneMiscelata({ quantitaTAnno: num(e.target.value) })}
-                      />
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-[12rem_10rem]">
+                      <div>
+                        <label className="text-[11px] text-stone-500">
+                          Razione per capo al giorno (kg/capo/giorno, tal quale)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          className="input !py-1 text-xs"
+                          value={razioneMiscelata.razioneCapoGiornoKg}
+                          onChange={(e) => aggiornaRazioneMiscelata({ razioneCapoGiornoKg: num(e.target.value) })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-stone-500">Numero di capi in stalla</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="1"
+                          className="input !py-1 text-xs"
+                          value={razioneMiscelata.numeroCapiAlimentati}
+                          onChange={(e) =>
+                            aggiornaRazioneMiscelata({ numeroCapiAlimentati: num(e.target.value) })
+                          }
+                        />
+                      </div>
                     </div>
+                    <p className="text-[11px] text-stone-400">
+                      {formulaQuantitaRazione} — tutti i capi che ricevono questa razione (comprese
+                      le vacche in asciutta), non solo gli animali in mungitura del pannello latte
+                      qui sotto.
+                    </p>
                     <AnalisiAlimentoBlock
                       analisi={analisiRazioneMiscelata}
                       onChange={aggiornaAnalisiRazioneMiscelata}
