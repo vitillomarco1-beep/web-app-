@@ -1,4 +1,5 @@
 import type { AnalisiAlimento } from './lib/analisiAlimenti'
+import type { LivelloConfidenza } from './lib/campionamentoForestale'
 
 export type TipoAttivita = 'agricoltura_agroforestazione' | 'imboschimento' | 'zootecnia'
 
@@ -123,6 +124,18 @@ export interface DatiImboschimento extends DatiGenerali, DatiQuantificazione {
   applicaPerditaLavorazionePratiPermanenti: boolean
   stockCarbonioSueloPreesistenteTCO2?: number
   checklist: ChecklistAmmissibilita
+  /** Pianificazione del numero minimo di unità di campionamento per le
+   * misure dirette nei controlli di ricertificazione (si veda
+   * lib/campionamentoForestale.ts) — non entra nel bilancio in t CO2eq, è un
+   * supporto alla pianificazione del piano di monitoraggio. */
+  pianoCampionamento?: {
+    deviazioneStandard: number
+    margineErroreE: number
+    confidenza: LivelloConfidenza
+    usaStratificazione: boolean
+    dimensionePlotHa: number
+    strati: { id: string; nome: string; areaHa: number; deviazioneStandard: number }[]
+  }
 }
 
 /**
