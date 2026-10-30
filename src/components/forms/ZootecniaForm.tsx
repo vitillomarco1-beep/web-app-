@@ -46,6 +46,185 @@ const PRATICHE_LABELS: [keyof DatiZootecnia['pratiche'], string][] = [
   ['geneticaEfficienza', 'Selezione genetica orientata a minore intensità di emissione'],
 ]
 
+type IndiciLatte = NonNullable<DatiZootecnia['indiciLatte']>
+type IndiciCarne = NonNullable<DatiZootecnia['indiciCarne']>
+
+interface CampoIndiceNumerico<T> {
+  key: keyof T
+  label: string
+  unita: string
+  opzioni?: never
+}
+interface CampoIndiceSelezione<T> {
+  key: keyof T
+  label: string
+  unita?: never
+  opzioni: string[]
+}
+type CampoIndice<T> = CampoIndiceNumerico<T> | CampoIndiceSelezione<T>
+
+const GRUPPI_INDICI_LATTE: { titolo: string; campi: CampoIndice<IndiciLatte>[] }[] = [
+  {
+    titolo: 'Riproduzione',
+    campi: [
+      { key: 'etaPrimoPartoMesi', label: 'Età media al primo parto', unita: 'mesi' },
+      { key: 'giorniApertiMedio', label: 'Giorni aperti medi (parto-concepimento)', unita: 'giorni' },
+      { key: 'intervalloInterpartoGiorni', label: 'Intervallo interparto', unita: 'giorni' },
+      { key: 'tassoConcepimentoPercento', label: 'Tasso di concepimento (CR)', unita: '%' },
+      { key: 'tassoGravidanzaPercento', label: 'Tasso di gravidanza (PR)', unita: '%' },
+      { key: 'tassoRilevazioneCaloriPercento', label: 'Tasso di rilevazione calori (HDR)', unita: '%' },
+      { key: 'inseminazioniPerGravidanzaMedia', label: 'Inseminazioni medie per gravidanza', unita: 'n.' },
+      { key: 'tassoAbortoPercento', label: 'Tasso di aborto', unita: '%' },
+    ],
+  },
+  {
+    titolo: 'Longevità e struttura di mandria',
+    campi: [
+      { key: 'vitaMediaProduttivaLattazioni', label: 'Vita media produttiva (lattazioni per capo)', unita: 'n.' },
+      { key: 'tassoRimontaPercento', label: 'Tasso di rimonta/sostituzione annuo', unita: '%' },
+    ],
+  },
+  {
+    titolo: 'Salute e benessere',
+    campi: [
+      { key: 'tassoMortalitaPercento', label: 'Tasso di mortalità', unita: '%' },
+      { key: 'celluleSomaticheMedie', label: 'Cellule somatiche medie', unita: 'cellule/ml' },
+      { key: 'incidenzaMastitePercento', label: 'Incidenza di mastite clinica', unita: '%' },
+      { key: 'incidenzaZoppiaPercento', label: 'Incidenza di zoppia', unita: '%' },
+    ],
+  },
+  {
+    titolo: 'Produzione',
+    campi: [
+      { key: 'produzioneMedia305GiorniKg', label: 'Produzione media per lattazione a 305 giorni', unita: 'kg' },
+      { key: 'giorniMediInLattazione', label: 'Giorni medi in lattazione (DIM medio)', unita: 'giorni' },
+      { key: 'percentualeVaccheAsciuttaPercento', label: 'Vacche in asciutta sul totale mandria', unita: '%' },
+    ],
+  },
+]
+
+const GRUPPI_INDICI_CARNE: { titolo: string; campi: CampoIndice<IndiciCarne>[] }[] = [
+  {
+    titolo: 'Riproduzione (vacca nutrice)',
+    campi: [
+      { key: 'etaPrimoPartoMesi', label: 'Età media al primo parto', unita: 'mesi' },
+      { key: 'intervalloInterpartoGiorni', label: 'Intervallo interparto', unita: 'giorni' },
+      { key: 'tassoFertilitaPercento', label: 'Tasso di fertilità/gravidanza', unita: '%' },
+      { key: 'tassoNatalitaPercento', label: 'Tasso di natalità (vitelli nati vivi)', unita: '%' },
+      { key: 'pesoMedioNascitaKg', label: 'Peso medio alla nascita', unita: 'kg' },
+      { key: 'tassoMortalitaPerinatalePercento', label: 'Tasso di mortalità perinatale', unita: '%' },
+    ],
+  },
+  {
+    titolo: 'Accrescimento e conversione alimentare',
+    campi: [
+      { key: 'pesoMedioSvezzamentoKg', label: 'Peso medio allo svezzamento', unita: 'kg' },
+      { key: 'accrescimentoMedioGiornalieroKg', label: 'Accrescimento medio giornaliero (ADG)', unita: 'kg/giorno' },
+      { key: 'pesoVivoFinaleKg', label: 'Peso vivo finale a fine ciclo', unita: 'kg' },
+      { key: 'etaMacellazioneMesi', label: 'Età alla macellazione', unita: 'mesi' },
+      { key: 'indiceConversioneAlimentare', label: 'Indice di conversione alimentare (ICA)', unita: 'kg s.s./kg accr.' },
+    ],
+  },
+  {
+    titolo: 'Longevità e struttura di mandria',
+    campi: [
+      { key: 'tassoRimontaFattriciPercento', label: 'Tasso di rimonta delle fattrici', unita: '%' },
+      { key: 'vitaProduttivaFattriciParti', label: 'Vita produttiva media delle fattrici', unita: 'n. parti' },
+    ],
+  },
+  {
+    titolo: 'Salute e benessere',
+    campi: [
+      { key: 'tassoMortalitaPercento', label: 'Tasso di mortalità generale', unita: '%' },
+      { key: 'incidenzaPatologieRespiratoriePercento', label: 'Incidenza di patologie respiratorie (BRD)', unita: '%' },
+      { key: 'tassoTrattamentiAntibioticiPercento', label: 'Tasso di trattamenti antibiotici', unita: '%' },
+    ],
+  },
+  {
+    titolo: 'Qualità della carcassa',
+    campi: [
+      { key: 'resaMacellazionePercento', label: 'Resa alla macellazione', unita: '%' },
+      { key: 'classificazioneSeurop', label: 'Classificazione SEUROP (conformazione)', opzioni: ['S', 'E', 'U', 'R', 'O', 'P'] },
+      { key: 'gradoIngrassamento', label: 'Grado di ingrassamento (scala UE 1-5)', unita: '1-5' },
+    ],
+  },
+]
+
+function PannelloIndici<T extends Record<string, number | string | undefined>>({
+  titolo,
+  descrizione,
+  gruppi,
+  valori,
+  aggiorna,
+}: {
+  titolo: string
+  descrizione: string
+  gruppi: { titolo: string; campi: CampoIndice<T>[] }[]
+  valori: T
+  aggiorna: (key: keyof T, value: number | string) => void
+}) {
+  const [aperto, setAperto] = useState(false)
+  function num(v: string): number {
+    const n = parseFloat(v)
+    return isNaN(n) ? 0 : n
+  }
+  return (
+    <div className="card">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between text-left"
+        onClick={() => setAperto((a) => !a)}
+      >
+        <h3 className="font-semibold text-stone-900">{titolo}</h3>
+        <span className="text-stone-500">{aperto ? '−' : '+'}</span>
+      </button>
+      {aperto && (
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-stone-500">{descrizione}</p>
+          {gruppi.map((gruppo) => (
+            <div key={gruppo.titolo}>
+              <p className="mb-1 text-sm font-medium text-stone-700">{gruppo.titolo}</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {gruppo.campi.map((campo) => (
+                  <div key={String(campo.key)}>
+                    <label className="text-xs text-stone-500">
+                      {campo.label}
+                      {campo.unita && <span className="text-stone-400"> ({campo.unita})</span>}
+                    </label>
+                    {campo.opzioni ? (
+                      <select
+                        className="input"
+                        value={(valori[campo.key] as string) ?? ''}
+                        onChange={(e) => aggiorna(campo.key, e.target.value)}
+                      >
+                        <option value="">—</option>
+                        {campo.opzioni.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        className="input"
+                        value={(valori[campo.key] as number) ?? 0}
+                        onChange={(e) => aggiorna(campo.key, num(e.target.value))}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneCliente }: Props) {
   const [dati, setDati] = useState<DatiZootecnia>(initial ?? defaultData())
 
@@ -53,6 +232,15 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
     const n = parseFloat(v)
     return isNaN(n) ? 0 : n
   }
+
+  function aggiornaIndiceLatte(key: keyof IndiciLatte, value: number | string) {
+    setDati({ ...dati, indiciLatte: { ...dati.indiciLatte, [key]: value } })
+  }
+
+  function aggiornaIndiceCarne(key: keyof IndiciCarne, value: number | string) {
+    setDati({ ...dati, indiciCarne: { ...dati.indiciCarne, [key]: value } })
+  }
+
 
   return (
     <form
@@ -149,6 +337,22 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
           </div>
         </div>
       </div>
+
+      <PannelloIndici
+        titolo="Indici zootecnici e riproduttivi — latte (facoltativo)"
+        descrizione="Dati anagrafici/gestionali della mandria da latte, utili per il fascicolo del cliente — non entrano in un calcolo di emissioni oggi. Alcuni (es. giorni aperti, età al primo parto) incidono comunque sull'intensità emissiva per litro di latte: più a lungo una vacca resta improduttiva, più a lungo genera emissioni di mantenimento senza produrre."
+        gruppi={GRUPPI_INDICI_LATTE}
+        valori={dati.indiciLatte ?? {}}
+        aggiorna={aggiornaIndiceLatte}
+      />
+
+      <PannelloIndici
+        titolo="Indici zootecnici — carne (facoltativo)"
+        descrizione="Dati anagrafici/gestionali del comparto carne (linea vacca-vitello/ingrasso), utili per il fascicolo del cliente — non entrano in un calcolo di emissioni oggi. Utile anche per un'azienda prevalentemente da latte che vende vitelli/manze a carne: compila solo i campi pertinenti alla tua azienda."
+        gruppi={GRUPPI_INDICI_CARNE}
+        valori={dati.indiciCarne ?? {}}
+        aggiorna={aggiornaIndiceCarne}
+      />
 
       <div className="card space-y-3">
         <h3 className="font-semibold text-stone-900">Pratiche di mitigazione previste/adottate</h3>

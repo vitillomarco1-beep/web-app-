@@ -293,6 +293,69 @@ export interface DatiZootecnia extends DatiGenerali {
     geneticaEfficienza: boolean
     alimentazionePrecisione: boolean
   }
+  /** Indici zootecnici e riproduttivi del comparto latte — dati
+   * anagrafici/gestionali della mandria, non legati a un calcolo di
+   * emissioni: utili per il fascicolo del cliente e per leggere in
+   * prospettiva l'efficienza dell'azienda (es. giorni aperti ed età al
+   * primo parto incidono sull'intensità emissiva per litro di latte, perché
+   * più tempo la vacca resta improduttiva più a lungo genera emissioni di
+   * mantenimento senza produrre — nessuna formula verificata li collega qui
+   * a un valore numerico). Tutti facoltativi. Mostrato insieme a
+   * indiciCarne perché un'azienda può avere entrambe le filiere (es.
+   * un'azienda da latte che vende anche vitelli/manze a carne). */
+  indiciLatte?: {
+    // Riproduzione
+    etaPrimoPartoMesi?: number
+    giorniApertiMedio?: number
+    intervalloInterpartoGiorni?: number
+    tassoConcepimentoPercento?: number
+    tassoGravidanzaPercento?: number
+    tassoRilevazioneCaloriPercento?: number
+    inseminazioniPerGravidanzaMedia?: number
+    tassoAbortoPercento?: number
+    // Longevità e struttura di mandria
+    vitaMediaProduttivaLattazioni?: number
+    tassoRimontaPercento?: number
+    // Salute e benessere
+    tassoMortalitaPercento?: number
+    celluleSomaticheMedie?: number
+    incidenzaMastitePercento?: number
+    incidenzaZoppiaPercento?: number
+    // Produzione
+    produzioneMedia305GiorniKg?: number
+    giorniMediInLattazione?: number
+    percentualeVaccheAsciuttaPercento?: number
+  }
+  /** Indici zootecnici del comparto carne (linea vacca-vitello/ingrasso) —
+   * stessa logica e stessi limiti di indiciLatte, ma parametri propri della
+   * produzione di carne (accrescimento, conversione alimentare, resa e
+   * qualità della carcassa), non quelli del latte. Tutti facoltativi. */
+  indiciCarne?: {
+    // Riproduzione (vacca nutrice)
+    etaPrimoPartoMesi?: number
+    intervalloInterpartoGiorni?: number
+    tassoFertilitaPercento?: number
+    tassoNatalitaPercento?: number
+    pesoMedioNascitaKg?: number
+    tassoMortalitaPerinatalePercento?: number
+    // Accrescimento e conversione alimentare
+    pesoMedioSvezzamentoKg?: number
+    accrescimentoMedioGiornalieroKg?: number
+    pesoVivoFinaleKg?: number
+    etaMacellazioneMesi?: number
+    indiceConversioneAlimentare?: number
+    // Longevità e struttura di mandria
+    tassoRimontaFattriciPercento?: number
+    vitaProduttivaFattriciParti?: number
+    // Salute e benessere
+    tassoMortalitaPercento?: number
+    incidenzaPatologieRespiratoriePercento?: number
+    tassoTrattamentiAntibioticiPercento?: number
+    // Qualità della carcassa
+    resaMacellazionePercento?: number
+    classificazioneSeurop?: string
+    gradoIngrassamento?: number
+  }
   noteMetodologiche?: string
   simulazioneZootecnia?: SimulazioneZootecnia
   checklist: ChecklistAmmissibilita
