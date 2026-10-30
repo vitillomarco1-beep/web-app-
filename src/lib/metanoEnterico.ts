@@ -14,6 +14,16 @@
  *
  * TIER 1 — CH4 (kg/anno) = numero di capi × EF (kg CH4/capo/anno di default)
  *
+ * Per i bovini da latte, se è disponibile la struttura della mandria per
+ * categoria (lattazione, asciutta, manze, manzette, vitelli — si veda
+ * types.ts, DatiZootecnia.struttureMandria), il Tier 1 si raffina applicando
+ * l'EF "bovini da latte" solo alla mandria adulta (lattazione+asciutta) e
+ * l'EF "altri bovini" alla rimonta non ancora in lattazione (manze,
+ * manzette, vitelli) — calcolaMetanoEntericoTier1PerStruttura. Senza quella
+ * struttura, il Tier 1 resta un unico EF applicato a tutti i capi
+ * (calcolaMetanoEntericoDaFattore), che sovrastima la rimonta (l'EF da latte
+ * applicato anche a manze/vitelli non lattiferi).
+ *
  * Fonte EF Tier 1: IPCC 2019 Refinement to the 2006 Guidelines, Vol. 4 Cap.
  * 10, Tabella 10.11 (aggiornata), Europa occidentale — 126 kg CH4/capo/anno
  * per bovini da latte, 52 per altri bovini (valori 2006 originali, non
@@ -131,6 +141,42 @@ export function calcolaMetanoEntericoDaFattore(
 ): RisultatoMetanoEntericoSemplice {
   const ch4KgAnno = numeroCapi * efKgPerCapoAnno
   const formulaCh4 = `${n(numeroCapi)} capi × ${n(efKgPerCapoAnno)} kg CH4/capo/anno (${fonteEf}) = ${n(ch4KgAnno)} kg CH4/anno`
+  const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
+  return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
+}
+
+export interface StrutturaMandriaInput {
+  animaliLattazione: number
+  animaliAsciutta: number
+  manze12MesiParto: number
+  manzette6_12Mesi: number
+  vitelli0_6Mesi: number
+}
+
+/** Tier 1 per bovini da latte, raffinato per struttura di mandria: la
+ * mandria adulta (lattazione+asciutta) usa l'EF "bovini da latte", la
+ * rimonta (manze, manzette, vitelli — non ancora in lattazione) usa l'EF
+ * "altri bovini", perché l'EF Tier 1 di default IPCC non distingue età
+ * all'interno della rimonta (solo Tier 2/3 lo farebbero) ma distingue
+ * nettamente mandria da latte matura da giovane bestiame non lattifero.
+ * Più preciso del Tier 1 "piatto" (un solo EF per l'intera mandria, inclusa
+ * la rimonta) perché non applica l'EF da latte anche ai vitelli. */
+export function calcolaMetanoEntericoTier1PerStruttura(
+  struttura: StrutturaMandriaInput,
+  efMandriaAdulta: number,
+  fonteEfMandriaAdulta: string,
+  efRimonta: number,
+  fonteEfRimonta: string,
+): RisultatoMetanoEntericoSemplice {
+  const capiMandriaAdulta = struttura.animaliLattazione + struttura.animaliAsciutta
+  const capiRimonta = struttura.manze12MesiParto + struttura.manzette6_12Mesi + struttura.vitelli0_6Mesi
+  const ch4MandriaAdulta = capiMandriaAdulta * efMandriaAdulta
+  const ch4Rimonta = capiRimonta * efRimonta
+  const ch4KgAnno = ch4MandriaAdulta + ch4Rimonta
+  const formulaCh4 =
+    `Mandria adulta (lattazione+asciutta): ${n(capiMandriaAdulta)} capi × ${n(efMandriaAdulta)} kg CH4/capo/anno ` +
+    `(${fonteEfMandriaAdulta}) = ${n(ch4MandriaAdulta)} kg; rimonta (manze+manzette+vitelli): ${n(capiRimonta)} capi × ` +
+    `${n(efRimonta)} kg CH4/capo/anno (${fonteEfRimonta}) = ${n(ch4Rimonta)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
   const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
   return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
 }

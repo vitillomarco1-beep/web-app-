@@ -296,7 +296,27 @@ export interface SimulazioneZootecnia {
 export interface DatiZootecnia extends DatiGenerali {
   tipoAttivita: 'zootecnia'
   tipologiaAllevamento: TipologiaAllevamento
+  /** Numero medio di capi totali — calcolato automaticamente come somma di
+   * struttureMandria quando compilata, altrimenti inserito a mano. */
   numeroCapiMedio: number
+  /** Struttura della mandria per categoria fisiologica/età (facoltativo, solo
+   * bovini): più precisa di un unico numero di capi aggregato — distingue
+   * mandria adulta (in lattazione/asciutta) da rimonta (manze, manzette,
+   * vitelli), perché le due categorie hanno fattori di emissione del metano
+   * enterico molto diversi (si veda lib/metanoEnterico.ts, Tier 1). Quando
+   * compilata, la somma aggiorna automaticamente numeroCapiMedio. */
+  struttureMandria?: {
+    /** Animali in lattazione */
+    animaliLattazione: number
+    /** Animali in asciutta */
+    animaliAsciutta: number
+    /** Manze da 12 mesi fino al parto */
+    manze12MesiParto: number
+    /** Manzette da 6 a 12 mesi */
+    manzette6_12Mesi: number
+    /** Vitelli da 0 a 6 mesi */
+    vitelli0_6Mesi: number
+  }
   /** pratiche di mitigazione previste/adottate, in attesa dei fattori di calcolo ufficiali */
   pratiche: {
     additiviAlimentari: boolean

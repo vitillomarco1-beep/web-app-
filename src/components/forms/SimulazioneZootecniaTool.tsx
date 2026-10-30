@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { MangimeSimulazione, SimulazioneZootecnia, TipologiaAllevamento } from '../../types'
+import type { MangimeSimulazione, SimulazioneZootecnia, TipologiaAllevamento, DatiZootecnia } from '../../types'
 import {
   INTENSITA_EMISSIVA_RIFERIMENTO,
   MANGIMI_RIFERIMENTO,
@@ -14,7 +14,13 @@ import {
   suggerisciCarbonioDaCeneri,
   type AnalisiAlimento,
 } from '../../lib/analisiAlimenti'
-import { calcolaMetanoEnterico, calcolaMetanoEntericoDaFattore, EF_TIER1_RIFERIMENTO, type TierMetanoEnterico } from '../../lib/metanoEnterico'
+import {
+  calcolaMetanoEnterico,
+  calcolaMetanoEntericoDaFattore,
+  calcolaMetanoEntericoTier1PerStruttura,
+  EF_TIER1_RIFERIMENTO,
+  type TierMetanoEnterico,
+} from '../../lib/metanoEnterico'
 import {
   BO_RIFERIMENTO,
   TECNICHE_SPANDIMENTO,
@@ -50,6 +56,10 @@ interface Props {
   /** Numero medio di capi (dati generali dell'allevamento), riusato come base
    * per il metano enterico Tier 1/Tier 3 (capi × fattore di emissione). */
   numeroCapiMedio?: number
+  /** Struttura della mandria per categoria (dati generali dell'allevamento):
+   * se presente, raffina il Tier 1 per bovini da latte — si veda
+   * lib/metanoEnterico.ts, calcolaMetanoEntericoTier1PerStruttura. */
+  struttureMandria?: DatiZootecnia['struttureMandria']
 }
 
 function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia {
@@ -347,6 +357,7 @@ export default function SimulazioneZootecniaTool({
   onChange,
   regione,
   numeroCapiMedio,
+  struttureMandria,
 }: Props) {
   const [aperto, setAperto] = useState(false)
   const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
@@ -465,7 +476,25 @@ export default function SimulazioneZootecniaTool({
   const efTier1Riferimento = EF_TIER1_RIFERIMENTO[tipologiaAllevamento]
   const efTier1Usato = sim.efTier1ManualeKgPerCapoAnno ?? efTier1Riferimento?.valore ?? 0
   const fonteEfTier1 = sim.efTier1ManualeKgPerCapoAnno != null ? 'valore manuale' : efTier1Riferimento?.fonte ?? 'nessun riferimento disponibile'
-  const risultatoMetanoTier1 = calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier1Usato, fonteEfTier1)
+  const haStrutturaMandria =
+    struttureMandria != null &&
+    struttureMandria.animaliLattazione +
+      struttureMandria.animaliAsciutta +
+      struttureMandria.manze12MesiParto +
+      struttureMandria.manzette6_12Mesi +
+      struttureMandria.vitelli0_6Mesi >
+      0
+  const efRimontaRiferimento = EF_TIER1_RIFERIMENTO.bovini_da_carne
+  const risultatoMetanoTier1 =
+    tipologiaAllevamento === 'bovini_da_latte' && haStrutturaMandria && struttureMandria
+      ? calcolaMetanoEntericoTier1PerStruttura(
+          struttureMandria,
+          efTier1Usato,
+          fonteEfTier1,
+          efRimontaRiferimento?.valore ?? 0,
+          efRimontaRiferimento?.fonte ?? 'nessun riferimento disponibile',
+        )
+      : calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier1Usato, fonteEfTier1)
   const efTier3Usato = sim.efTier3KgPerCapoAnno ?? 0
   const risultatoMetanoTier3 = calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier3Usato, 'misurazione diretta')
   const risultatoMetanoSelezionato =
@@ -708,8 +737,9 @@ export default function SimulazioneZootecniaTool({
                 {tierMetanoEnterico === 'tier1' && (
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
                     <p className="text-[11px] text-stone-400">
-                      Numero di capi (dato generale dell'allevamento: {n(numeroCapiTier)}) × fattore
-                      di emissione di default per area geografica — nessun dato di razione richiesto.
+                      {haStrutturaMandria && tipologiaAllevamento === 'bovini_da_latte'
+                        ? "Struttura della mandria per categoria disponibile (dati generali dell'allevamento): il Tier 1 applica l'EF da latte solo alla mandria adulta e l'EF \"altri bovini\" alla rimonta non ancora in lattazione — più preciso di un unico EF per tutti i capi."
+                        : `Numero di capi (dato generale dell'allevamento: ${n(numeroCapiTier)}) × fattore di emissione di default per area geografica — nessun dato di razione richiesto.`}
                     </p>
                     <div className="rounded-md bg-stone-50 p-2">
                       <p className="text-stone-600">Fattore di emissione (EF) di default</p>

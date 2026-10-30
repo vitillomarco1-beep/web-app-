@@ -241,6 +241,32 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
     setDati({ ...dati, indiciCarne: { ...dati.indiciCarne, [key]: value } })
   }
 
+  const struttureMandria = dati.struttureMandria ?? {
+    animaliLattazione: 0,
+    animaliAsciutta: 0,
+    manze12MesiParto: 0,
+    manzette6_12Mesi: 0,
+    vitelli0_6Mesi: 0,
+  }
+  const totaleStruttureMandria =
+    struttureMandria.animaliLattazione +
+    struttureMandria.animaliAsciutta +
+    struttureMandria.manze12MesiParto +
+    struttureMandria.manzette6_12Mesi +
+    struttureMandria.vitelli0_6Mesi
+  const usaStruttureMandria = totaleStruttureMandria > 0
+
+  function aggiornaStrutturaMandria(key: keyof typeof struttureMandria, value: number) {
+    const aggiornata = { ...struttureMandria, [key]: value }
+    const totale =
+      aggiornata.animaliLattazione +
+      aggiornata.animaliAsciutta +
+      aggiornata.manze12MesiParto +
+      aggiornata.manzette6_12Mesi +
+      aggiornata.vitelli0_6Mesi
+    setDati({ ...dati, struttureMandria: aggiornata, numeroCapiMedio: totale })
+  }
+
 
   return (
     <form
@@ -299,9 +325,15 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
               type="number"
               min={0}
               className="input"
+              disabled={usaStruttureMandria}
               value={dati.numeroCapiMedio}
               onChange={(e) => setDati({ ...dati, numeroCapiMedio: num(e.target.value) })}
             />
+            {usaStruttureMandria && (
+              <p className="mt-1 text-xs text-stone-400">
+                Calcolato automaticamente dalla somma della struttura della mandria qui sotto.
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Superficie aziendale (ha)</label>
@@ -336,6 +368,71 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
             />
           </div>
         </div>
+      </div>
+
+      <div className="card space-y-3">
+        <h3 className="font-semibold text-stone-900">Struttura della mandria per categoria (facoltativo)</h3>
+        <p className="text-sm text-stone-500">
+          Più precisa di un unico numero di capi aggregato: distingue la mandria adulta (in
+          lattazione/asciutta) dalla rimonta (manze, manzette, vitelli) — categorie con fattori di
+          emissione del metano enterico molto diversi, usate dal Tier 1 nel pannello di simulazione
+          più sotto. Se compilata, il "Numero medio di capi" qui sopra si aggiorna automaticamente.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div>
+            <label className="text-xs text-stone-500">Animali in lattazione</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={struttureMandria.animaliLattazione}
+              onChange={(e) => aggiornaStrutturaMandria('animaliLattazione', num(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500">Animali in asciutta</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={struttureMandria.animaliAsciutta}
+              onChange={(e) => aggiornaStrutturaMandria('animaliAsciutta', num(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500">Manze (12 mesi-parto)</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={struttureMandria.manze12MesiParto}
+              onChange={(e) => aggiornaStrutturaMandria('manze12MesiParto', num(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500">Manzette (6-12 mesi)</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={struttureMandria.manzette6_12Mesi}
+              onChange={(e) => aggiornaStrutturaMandria('manzette6_12Mesi', num(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500">Vitelli (0-6 mesi)</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={struttureMandria.vitelli0_6Mesi}
+              onChange={(e) => aggiornaStrutturaMandria('vitelli0_6Mesi', num(e.target.value))}
+            />
+          </div>
+        </div>
+        {usaStruttureMandria && (
+          <p className="text-xs text-stone-400">Totale: {totaleStruttureMandria} capi.</p>
+        )}
       </div>
 
       <PannelloIndici
@@ -388,6 +485,7 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
         onChange={(simulazioneZootecnia) => setDati({ ...dati, simulazioneZootecnia })}
         regione={regioneCliente}
         numeroCapiMedio={dati.numeroCapiMedio}
+        struttureMandria={dati.struttureMandria}
       />
 
       <div className="card">
