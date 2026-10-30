@@ -147,8 +147,8 @@ export const EF_TIER1_RIFERIMENTO: Partial<Record<TipologiaAllevamento, EfTier1R
 
 export interface EfRimontaPerFase {
   manze: EfTier1Riferimento
-  manzette: EfTier1Riferimento
-  vitelli: EfTier1Riferimento
+  svezzati: EfTier1Riferimento
+  vitelliLatte: EfTier1Riferimento
 }
 
 /** EF Tier 1 (kg CH4/capo/anno) per singola fase della rimonta non ancora in
@@ -157,26 +157,30 @@ export interface EfRimontaPerFase {
  * EF "altri bovini" (52, una media su tutta la categoria incluse manze,
  * manzette, vitelli e tori) perché distinguono la fase di crescita:
  *   "Replacement/growing" (manze, 400 kg, 0,4 kg/giorno di accrescimento) → 57
- *   "Calves on forage" (manzette svezzate, 230 kg) → 32
- *   "Calves on milk" (vitelli, 230 kg) → 0 — presuppone alimentazione
- *     esclusivamente lattea fino ai 6 mesi: se in azienda si introduce
- *     fieno/concentrato prima (comune dai 3-4 mesi), l'emissione reale dei
- *     vitelli è superiore a questa stima, dichiaratamente approssimata per
- *     difetto. */
+ *   "Calves on forage" (230 kg) → 32 — usato sia per le manzette (6-12 mesi)
+ *     sia per i vitelli svezzati (3-6 mesi): l'Annex 10A.2 Europa
+ *     occidentale non distingue oltre lo svezzamento, un'unica categoria
+ *     "calves" copre entrambe le fasce d'età.
+ *   "Calves on milk" (vitelli 0-3 mesi) → 0 — presuppone alimentazione
+ *     esclusivamente lattea nei primi 3 mesi (soglia indicata dall'utente,
+ *     in linea con la pratica comune di svezzamento); se lo svezzamento
+ *     reale avviene più tardi, l'emissione dei vitelli di questa fascia è
+ *     sottostimata. */
 export const EF_TIER1_RIMONTA_PER_FASE: EfRimontaPerFase = {
   manze: {
     valore: 57,
     fonte:
       'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Replacement/growing", Europa occidentale.',
   },
-  manzette: {
+  svezzati: {
     valore: 32,
-    fonte: 'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Calves on forage", Europa occidentale.',
+    fonte:
+      'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Calves on forage", Europa occidentale (usato per manzette 6-12 mesi e vitelli svezzati 3-6 mesi).',
   },
-  vitelli: {
+  vitelliLatte: {
     valore: 0,
     fonte:
-      'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Calves on milk", Europa occidentale — presuppone alimentazione esclusivamente lattea fino a 6 mesi.',
+      'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Calves on milk", Europa occidentale — presuppone alimentazione esclusivamente lattea nei primi 3 mesi.',
   },
 }
 
@@ -213,7 +217,10 @@ export interface StrutturaMandriaInput {
   animaliAsciutta: number
   manze12MesiParto: number
   manzette6_12Mesi: number
-  vitelli0_6Mesi: number
+  /** 0-3 mesi, alimentazione esclusivamente lattea. */
+  vitelli0_3Mesi: number
+  /** 3-6 mesi, svezzati su foraggio. */
+  vitelli3_6Mesi: number
 }
 
 /** Tier 1 per bovini da latte, raffinato per struttura di mandria: la
@@ -234,15 +241,18 @@ export function calcolaMetanoEntericoTier1PerStruttura(
   const capiMandriaAdulta = struttura.animaliLattazione + struttura.animaliAsciutta
   const ch4MandriaAdulta = capiMandriaAdulta * efMandriaAdulta
   const ch4Manze = struttura.manze12MesiParto * efRimontaPerFase.manze.valore
-  const ch4Manzette = struttura.manzette6_12Mesi * efRimontaPerFase.manzette.valore
-  const ch4Vitelli = struttura.vitelli0_6Mesi * efRimontaPerFase.vitelli.valore
-  const ch4KgAnno = ch4MandriaAdulta + ch4Manze + ch4Manzette + ch4Vitelli
+  const ch4Manzette = struttura.manzette6_12Mesi * efRimontaPerFase.svezzati.valore
+  const ch4VitelliSvezzati = struttura.vitelli3_6Mesi * efRimontaPerFase.svezzati.valore
+  const ch4VitelliLatte = struttura.vitelli0_3Mesi * efRimontaPerFase.vitelliLatte.valore
+  const ch4KgAnno = ch4MandriaAdulta + ch4Manze + ch4Manzette + ch4VitelliSvezzati + ch4VitelliLatte
   const formulaCh4 =
     `Mandria adulta (lattazione+asciutta): ${n(capiMandriaAdulta)} capi × ${n(efMandriaAdulta)} kg CH4/capo/anno ` +
     `(${fonteEfMandriaAdulta}) = ${n(ch4MandriaAdulta)} kg; manze: ${n(struttura.manze12MesiParto)} capi × ` +
     `${n(efRimontaPerFase.manze.valore)} = ${n(ch4Manze)} kg; manzette: ${n(struttura.manzette6_12Mesi)} capi × ` +
-    `${n(efRimontaPerFase.manzette.valore)} = ${n(ch4Manzette)} kg; vitelli: ${n(struttura.vitelli0_6Mesi)} capi × ` +
-    `${n(efRimontaPerFase.vitelli.valore)} = ${n(ch4Vitelli)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
+    `${n(efRimontaPerFase.svezzati.valore)} = ${n(ch4Manzette)} kg; vitelli 3-6 mesi: ${n(struttura.vitelli3_6Mesi)} ` +
+    `capi × ${n(efRimontaPerFase.svezzati.valore)} = ${n(ch4VitelliSvezzati)} kg; vitelli 0-3 mesi: ` +
+    `${n(struttura.vitelli0_3Mesi)} capi × ${n(efRimontaPerFase.vitelliLatte.valore)} = ${n(ch4VitelliLatte)} kg ` +
+    `→ totale ${n(ch4KgAnno)} kg CH4/anno`
   const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
   return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
 }
@@ -266,16 +276,20 @@ export function calcolaMetanoEntericoMisto(
 ): RisultatoMetanoEntericoSemplice {
   const ch4Asciutta = struttura.animaliAsciutta * efAsciutta
   const ch4Manze = struttura.manze12MesiParto * efRimontaPerFase.manze.valore
-  const ch4Manzette = struttura.manzette6_12Mesi * efRimontaPerFase.manzette.valore
-  const ch4Vitelli = struttura.vitelli0_6Mesi * efRimontaPerFase.vitelli.valore
-  const ch4KgAnno = risultatoLattazione.ch4KgAnno + ch4Asciutta + ch4Manze + ch4Manzette + ch4Vitelli
+  const ch4Manzette = struttura.manzette6_12Mesi * efRimontaPerFase.svezzati.valore
+  const ch4VitelliSvezzati = struttura.vitelli3_6Mesi * efRimontaPerFase.svezzati.valore
+  const ch4VitelliLatte = struttura.vitelli0_3Mesi * efRimontaPerFase.vitelliLatte.valore
+  const ch4KgAnno =
+    risultatoLattazione.ch4KgAnno + ch4Asciutta + ch4Manze + ch4Manzette + ch4VitelliSvezzati + ch4VitelliLatte
   const formulaCh4 =
     `Lattazione (Tier 2, dalla razione): ${n(risultatoLattazione.ch4KgAnno)} kg CH4/anno; ` +
     `asciutta (Tier 1, EF bovini da latte): ${n(struttura.animaliAsciutta)} capi × ${n(efAsciutta)} ` +
     `(${fonteEfAsciutta}) = ${n(ch4Asciutta)} kg; manze: ${n(struttura.manze12MesiParto)} capi × ` +
     `${n(efRimontaPerFase.manze.valore)} = ${n(ch4Manze)} kg; manzette: ${n(struttura.manzette6_12Mesi)} capi × ` +
-    `${n(efRimontaPerFase.manzette.valore)} = ${n(ch4Manzette)} kg; vitelli: ${n(struttura.vitelli0_6Mesi)} capi × ` +
-    `${n(efRimontaPerFase.vitelli.valore)} = ${n(ch4Vitelli)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
+    `${n(efRimontaPerFase.svezzati.valore)} = ${n(ch4Manzette)} kg; vitelli 3-6 mesi: ${n(struttura.vitelli3_6Mesi)} ` +
+    `capi × ${n(efRimontaPerFase.svezzati.valore)} = ${n(ch4VitelliSvezzati)} kg; vitelli 0-3 mesi: ` +
+    `${n(struttura.vitelli0_3Mesi)} capi × ${n(efRimontaPerFase.vitelliLatte.valore)} = ${n(ch4VitelliLatte)} kg ` +
+    `→ totale ${n(ch4KgAnno)} kg CH4/anno`
   const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
   return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
 }

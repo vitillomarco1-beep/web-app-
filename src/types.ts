@@ -316,8 +316,10 @@ export interface DatiZootecnia extends DatiGenerali {
     manze12MesiParto: number
     /** Manzette da 6 a 12 mesi */
     manzette6_12Mesi: number
-    /** Vitelli da 0 a 6 mesi */
-    vitelli0_6Mesi: number
+    /** Vitelli da 0 a 3 mesi — alimentazione esclusivamente lattea */
+    vitelli0_3Mesi: number
+    /** Vitelli da 3 a 6 mesi — svezzati, su foraggio */
+    vitelli3_6Mesi: number
   }
   /** pratiche di mitigazione previste/adottate, in attesa dei fattori di calcolo ufficiali */
   pratiche: {

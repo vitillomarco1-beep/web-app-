@@ -492,14 +492,16 @@ export default function SimulazioneZootecniaTool({
       struttureMandria.animaliAsciutta +
       struttureMandria.manze12MesiParto +
       struttureMandria.manzette6_12Mesi +
-      struttureMandria.vitelli0_6Mesi >
+      struttureMandria.vitelli0_3Mesi +
+      struttureMandria.vitelli3_6Mesi >
       0
   const struttureMandriaSicura = struttureMandria ?? {
     animaliLattazione: 0,
     animaliAsciutta: 0,
     manze12MesiParto: 0,
     manzette6_12Mesi: 0,
-    vitelli0_6Mesi: 0,
+    vitelli0_3Mesi: 0,
+    vitelli3_6Mesi: 0,
   }
   const risultatoMetanoTier1 =
     tipologiaAllevamento === 'bovini_da_latte' && haStrutturaMandria && struttureMandria
@@ -534,7 +536,8 @@ export default function SimulazioneZootecniaTool({
     struttureMandriaSicura.animaliAsciutta +
     struttureMandriaSicura.manze12MesiParto +
     struttureMandriaSicura.manzette6_12Mesi +
-    struttureMandriaSicura.vitelli0_6Mesi
+    struttureMandriaSicura.vitelli0_3Mesi +
+    struttureMandriaSicura.vitelli3_6Mesi
   const risultatoMetanoMisto = calcolaMetanoEntericoMisto(
     risultatoMetanoLattazioneMisto,
     struttureMandriaSicura,

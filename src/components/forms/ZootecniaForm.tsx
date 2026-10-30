@@ -246,14 +246,16 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
     animaliAsciutta: 0,
     manze12MesiParto: 0,
     manzette6_12Mesi: 0,
-    vitelli0_6Mesi: 0,
+    vitelli0_3Mesi: 0,
+    vitelli3_6Mesi: 0,
   }
   const totaleStruttureMandria =
     struttureMandria.animaliLattazione +
     struttureMandria.animaliAsciutta +
     struttureMandria.manze12MesiParto +
     struttureMandria.manzette6_12Mesi +
-    struttureMandria.vitelli0_6Mesi
+    struttureMandria.vitelli0_3Mesi +
+    struttureMandria.vitelli3_6Mesi
   const usaStruttureMandria = totaleStruttureMandria > 0
 
   function aggiornaStrutturaMandria(key: keyof typeof struttureMandria, value: number) {
@@ -263,7 +265,8 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
       aggiornata.animaliAsciutta +
       aggiornata.manze12MesiParto +
       aggiornata.manzette6_12Mesi +
-      aggiornata.vitelli0_6Mesi
+      aggiornata.vitelli0_3Mesi +
+      aggiornata.vitelli3_6Mesi
     setDati({ ...dati, struttureMandria: aggiornata, numeroCapiMedio: totale })
   }
 
@@ -377,8 +380,11 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
           lattazione/asciutta) dalla rimonta (manze, manzette, vitelli) — categorie con fattori di
           emissione del metano enterico molto diversi, usate dal Tier 1 nel pannello di simulazione
           più sotto. Se compilata, il "Numero medio di capi" qui sopra si aggiorna automaticamente.
+          I vitelli sono divisi a 3 mesi (anziché 6) perché l'alimentazione è tipicamente
+          esclusivamente lattea solo fino a quell'età: dopo lo svezzamento il fattore di emissione
+          passa da 0 (nessun metano enterico da latte) a quello dei vitelli su foraggio.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div>
             <label className="text-xs text-stone-500">Animali in lattazione</label>
             <input
@@ -420,13 +426,23 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
             />
           </div>
           <div>
-            <label className="text-xs text-stone-500">Vitelli (0-6 mesi)</label>
+            <label className="text-xs text-stone-500">Vitelli svezzati (3-6 mesi)</label>
             <input
               type="number"
               min={0}
               className="input"
-              value={struttureMandria.vitelli0_6Mesi}
-              onChange={(e) => aggiornaStrutturaMandria('vitelli0_6Mesi', num(e.target.value))}
+              value={struttureMandria.vitelli3_6Mesi}
+              onChange={(e) => aggiornaStrutturaMandria('vitelli3_6Mesi', num(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500">Vitelli a latte (0-3 mesi)</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={struttureMandria.vitelli0_3Mesi}
+              onChange={(e) => aggiornaStrutturaMandria('vitelli0_3Mesi', num(e.target.value))}
             />
           </div>
         </div>
