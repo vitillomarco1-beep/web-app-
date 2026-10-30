@@ -20,20 +20,32 @@
  *
  * Per i bovini da latte, se è disponibile la struttura della mandria per
  * categoria (lattazione, asciutta, manze, manzette, vitelli — si veda
- * types.ts, DatiZootecnia.struttureMandria), il Tier 1 si raffina applicando
- * l'EF "bovini da latte" solo alla mandria adulta (lattazione+asciutta) e
- * l'EF "altri bovini" alla rimonta non ancora in lattazione (manze,
- * manzette, vitelli) — calcolaMetanoEntericoTier1PerStruttura. Senza quella
- * struttura, il Tier 1 resta un unico EF applicato a tutti i capi
+ * types.ts, DatiZootecnia.struttureMandria), il Tier 1 si raffina:
+ *   - mandria adulta (lattazione+asciutta) → EF "bovini da latte" (126): è
+ *     un valore medio annuo che già pondera il periodo di asciutta di una
+ *     lattifera media (Annex 10A.1, nota 6), quindi la stessa EF si applica
+ *     anche alle vacche in asciutta, non un valore separato.
+ *   - manze, manzette, vitelli (rimonta non ancora in lattazione) → un EF
+ *     specifico per fase (EF_TIER1_RIMONTA_PER_FASE: 57/32/0), più preciso
+ *     dell'unico EF "altri bovini" (52) perché distingue l'età/stadio di
+ *     crescita — e perché in Europa occidentale l'EF "altri bovini" non
+ *     include affatto le femmine mature (Annex 10A.2: solo tori, manze e
+ *     vitelli), quindi non è comunque adatto alle vacche in asciutta.
+ *   — calcolaMetanoEntericoTier1PerStruttura. Senza quella struttura, il
+ * Tier 1 resta un unico EF applicato a tutti i capi
  * (calcolaMetanoEntericoDaFattore), che sovrastima la rimonta (l'EF da latte
  * applicato anche a manze/vitelli non lattiferi).
  *
  * Fonte EF Tier 1: IPCC 2019 Refinement to the 2006 Guidelines, Vol. 4 Cap.
- * 10, Tabella 10.11 (aggiornata), Europa occidentale — 126 kg CH4/capo/anno
- * per bovini da latte, 52 per altri bovini (valori 2006 originali: 117 e 57,
- * aggiornati dal 2019 Refinement ai valori correnti). Verificati direttamente
- * sulla Tabella 10.11 (Updated) del PDF ufficiale IPCC 2019 Refinement,
- * caricata dall'utente.
+ * 10, Tabella 10.11 (aggiornata) ed Annex 10A.2 (New), Europa occidentale —
+ * 126 kg CH4/capo/anno per bovini da latte, 52 per "altri bovini" come
+ * media di categoria (valori 2006 originali: 117 e 57, aggiornati dal 2019
+ * Refinement ai valori correnti); per fase della rimonta, 57 (manze,
+ * "Replacement/growing"), 32 (manzette, "Calves on forage"), 0 (vitelli,
+ * "Calves on milk" — si veda EF_TIER1_RIMONTA_PER_FASE per il limite
+ * dichiarato su quest'ultimo). Tutti verificati direttamente sulle Tabelle
+ * 10.11 (Updated) e Annex 10A.1-10A.2 (New) del PDF ufficiale IPCC 2019
+ * Refinement, caricato dall'utente.
  *
  * TIER 3 — stessa formula del Tier 1, ma con un fattore di emissione
  * misurato specifico dell'azienda o della categoria animale al posto del
@@ -59,11 +71,14 @@
  *     Media produzione (5.000-8.500 kg/capo/anno) → Ym 6,3%
  *     Bassa produzione (<5.000 kg/capo/anno) → Ym 6,5%
  *   Per le vacche in asciutta la Tabella 10.12 (nota 4) assegna il valore
- *   "non da latte, foraggio di qualità" invece di quello di lattazione:
- *   Ym 6,3% per aziende ad alta/media produzione, Ym 7,0% per quelle a bassa
- *   produzione — non ancora applicato in questo strumento (richiederebbe un
- *   dato di ingestione separato per l'asciutta, che le aziende tipicamente non
- *   hanno: si veda calcolaMetanoEntericoMisto più sotto).
+ *   "non da latte, foraggio di qualità" invece di quello di lattazione: Ym
+ *   6,3% per aziende ad alta/media produzione, Ym 7,0% per quelle a bassa
+ *   produzione. Non applicato direttamente qui (richiederebbe un dato di
+ *   ingestione separato per l'asciutta, che le aziende tipicamente non
+ *   hanno): per Tier 1/misto si usa invece, con lo stesso risultato pratico
+ *   per le aziende a media produzione, l'EF "bovini da latte" — un valore
+ *   medio annuo che già pondera il periodo di asciutta di una lattifera
+ *   media, Annex 10A.1 nota 6 — si veda calcolaMetanoEntericoMisto più sotto.
  *   Per bovini non da latte (categoria "Non dairy and multi-purpose Cattle",
  *   stessa tabella), quando non è nota la produzione di latte per capo, si usa
  *   il TDN medio della dieta come proxy della digeribilità DE% (i due valori
@@ -130,6 +145,41 @@ export const EF_TIER1_RIFERIMENTO: Partial<Record<TipologiaAllevamento, EfTier1R
   },
 }
 
+export interface EfRimontaPerFase {
+  manze: EfTier1Riferimento
+  manzette: EfTier1Riferimento
+  vitelli: EfTier1Riferimento
+}
+
+/** EF Tier 1 (kg CH4/capo/anno) per singola fase della rimonta non ancora in
+ * lattazione, Europa occidentale — Annex 10A.2 (New) del 2019 Refinement,
+ * verificata sul PDF ufficiale caricato dall'utente. Più precisi dell'unico
+ * EF "altri bovini" (52, una media su tutta la categoria incluse manze,
+ * manzette, vitelli e tori) perché distinguono la fase di crescita:
+ *   "Replacement/growing" (manze, 400 kg, 0,4 kg/giorno di accrescimento) → 57
+ *   "Calves on forage" (manzette svezzate, 230 kg) → 32
+ *   "Calves on milk" (vitelli, 230 kg) → 0 — presuppone alimentazione
+ *     esclusivamente lattea fino ai 6 mesi: se in azienda si introduce
+ *     fieno/concentrato prima (comune dai 3-4 mesi), l'emissione reale dei
+ *     vitelli è superiore a questa stima, dichiaratamente approssimata per
+ *     difetto. */
+export const EF_TIER1_RIMONTA_PER_FASE: EfRimontaPerFase = {
+  manze: {
+    valore: 57,
+    fonte:
+      'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Replacement/growing", Europa occidentale.',
+  },
+  manzette: {
+    valore: 32,
+    fonte: 'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Calves on forage", Europa occidentale.',
+  },
+  vitelli: {
+    valore: 0,
+    fonte:
+      'IPCC 2019 Refinement, Vol.4 Cap.10, Annex 10A.2 (New), "Calves on milk", Europa occidentale — presuppone alimentazione esclusivamente lattea fino a 6 mesi.',
+  },
+}
+
 export interface RisultatoMetanoEntericoSemplice {
   ch4KgAnno: number
   formulaCh4: string
@@ -167,54 +217,65 @@ export interface StrutturaMandriaInput {
 }
 
 /** Tier 1 per bovini da latte, raffinato per struttura di mandria: la
- * mandria adulta (lattazione+asciutta) usa l'EF "bovini da latte", la
- * rimonta (manze, manzette, vitelli — non ancora in lattazione) usa l'EF
- * "altri bovini", perché l'EF Tier 1 di default IPCC non distingue età
- * all'interno della rimonta (solo Tier 2/3 lo farebbero) ma distingue
- * nettamente mandria da latte matura da giovane bestiame non lattifero.
- * Più preciso del Tier 1 "piatto" (un solo EF per l'intera mandria, inclusa
- * la rimonta) perché non applica l'EF da latte anche ai vitelli. */
+ * mandria adulta (lattazione+asciutta) usa l'EF "bovini da latte" — è un
+ * valore medio annuo che già pondera il periodo di asciutta di una
+ * lattifera media (Annex 10A.1, nota 6: Ym ponderato tra 305 giorni di
+ * lattazione e 60 di asciutta), quindi non va applicato un EF diverso alle
+ * vacche in asciutta. La rimonta (manze, manzette, vitelli — non ancora in
+ * lattazione) usa un EF specifico per fase (EF_TIER1_RIMONTA_PER_FASE),
+ * più preciso dell'unico EF "altri bovini" perché distingue l'età/stadio di
+ * crescita (si veda l'intestazione del file). */
 export function calcolaMetanoEntericoTier1PerStruttura(
   struttura: StrutturaMandriaInput,
   efMandriaAdulta: number,
   fonteEfMandriaAdulta: string,
-  efRimonta: number,
-  fonteEfRimonta: string,
+  efRimontaPerFase: EfRimontaPerFase,
 ): RisultatoMetanoEntericoSemplice {
   const capiMandriaAdulta = struttura.animaliLattazione + struttura.animaliAsciutta
-  const capiRimonta = struttura.manze12MesiParto + struttura.manzette6_12Mesi + struttura.vitelli0_6Mesi
   const ch4MandriaAdulta = capiMandriaAdulta * efMandriaAdulta
-  const ch4Rimonta = capiRimonta * efRimonta
-  const ch4KgAnno = ch4MandriaAdulta + ch4Rimonta
+  const ch4Manze = struttura.manze12MesiParto * efRimontaPerFase.manze.valore
+  const ch4Manzette = struttura.manzette6_12Mesi * efRimontaPerFase.manzette.valore
+  const ch4Vitelli = struttura.vitelli0_6Mesi * efRimontaPerFase.vitelli.valore
+  const ch4KgAnno = ch4MandriaAdulta + ch4Manze + ch4Manzette + ch4Vitelli
   const formulaCh4 =
     `Mandria adulta (lattazione+asciutta): ${n(capiMandriaAdulta)} capi × ${n(efMandriaAdulta)} kg CH4/capo/anno ` +
-    `(${fonteEfMandriaAdulta}) = ${n(ch4MandriaAdulta)} kg; rimonta (manze+manzette+vitelli): ${n(capiRimonta)} capi × ` +
-    `${n(efRimonta)} kg CH4/capo/anno (${fonteEfRimonta}) = ${n(ch4Rimonta)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
+    `(${fonteEfMandriaAdulta}) = ${n(ch4MandriaAdulta)} kg; manze: ${n(struttura.manze12MesiParto)} capi × ` +
+    `${n(efRimontaPerFase.manze.valore)} = ${n(ch4Manze)} kg; manzette: ${n(struttura.manzette6_12Mesi)} capi × ` +
+    `${n(efRimontaPerFase.manzette.valore)} = ${n(ch4Manzette)} kg; vitelli: ${n(struttura.vitelli0_6Mesi)} capi × ` +
+    `${n(efRimontaPerFase.vitelli.valore)} = ${n(ch4Vitelli)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
   const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
   return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
 }
 
 /** Modalità "mista": Tier 2 (dalla razione) solo per la mandria in
  * lattazione — il caso comune in cui il referto di laboratorio della TMR
- * copre solo le vacche in lattazione — più Tier 1 (EF "altri bovini") per
- * il resto della mandria (asciutta, manze, manzette, vitelli), che non ha
- * un'analisi di dieta specifica disponibile. Approssimazione dichiarata per
- * le vacche in asciutta: non essendo alimentate con la TMR analizzata né
- * coperte da un EF Tier 1 "vacca asciutta" dedicato (l'EF "bovini da latte"
- * IPCC è un valore medio annuo già comprensivo del periodo di asciutta di
- * una lattifera media, quindi non va sommato separatamente), vengono stimate
- * con lo stesso EF "altri bovini" della rimonta. */
+ * copre solo le vacche in lattazione — più Tier 1 per il resto della
+ * mandria, che non ha un'analisi di dieta specifica disponibile: le vacche
+ * in asciutta con l'EF "bovini da latte" (valore medio annuo che già
+ * pondera il periodo di asciutta — Annex 10A.1, nota 6 — quindi coerente
+ * usarlo anche qui, non l'EF "altri bovini" che in Europa occidentale non
+ * include affatto le femmine mature, solo tori, manze e vitelli — Annex
+ * 10A.2), e manze/manzette/vitelli con l'EF specifico per fase
+ * (EF_TIER1_RIMONTA_PER_FASE). */
 export function calcolaMetanoEntericoMisto(
   risultatoLattazione: RisultatoMetanoEntericoSemplice,
-  capiRestoMandria: number,
-  efRestoMandria: number,
-  fonteEfRestoMandria: string,
+  struttura: StrutturaMandriaInput,
+  efAsciutta: number,
+  fonteEfAsciutta: string,
+  efRimontaPerFase: EfRimontaPerFase,
 ): RisultatoMetanoEntericoSemplice {
-  const restoMandria = calcolaMetanoEntericoDaFattore(capiRestoMandria, efRestoMandria, fonteEfRestoMandria)
-  const ch4KgAnno = risultatoLattazione.ch4KgAnno + restoMandria.ch4KgAnno
+  const ch4Asciutta = struttura.animaliAsciutta * efAsciutta
+  const ch4Manze = struttura.manze12MesiParto * efRimontaPerFase.manze.valore
+  const ch4Manzette = struttura.manzette6_12Mesi * efRimontaPerFase.manzette.valore
+  const ch4Vitelli = struttura.vitelli0_6Mesi * efRimontaPerFase.vitelli.valore
+  const ch4KgAnno = risultatoLattazione.ch4KgAnno + ch4Asciutta + ch4Manze + ch4Manzette + ch4Vitelli
   const formulaCh4 =
     `Lattazione (Tier 2, dalla razione): ${n(risultatoLattazione.ch4KgAnno)} kg CH4/anno; ` +
-    `resto mandria (Tier 1): ${restoMandria.formulaCh4} → totale ${n(ch4KgAnno)} kg CH4/anno`
+    `asciutta (Tier 1, EF bovini da latte): ${n(struttura.animaliAsciutta)} capi × ${n(efAsciutta)} ` +
+    `(${fonteEfAsciutta}) = ${n(ch4Asciutta)} kg; manze: ${n(struttura.manze12MesiParto)} capi × ` +
+    `${n(efRimontaPerFase.manze.valore)} = ${n(ch4Manze)} kg; manzette: ${n(struttura.manzette6_12Mesi)} capi × ` +
+    `${n(efRimontaPerFase.manzette.valore)} = ${n(ch4Manzette)} kg; vitelli: ${n(struttura.vitelli0_6Mesi)} capi × ` +
+    `${n(efRimontaPerFase.vitelli.valore)} = ${n(ch4Vitelli)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
   const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
   return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
 }

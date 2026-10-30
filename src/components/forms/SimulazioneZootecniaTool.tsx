@@ -20,6 +20,7 @@ import {
   calcolaMetanoEntericoTier1PerStruttura,
   calcolaMetanoEntericoMisto,
   EF_TIER1_RIFERIMENTO,
+  EF_TIER1_RIMONTA_PER_FASE,
   type TierMetanoEnterico,
 } from '../../lib/metanoEnterico'
 import {
@@ -493,15 +494,20 @@ export default function SimulazioneZootecniaTool({
       struttureMandria.manzette6_12Mesi +
       struttureMandria.vitelli0_6Mesi >
       0
-  const efRimontaRiferimento = EF_TIER1_RIFERIMENTO.bovini_da_carne
+  const struttureMandriaSicura = struttureMandria ?? {
+    animaliLattazione: 0,
+    animaliAsciutta: 0,
+    manze12MesiParto: 0,
+    manzette6_12Mesi: 0,
+    vitelli0_6Mesi: 0,
+  }
   const risultatoMetanoTier1 =
     tipologiaAllevamento === 'bovini_da_latte' && haStrutturaMandria && struttureMandria
       ? calcolaMetanoEntericoTier1PerStruttura(
           struttureMandria,
           efTier1Usato,
           fonteEfTier1,
-          efRimontaRiferimento?.valore ?? 0,
-          efRimontaRiferimento?.fonte ?? 'nessun riferimento disponibile',
+          EF_TIER1_RIMONTA_PER_FASE,
         )
       : calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier1Usato, fonteEfTier1)
   const efTier3Usato = sim.efTier3KgPerCapoAnno ?? 0
@@ -524,17 +530,17 @@ export default function SimulazioneZootecniaTool({
     sim.ymMetanoEntericoPercento,
     produzioneLatteKgCapoAnno,
   )
-  const capiRestoMandriaMisto = struttureMandria
-    ? struttureMandria.animaliAsciutta +
-      struttureMandria.manze12MesiParto +
-      struttureMandria.manzette6_12Mesi +
-      struttureMandria.vitelli0_6Mesi
-    : 0
+  const capiRestoMandriaMisto =
+    struttureMandriaSicura.animaliAsciutta +
+    struttureMandriaSicura.manze12MesiParto +
+    struttureMandriaSicura.manzette6_12Mesi +
+    struttureMandriaSicura.vitelli0_6Mesi
   const risultatoMetanoMisto = calcolaMetanoEntericoMisto(
     risultatoMetanoLattazioneMisto,
-    capiRestoMandriaMisto,
-    efRimontaRiferimento?.valore ?? 0,
-    efRimontaRiferimento?.fonte ?? 'nessun riferimento disponibile',
+    struttureMandriaSicura,
+    efTier1Usato,
+    fonteEfTier1,
+    EF_TIER1_RIMONTA_PER_FASE,
   )
 
   const risultatoMetanoSelezionato =
@@ -803,7 +809,7 @@ export default function SimulazioneZootecniaTool({
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
                     <p className="text-[11px] text-stone-400">
                       {haStrutturaMandria && tipologiaAllevamento === 'bovini_da_latte'
-                        ? "Struttura della mandria per categoria disponibile (dati generali dell'allevamento): il Tier 1 applica l'EF da latte solo alla mandria adulta e l'EF \"altri bovini\" alla rimonta non ancora in lattazione — più preciso di un unico EF per tutti i capi."
+                        ? "Struttura della mandria per categoria disponibile (dati generali dell'allevamento): il Tier 1 applica l'EF da latte alla mandria adulta (lattazione+asciutta) e un EF specifico per fase di crescita a manze, manzette e vitelli (Annex 10A.2 IPCC) — più preciso di un unico EF per tutti i capi."
                         : `Numero di capi (dato generale dell'allevamento: ${n(numeroCapiTier)}) × fattore di emissione di default per area geografica — nessun dato di razione richiesto.`}
                     </p>
                     <div className="rounded-md bg-stone-50 p-2">
@@ -873,9 +879,10 @@ export default function SimulazioneZootecniaTool({
                       Per quando l'analisi di laboratorio della TMR copre solo le vacche in
                       lattazione: Tier 2 (dalla razione) per la mandria in lattazione (
                       {n(animaliLattazioneMisto)} capi, dalla struttura della mandria nei dati
-                      generali) + Tier 1 (EF "altri bovini") per il resto ({n(capiRestoMandriaMisto)}{' '}
-                      capi — asciutta, manze, manzette, vitelli), che non ha un'analisi di dieta
-                      specifica.
+                      generali) + Tier 1 per il resto ({n(capiRestoMandriaMisto)} capi), che non ha
+                      un'analisi di dieta specifica — asciutta con l'EF "bovini da latte" (già medio
+                      annuo, copre anche l'asciutta), manze/manzette/vitelli con un EF specifico per
+                      fase di crescita (Annex 10A.2 IPCC).
                     </p>
                     {!struttureMandria && (
                       <p className="text-[11px] text-red-600">
