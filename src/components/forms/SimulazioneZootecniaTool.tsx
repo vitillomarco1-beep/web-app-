@@ -23,6 +23,7 @@ import {
   type TecnicaSpandimento,
 } from '../../lib/gestioneReflui'
 import { calcolaThiMensile, formattaThi } from '../../lib/thi'
+import { calcolaPotenzialeMitigazione } from '../../lib/praticheMitigazione'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
 import { formatTCO2 } from '../../lib/format'
 
@@ -347,6 +348,7 @@ export default function SimulazioneZootecniaTool({
   const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
   const [apertoMetano, setApertoMetano] = useState(false)
   const [apertoReflui, setApertoReflui] = useState(false)
+  const [apertoMitigazione, setApertoMitigazione] = useState(false)
   const [apertoThi, setApertoThi] = useState(false)
   const sim = value ?? simulazioneVuota(tipologiaAllevamento)
   const modalita = sim.modalitaProduzione ?? 'annuale'
@@ -488,6 +490,8 @@ export default function SimulazioneZootecniaTool({
   function aggiornaGestioneReflui(patch: Partial<typeof gestioneReflui>) {
     onChange({ ...sim, gestioneReflui: { ...gestioneReflui, ...patch } })
   }
+
+  const righeMitigazione = calcolaPotenzialeMitigazione(risultatoMetano.ch4TCO2eq, risultatoReflui.ch4TCO2eq)
 
   const climaThiMensile = sim.climaThiMensile ?? climaThiVuoto()
   const risultatoThi = calcolaThiMensile(climaThiMensile)
@@ -996,6 +1000,71 @@ export default function SimulazioneZootecniaTool({
                   </div>
                   <p className="mt-1 text-[11px] text-amber-100">{risultatoReflui.formulaTotale}</p>
                 </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-md border border-stone-200 bg-white">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between px-3 py-2 text-left"
+              onClick={() => setApertoMitigazione((a) => !a)}
+            >
+              <span className="text-xs font-semibold text-stone-700">
+                💶 Potenziale e costo di pratiche di mitigazione del metano (stima — non normativa)
+              </span>
+              <span className="text-stone-500">{apertoMitigazione ? '−' : '+'}</span>
+            </button>
+            {apertoMitigazione && (
+              <div className="space-y-3 border-t border-stone-200 p-3 text-xs">
+                <p className="text-stone-500">
+                  Applica alcune pratiche di mitigazione del metano al metano enterico e al metano da
+                  reflui già calcolati sopra, per stimare quanto potrebbero ridurre e a che costo
+                  indicativo. <strong>Non è una metodologia normativa</strong>: i dati vengono da un
+                  report di policy — Flatz, Fraas, Højte & Birk Rasmussen,{' '}
+                  <em>From Farm to Framework: Designing CRCF Methodologies for Livestock Emissions</em>,
+                  CONCITO, dicembre 2025 — presentato come contributo allo sviluppo della metodologia
+                  pilota UE per la zootecnia nel quadro CRCF (Reg. (UE) 2024/3012): la Commissione
+                  deciderà entro fine 2026 se includere la zootecnia nella certificazione. Valori medi
+                  europei, non specifici per l'Italia o per una singola azienda. Copre solo il metano,
+                  non il protossido di azoto già stimato sopra.{' '}
+                  <strong>Non entra nel bilancio simulato</strong> qui sotto.
+                </p>
+                <div className="overflow-x-auto rounded-md border border-stone-200">
+                  <table className="w-full min-w-[640px] text-left text-xs">
+                    <thead className="bg-stone-100 text-stone-500">
+                      <tr>
+                        <th className="px-2 py-1.5">Pratica</th>
+                        <th className="px-2 py-1.5">Stima</th>
+                        <th className="px-2 py-1.5 text-right">t CO2eq evitate/anno</th>
+                        <th className="px-2 py-1.5 text-right">Costo stimato (€/anno)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100 bg-white">
+                      {righeMitigazione.map((r) => (
+                        <tr key={r.nome}>
+                          <td className="px-2 py-1.5 align-top font-medium text-stone-700">
+                            {r.nome}
+                            <span className="block font-normal text-stone-400">
+                              {r.ambito === 'enterico' ? 'su metano enterico' : 'su metano da reflui'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1.5 align-top text-stone-500">{r.formula}</td>
+                          <td className="px-2 py-1.5 text-right align-top font-semibold text-stone-800">
+                            {n(r.riduzioneMinTCO2eq)}–{n(r.riduzioneMaxTCO2eq)}
+                          </td>
+                          <td className="px-2 py-1.5 text-right align-top text-stone-600">
+                            {n(r.costoMinEuro)}–{n(r.costoMaxEuro)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-stone-400">
+                  Costo negativo = risparmio/ricavo netto stimato (es. digestione anaerobica con
+                  valorizzazione energetica del biogas), non un costo da sostenere.
+                </p>
               </div>
             )}
           </div>
