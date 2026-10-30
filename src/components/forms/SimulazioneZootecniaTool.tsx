@@ -18,6 +18,7 @@ import {
   calcolaMetanoEnterico,
   calcolaMetanoEntericoDaFattore,
   calcolaMetanoEntericoTier1PerStruttura,
+  calcolaMetanoEntericoMisto,
   EF_TIER1_RIFERIMENTO,
   type TierMetanoEnterico,
 } from '../../lib/metanoEnterico'
@@ -497,8 +498,41 @@ export default function SimulazioneZootecniaTool({
       : calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier1Usato, fonteEfTier1)
   const efTier3Usato = sim.efTier3KgPerCapoAnno ?? 0
   const risultatoMetanoTier3 = calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier3Usato, 'misurazione diretta')
+
+  const animaliLattazioneMisto = struttureMandria?.animaliLattazione ?? 0
+  const quantitaTAnnoLattazioneMisto =
+    Math.round(((razioneMiscelata.razioneCapoGiornoKg * animaliLattazioneMisto * 365) / 1000) * 100) / 100
+  const righeDietaLattazioneMisto = [
+    {
+      nomeMangime: 'Razione miscelata (TMR) — lattazione',
+      quantitaTAnno: quantitaTAnnoLattazioneMisto,
+      sostanzaSeccaPercento: analisiRazioneMiscelata.sostanzaSeccaPercento ?? 0,
+      andfomPercento: analisiRazioneMiscelata.andfomPercento,
+      tdnPercento: analisiRazioneMiscelata.tdnPercento,
+    },
+  ]
+  const risultatoMetanoLattazioneMisto = calcolaMetanoEnterico(righeDietaLattazioneMisto, sim.ymMetanoEntericoPercento)
+  const capiRestoMandriaMisto = struttureMandria
+    ? struttureMandria.animaliAsciutta +
+      struttureMandria.manze12MesiParto +
+      struttureMandria.manzette6_12Mesi +
+      struttureMandria.vitelli0_6Mesi
+    : 0
+  const risultatoMetanoMisto = calcolaMetanoEntericoMisto(
+    risultatoMetanoLattazioneMisto,
+    capiRestoMandriaMisto,
+    efRimontaRiferimento?.valore ?? 0,
+    efRimontaRiferimento?.fonte ?? 'nessun riferimento disponibile',
+  )
+
   const risultatoMetanoSelezionato =
-    tierMetanoEnterico === 'tier1' ? risultatoMetanoTier1 : tierMetanoEnterico === 'tier3' ? risultatoMetanoTier3 : risultatoMetano
+    tierMetanoEnterico === 'tier1'
+      ? risultatoMetanoTier1
+      : tierMetanoEnterico === 'tier3'
+        ? risultatoMetanoTier3
+        : tierMetanoEnterico === 'misto'
+          ? risultatoMetanoMisto
+          : risultatoMetano
 
   function aggiornaRazioneMiscelata(patch: Partial<typeof razioneMiscelata>) {
     onChange({ ...sim, razioneMiscelata: { ...razioneMiscelata, ...patch } })
@@ -557,12 +591,20 @@ export default function SimulazioneZootecniaTool({
   const usaEmissioniSpecifiche =
     fonteEmissioniScelta === 'specifiche_aziendali' ||
     (fonteEmissioniScelta === 'auto' && datiSpecificiDisponibili)
+  const etichettaTier =
+    tierMetanoEnterico === 'tier1'
+      ? 'Tier 1'
+      : tierMetanoEnterico === 'tier3'
+        ? 'Tier 3'
+        : tierMetanoEnterico === 'misto'
+          ? 'misto Tier 1+2'
+          : 'Tier 2'
   const emissioniSpecificheOverride = usaEmissioniSpecifiche
     ? {
         totaleTCO2: emissioniSpecificheTotaleTCO2,
         formula:
           `Metano enterico (${n(risultatoMetanoSelezionato.ch4TCO2eq)}) + gestione reflui (${n(risultatoReflui.totaleTCO2eq)}) ` +
-          `= ${n(emissioniSpecificheTotaleTCO2)} t CO2eq — dato specifico aziendale (Tier ${tierMetanoEnterico === 'tier1' ? '1' : tierMetanoEnterico === 'tier3' ? '3' : '2'} IPCC), parziale: non include ` +
+          `= ${n(emissioniSpecificheTotaleTCO2)} t CO2eq — dato specifico aziendale (${etichettaTier} IPCC), parziale: non include ` +
           `l'alimentazione a monte del mangime, l'energia, i capi di rimonta.`,
       }
     : undefined
@@ -710,6 +752,16 @@ export default function SimulazioneZootecniaTool({
                     />
                     Tier 3 — misurazione diretta (alta accuratezza)
                   </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="tierMetanoEnterico"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={tierMetanoEnterico === 'misto'}
+                      onChange={() => onChange({ ...sim, tierMetanoEnterico: 'misto' })}
+                    />
+                    Misto — Tier 2 lattazione + Tier 1 resto mandria
+                  </label>
                 </div>
 
                 <div className="rounded-md bg-amber-50 p-2 text-stone-600">
@@ -798,6 +850,48 @@ export default function SimulazioneZootecniaTool({
                     <div className="rounded-md bg-stone-50 p-2">
                       <p className="text-stone-600">Metano enterico stimato</p>
                       <p className="mt-0.5 text-stone-500">{risultatoMetanoTier3.formulaCh4}</p>
+                    </div>
+                  </div>
+                )}
+
+                {tierMetanoEnterico === 'misto' && (
+                  <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+                    <p className="text-[11px] text-stone-400">
+                      Per quando l'analisi di laboratorio della TMR copre solo le vacche in
+                      lattazione: Tier 2 (dalla razione) per la mandria in lattazione (
+                      {n(animaliLattazioneMisto)} capi, dalla struttura della mandria nei dati
+                      generali) + Tier 1 (EF "altri bovini") per il resto ({n(capiRestoMandriaMisto)}{' '}
+                      capi — asciutta, manze, manzette, vitelli), che non ha un'analisi di dieta
+                      specifica.
+                    </p>
+                    {!struttureMandria && (
+                      <p className="text-[11px] text-red-600">
+                        ⚠️ Compila la "Struttura della mandria per categoria" nei dati generali
+                        dell'allevamento per usare questa modalità.
+                      </p>
+                    )}
+                    <div>
+                      <label className="text-[11px] text-stone-500">
+                        Razione per capo al giorno (kg/capo/giorno, tal quale) — solo mandria in
+                        lattazione
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        className="input !py-1 w-48 text-xs"
+                        value={razioneMiscelata.razioneCapoGiornoKg}
+                        onChange={(e) => aggiornaRazioneMiscelata({ razioneCapoGiornoKg: num(e.target.value) })}
+                      />
+                    </div>
+                    <AnalisiAlimentoBlock
+                      analisi={analisiRazioneMiscelata}
+                      onChange={aggiornaAnalisiRazioneMiscelata}
+                      usoLabel="stimare il metano enterico della mandria in lattazione"
+                    />
+                    <div className="rounded-md bg-stone-50 p-2">
+                      <p className="text-stone-600">Metano enterico stimato</p>
+                      <p className="mt-0.5 text-stone-500">{risultatoMetanoMisto.formulaCh4}</p>
                     </div>
                   </div>
                 )}

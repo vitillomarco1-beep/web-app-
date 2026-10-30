@@ -1,5 +1,6 @@
 import type { AnalisiAlimento } from './lib/analisiAlimenti'
 import type { LivelloConfidenza } from './lib/campionamentoForestale'
+import type { TierMetanoEnterico } from './lib/metanoEnterico'
 
 export type TipoAttivita = 'agricoltura_agroforestazione' | 'imboschimento' | 'zootecnia'
 
@@ -223,13 +224,14 @@ export interface SimulazioneZootecnia {
    * del metano enterico dalla razione (si veda lib/metanoEnterico.ts). Se
    * assente, Ym è calcolato automaticamente dall'NDF medio della razione. */
   ymMetanoEntericoPercento?: number
-  /** Livello di accuratezza scelto per il metano enterico (IPCC Tier 1/2/3,
-   * si veda lib/metanoEnterico.ts): 'tier2' di default se assente — il
-   * metodo basato sulla razione, già in uso. 'tier1' usa un fattore di
-   * emissione di default regionale × numero di capi (nessun dato aziendale
-   * richiesto); 'tier3' lo stesso ma con un fattore misurato in azienda
-   * (camera respiratoria, GreenFeed, Sniffer). */
-  tierMetanoEnterico?: 'tier1' | 'tier2' | 'tier3'
+  /** Livello di accuratezza scelto per il metano enterico (IPCC Tier 1/2/3 +
+   * modalità "misto", si veda lib/metanoEnterico.ts): 'tier2' di default se
+   * assente — il metodo basato sulla razione, già in uso. 'tier1' usa un
+   * fattore di emissione di default regionale × numero di capi (nessun dato
+   * aziendale richiesto); 'tier3' lo stesso ma con un fattore misurato in
+   * azienda (camera respiratoria, GreenFeed, Sniffer); 'misto' usa il Tier 2
+   * solo per la mandria in lattazione e il Tier 1 per il resto. */
+  tierMetanoEnterico?: TierMetanoEnterico
   /** Tier 1: override manuale del fattore di emissione di default regionale
    * (kg CH4/capo/anno). Se assente si usa EF_TIER1_RIFERIMENTO. */
   efTier1ManualeKgPerCapoAnno?: number

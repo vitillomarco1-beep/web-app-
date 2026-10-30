@@ -11,6 +11,10 @@
  *   Tier 3 (alta accuratezza): fattore di emissione azienda/animale
  *     specifico, da misurazione diretta (camera respiratoria, GreenFeed,
  *     Sniffer) — inserito a mano dall'utente quando disponibile.
+ *   Misto: Tier 2 solo per la mandria in lattazione (il caso comune in cui
+ *     il referto di laboratorio della TMR copre solo le vacche in
+ *     lattazione) + Tier 1 per il resto della mandria senza analisi di
+ *     dieta (asciutta, manze, manzette, vitelli) — calcolaMetanoEntericoMisto.
  *
  * TIER 1 — CH4 (kg/anno) = numero di capi × EF (kg CH4/capo/anno di default)
  *
@@ -95,7 +99,7 @@ export const GE_DEFAULT_MJ_PER_KG_SS = 18.45
 export const ENERGIA_METANO_MJ_PER_KG = 55.65
 const GWP_CH4 = GWP_VALORI.find((g) => g.formula === 'CH4')!.gwp
 
-export type TierMetanoEnterico = 'tier1' | 'tier2' | 'tier3'
+export type TierMetanoEnterico = 'tier1' | 'tier2' | 'tier3' | 'misto'
 
 export interface EfTier1Riferimento {
   valore: number
@@ -177,6 +181,31 @@ export function calcolaMetanoEntericoTier1PerStruttura(
     `Mandria adulta (lattazione+asciutta): ${n(capiMandriaAdulta)} capi × ${n(efMandriaAdulta)} kg CH4/capo/anno ` +
     `(${fonteEfMandriaAdulta}) = ${n(ch4MandriaAdulta)} kg; rimonta (manze+manzette+vitelli): ${n(capiRimonta)} capi × ` +
     `${n(efRimonta)} kg CH4/capo/anno (${fonteEfRimonta}) = ${n(ch4Rimonta)} kg → totale ${n(ch4KgAnno)} kg CH4/anno`
+  const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
+  return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
+}
+
+/** Modalità "mista": Tier 2 (dalla razione) solo per la mandria in
+ * lattazione — il caso comune in cui il referto di laboratorio della TMR
+ * copre solo le vacche in lattazione — più Tier 1 (EF "altri bovini") per
+ * il resto della mandria (asciutta, manze, manzette, vitelli), che non ha
+ * un'analisi di dieta specifica disponibile. Approssimazione dichiarata per
+ * le vacche in asciutta: non essendo alimentate con la TMR analizzata né
+ * coperte da un EF Tier 1 "vacca asciutta" dedicato (l'EF "bovini da latte"
+ * IPCC è un valore medio annuo già comprensivo del periodo di asciutta di
+ * una lattifera media, quindi non va sommato separatamente), vengono stimate
+ * con lo stesso EF "altri bovini" della rimonta. */
+export function calcolaMetanoEntericoMisto(
+  risultatoLattazione: RisultatoMetanoEntericoSemplice,
+  capiRestoMandria: number,
+  efRestoMandria: number,
+  fonteEfRestoMandria: string,
+): RisultatoMetanoEntericoSemplice {
+  const restoMandria = calcolaMetanoEntericoDaFattore(capiRestoMandria, efRestoMandria, fonteEfRestoMandria)
+  const ch4KgAnno = risultatoLattazione.ch4KgAnno + restoMandria.ch4KgAnno
+  const formulaCh4 =
+    `Lattazione (Tier 2, dalla razione): ${n(risultatoLattazione.ch4KgAnno)} kg CH4/anno; ` +
+    `resto mandria (Tier 1): ${restoMandria.formulaCh4} → totale ${n(ch4KgAnno)} kg CH4/anno`
   const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
   return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
 }
