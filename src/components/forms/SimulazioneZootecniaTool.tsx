@@ -362,6 +362,7 @@ export default function SimulazioneZootecniaTool({
     lattosioPercento: 0,
   }
   const risultatoStandardizzazione = calcolaStandardizzazioneLatte(analisiLatte)
+  const indiciRiproduttivi = sim.indiciRiproduttivi ?? { etaPrimoPartoMesi: 0, giorniApertiMedio: 0 }
 
   function num(v: string): number {
     const n = parseFloat(v)
@@ -370,6 +371,10 @@ export default function SimulazioneZootecniaTool({
 
   function aggiornaAnalisiLatte(patch: Partial<typeof analisiLatte>) {
     onChange({ ...sim, analisiLatte: { ...analisiLatte, ...patch } })
+  }
+
+  function aggiornaIndiciRiproduttivi(patch: Partial<typeof indiciRiproduttivi>) {
+    onChange({ ...sim, indiciRiproduttivi: { ...indiciRiproduttivi, ...patch } })
   }
 
   function applicaStandardizzazione(valoreTAnno: number) {
@@ -1257,6 +1262,58 @@ export default function SimulazioneZootecniaTool({
                         }
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+                    <p className="text-[11px] text-stone-500">
+                      <strong>Indici riproduttivi</strong> (informativo, nessuna formula verificata li
+                      collega qui a un valore numerico): giorni aperti lunghi e un'età al primo parto
+                      elevata significano più tempo in cui la vacca non produce latte pur continuando a
+                      generare emissioni di mantenimento — peggiorano quindi l'intensità emissiva per
+                      litro, anche a parità di emissioni totali della mandria.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div>
+                        <label className="label !mb-1 text-xs">Età media al primo parto (mesi)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          className="input !py-1 text-xs"
+                          value={indiciRiproduttivi.etaPrimoPartoMesi}
+                          onChange={(e) =>
+                            aggiornaIndiciRiproduttivi({ etaPrimoPartoMesi: num(e.target.value) })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="label !mb-1 text-xs">Giorni aperti medi</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="1"
+                          className="input !py-1 text-xs"
+                          value={indiciRiproduttivi.giorniApertiMedio}
+                          onChange={(e) =>
+                            aggiornaIndiciRiproduttivi({ giorniApertiMedio: num(e.target.value) })
+                          }
+                        />
+                      </div>
+                    </div>
+                    {razioneMiscelata.numeroCapiAlimentati > 0 && (
+                      <div className="rounded-md bg-stone-50 p-2">
+                        <p className="text-stone-600">
+                          Quota di mandria in lattazione (animali in mungitura ÷ capi in stalla, dal
+                          pannello metano enterico sopra)
+                        </p>
+                        <p className="mt-0.5 text-stone-500">
+                          {n(analisiLatte.numeroAnimaliMungitura)} ÷ {n(razioneMiscelata.numeroCapiAlimentati)} ={' '}
+                          {n((analisiLatte.numeroAnimaliMungitura / razioneMiscelata.numeroCapiAlimentati) * 100)}%
+                          — più è bassa, più la mandria include capi in asciutta/rimonta che emettono
+                          senza produrre latte: a parità di emissioni totali, l'intensità per litro sale.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">

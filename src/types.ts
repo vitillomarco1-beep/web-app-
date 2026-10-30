@@ -216,6 +216,18 @@ export interface SimulazioneZootecnia {
     proteinaPercento: number
     lattosioPercento: number
   }
+  /** Indici riproduttivi della mandria — informativi, non entrano in un
+   * calcolo oggi (nessuna formula verificata li collega quantitativamente
+   * all'intensità emissiva): un'età al primo parto elevata e giorni aperti
+   * lunghi significano più tempo in cui la vacca non produce latte pur
+   * continuando a generare emissioni di mantenimento, con un impatto reale
+   * sull'intensità emissiva per litro — si veda anche il confronto tra
+   * animali in mungitura (sopra) e capi in stalla (si veda
+   * razioneMiscelata) più sotto nel pannello metano enterico. */
+  indiciRiproduttivi?: {
+    etaPrimoPartoMesi: number
+    giorniApertiMedio: number
+  }
   /** Intensità emissiva (t CO2eq per t di prodotto), default indicativo per
    * tipologia da letteratura scientifica ma sempre modificabile. */
   intensitaEmissivaTCO2eqPerTProdotto: number
