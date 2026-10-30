@@ -683,6 +683,28 @@ export default function SimulazioneZootecniaTool({
                   </label>
                 </div>
 
+                <div className="rounded-md bg-amber-50 p-2 text-stone-600">
+                  <p>
+                    <strong>Se i tier danno risultati molto diversi tra loro non è un errore di
+                    calcolo</strong> — verifica così la causa:
+                  </p>
+                  <p className="mt-1">
+                    1) Il numero di capi coincide tra "Numero medio di capi" (dati generali
+                    dell'allevamento) e "Numero di capi in stalla" (qui sotto, modalità TMR)? Sono
+                    due dati inseriti separatamente: se diversi, Tier 1 e Tier 2 calcolano su basi
+                    diverse a prescindere dalla dieta.
+                  </p>
+                  <p className="mt-1">
+                    2) Se i capi coincidono, la differenza riflette la qualità della dieta: un NDF
+                    basso (≤35%) dà il Ym più basso (5,7%, dieta ad alta digeribilità) e quindi un
+                    Tier 2 inferiore al Tier 1 — che è una media fissa, uguale per tutte le aziende
+                    della regione, e non distingue affatto la qualità della dieta. Un NDF alto
+                    (&gt;65%, Ym 7,0%) produce l'effetto opposto, Tier 2 superiore al Tier 1. In
+                    entrambi i casi il Tier 2 (basato sui tuoi dati reali) è più affidabile del
+                    Tier 1 per descrivere questa specifica azienda.
+                  </p>
+                </div>
+
                 {tierMetanoEnterico === 'tier1' && (
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
                     <p className="text-[11px] text-stone-400">
