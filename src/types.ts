@@ -273,6 +273,11 @@ export interface SimulazioneZootecnia {
    * servizio agrometeorologico pubblico della zona (lo stesso link mostrato
    * qui e nel simulatore RothC). */
   climaThiMensile?: { temperaturaC: number; umiditaRelativaPercento: number }[]
+  /** Fonte delle emissioni dirette usate nel bilancio simulato: 'auto' usa il
+   * dato specifico aziendale (metano enterico + gestione reflui, se
+   * calcolati sopra) quando disponibile, altrimenti l'intensità media di
+   * letteratura; le altre due opzioni forzano esplicitamente una fonte. */
+  fonteEmissioniBilancio?: 'auto' | 'letteratura' | 'specifiche_aziendali'
 }
 
 export interface DatiZootecnia extends DatiGenerali {

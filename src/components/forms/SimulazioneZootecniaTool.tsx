@@ -503,10 +503,27 @@ export default function SimulazioneZootecniaTool({
     aggiornaRazioneMiscelata({ analisiAlimento: { ...analisiRazioneMiscelata, ...patch } })
   }
 
+  const emissioniSpecificheTotaleTCO2 = risultatoMetano.ch4TCO2eq + risultatoReflui.totaleTCO2eq
+  const datiSpecificiDisponibili = emissioniSpecificheTotaleTCO2 > 0
+  const fonteEmissioniScelta = sim.fonteEmissioniBilancio ?? 'auto'
+  const usaEmissioniSpecifiche =
+    fonteEmissioniScelta === 'specifiche_aziendali' ||
+    (fonteEmissioniScelta === 'auto' && datiSpecificiDisponibili)
+  const emissioniSpecificheOverride = usaEmissioniSpecifiche
+    ? {
+        totaleTCO2: emissioniSpecificheTotaleTCO2,
+        formula:
+          `Metano enterico (${n(risultatoMetano.ch4TCO2eq)}) + gestione reflui (${n(risultatoReflui.totaleTCO2eq)}) ` +
+          `= ${n(emissioniSpecificheTotaleTCO2)} t CO2eq — dato specifico aziendale (Tier 2 IPCC), parziale: non include ` +
+          `l'alimentazione a monte del mangime, l'energia, i capi di rimonta.`,
+      }
+    : undefined
+
   const risultato = calcolaSimulazioneZootecnia(
     sim.mangimi,
     sim.produzioneAnnuaTProdotto,
     sim.intensitaEmissivaTCO2eqPerTProdotto,
+    emissioniSpecificheOverride,
   )
 
   return (
@@ -1325,7 +1342,48 @@ export default function SimulazioneZootecniaTool({
             </div>
             <div className="rounded-md bg-white p-3 text-xs">
               <p className="text-stone-600">Emissioni dirette totali</p>
-              <p className="mt-0.5 text-stone-500">{risultato.formulaEmissioni}</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-stone-600">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="fonteEmissioniBilancio"
+                    className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                    checked={fonteEmissioniScelta === 'auto'}
+                    onChange={() => onChange({ ...sim, fonteEmissioniBilancio: 'auto' })}
+                  />
+                  Automatico
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="fonteEmissioniBilancio"
+                    className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                    checked={fonteEmissioniScelta === 'specifiche_aziendali'}
+                    onChange={() => onChange({ ...sim, fonteEmissioniBilancio: 'specifiche_aziendali' })}
+                  />
+                  Dato aziendale (metano + reflui)
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="fonteEmissioniBilancio"
+                    className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                    checked={fonteEmissioniScelta === 'letteratura'}
+                    onChange={() => onChange({ ...sim, fonteEmissioniBilancio: 'letteratura' })}
+                  />
+                  Media di letteratura
+                </label>
+              </div>
+              <p className="mt-2 text-stone-400">
+                {fonteEmissioniScelta === 'auto' &&
+                  (datiSpecificiDisponibili
+                    ? 'Automatico: usa il dato aziendale perché metano enterico e gestione reflui (sopra) sono stati calcolati.'
+                    : "Automatico: userà il dato aziendale appena compili metano enterico e gestione reflui (sopra) — per ora usa la media di letteratura perché mancano.")}
+                {fonteEmissioniScelta === 'specifiche_aziendali' &&
+                  !datiSpecificiDisponibili &&
+                  '⚠️ Nessun dato di metano enterico/gestione reflui disponibile: compilali sopra, altrimenti il totale resta a zero.'}
+              </p>
+              <p className="mt-2 text-stone-500">{risultato.formulaEmissioni}</p>
             </div>
           </div>
 

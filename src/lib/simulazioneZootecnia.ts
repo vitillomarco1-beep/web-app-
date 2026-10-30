@@ -217,14 +217,27 @@ export interface RisultatoSimulazioneZootecnia {
   intensitaEmissivaTCO2eqPerTProdotto: number
   emissioniTotaliTCO2: number
   formulaEmissioni: string
+  fonteEmissioniUsata: 'letteratura' | 'specifiche_aziendali'
   bilancioSimulatoTCO2: number
   formulaBilancio: string
+}
+
+/** Dato specifico aziendale alternativo alla media di letteratura per le
+ * emissioni dirette del bilancio simulato — tipicamente la somma di metano
+ * enterico e gestione reflui calcolati altrove (si veda
+ * lib/metanoEnterico.ts e lib/gestioneReflui.ts) sui dati reali della
+ * mandria, invece di un'intensità media presa da allevamenti di contesti
+ * anche molto diversi (sistemi di allevamento e aree geografiche diverse). */
+export interface EmissioniSpecificheAziendali {
+  totaleTCO2: number
+  formula: string
 }
 
 export function calcolaSimulazioneZootecnia(
   mangimi: MangimeRigaInput[],
   produzioneAnnuaTProdotto: number,
   intensitaEmissivaTCO2eqPerTProdotto: number,
+  emissioniSpecificheAziendali?: EmissioniSpecificheAziendali,
 ): RisultatoSimulazioneZootecnia {
   const righeMangimi = calcolaRigheMangimi(mangimi)
   const assorbimentoTotaleTCO2 = righeMangimi.reduce((tot, r) => tot + r.assorbimentoTCO2, 0)
@@ -236,8 +249,16 @@ export function calcolaSimulazioneZootecnia(
           .join(' + ') + ` = ${n(assorbimentoTotaleTCO2)} t CO2`
       : 'Nessun alimento autoprodotto inserito = 0 t CO2'
 
-  const emissioniTotaliTCO2 = produzioneAnnuaTProdotto * intensitaEmissivaTCO2eqPerTProdotto
-  const formulaEmissioni = `${n(produzioneAnnuaTProdotto)} t prodotto × ${n(intensitaEmissivaTCO2eqPerTProdotto)} t CO2eq/t prodotto = ${n(emissioniTotaliTCO2)} t CO2eq`
+  const fonteEmissioniUsata: 'letteratura' | 'specifiche_aziendali' =
+    emissioniSpecificheAziendali != null ? 'specifiche_aziendali' : 'letteratura'
+  const emissioniTotaliTCO2 =
+    emissioniSpecificheAziendali != null
+      ? emissioniSpecificheAziendali.totaleTCO2
+      : produzioneAnnuaTProdotto * intensitaEmissivaTCO2eqPerTProdotto
+  const formulaEmissioni =
+    emissioniSpecificheAziendali != null
+      ? emissioniSpecificheAziendali.formula
+      : `${n(produzioneAnnuaTProdotto)} t prodotto × ${n(intensitaEmissivaTCO2eqPerTProdotto)} t CO2eq/t prodotto = ${n(emissioniTotaliTCO2)} t CO2eq`
 
   const bilancioSimulatoTCO2 = assorbimentoTotaleTCO2 - emissioniTotaliTCO2
   const formulaBilancio = `${n(assorbimentoTotaleTCO2)} − ${n(emissioniTotaliTCO2)} = ${n(bilancioSimulatoTCO2)} t CO2eq`
@@ -250,6 +271,7 @@ export function calcolaSimulazioneZootecnia(
     intensitaEmissivaTCO2eqPerTProdotto,
     emissioniTotaliTCO2,
     formulaEmissioni,
+    fonteEmissioniUsata,
     bilancioSimulatoTCO2,
     formulaBilancio,
   }
