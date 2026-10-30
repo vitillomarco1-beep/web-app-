@@ -378,6 +378,14 @@ export default function SimulazioneZootecniaTool({
     lattosioPercento: 0,
   }
   const risultatoStandardizzazione = calcolaStandardizzazioneLatte(analisiLatte)
+  /** Produzione media di latte per capo in lattazione (kg/capo/anno) — se
+   * nota, classifica il Ym del Tier 2 per livello produttivo secondo la
+   * Tabella 10.12 (Updated) IPCC, l'asse primario per le vacche da latte (si
+   * veda lib/metanoEnterico.ts). Non si applica alle altre tipologie. */
+  const produzioneLatteKgCapoAnno =
+    tipologiaAllevamento === 'bovini_da_latte' && analisiLatte.mediaStallaKgCapoGiorno > 0
+      ? analisiLatte.mediaStallaKgCapoGiorno * 365
+      : undefined
 
   function num(v: string): number {
     const n = parseFloat(v)
@@ -469,7 +477,7 @@ export default function SimulazioneZootecniaTool({
           tdnPercento: m.analisiAlimento?.tdnPercento,
         }))
 
-  const risultatoMetano = calcolaMetanoEnterico(righeDieta, sim.ymMetanoEntericoPercento)
+  const risultatoMetano = calcolaMetanoEnterico(righeDieta, sim.ymMetanoEntericoPercento, produzioneLatteKgCapoAnno)
   const risultatoTdn = calcolaTdnMedioDieta(righeDieta)
 
   const tierMetanoEnterico = sim.tierMetanoEnterico ?? 'tier2'
@@ -511,7 +519,11 @@ export default function SimulazioneZootecniaTool({
       tdnPercento: analisiRazioneMiscelata.tdnPercento,
     },
   ]
-  const risultatoMetanoLattazioneMisto = calcolaMetanoEnterico(righeDietaLattazioneMisto, sim.ymMetanoEntericoPercento)
+  const risultatoMetanoLattazioneMisto = calcolaMetanoEnterico(
+    righeDietaLattazioneMisto,
+    sim.ymMetanoEntericoPercento,
+    produzioneLatteKgCapoAnno,
+  )
   const capiRestoMandriaMisto = struttureMandria
     ? struttureMandria.animaliAsciutta +
       struttureMandria.manze12MesiParto +
@@ -776,13 +788,14 @@ export default function SimulazioneZootecniaTool({
                     diverse a prescindere dalla dieta.
                   </p>
                   <p className="mt-1">
-                    2) Se i capi coincidono, la differenza riflette la qualità della dieta: un NDF
-                    basso (≤35%) dà il Ym più basso (5,7%, dieta ad alta digeribilità) e quindi un
-                    Tier 2 inferiore al Tier 1 — che è una media fissa, uguale per tutte le aziende
-                    della regione, e non distingue affatto la qualità della dieta. Un NDF alto
-                    (&gt;65%, Ym 7,0%) produce l'effetto opposto, Tier 2 superiore al Tier 1. In
-                    entrambi i casi il Tier 2 (basato sui tuoi dati reali) è più affidabile del
-                    Tier 1 per descrivere questa specifica azienda.
+                    2) Se i capi coincidono, la differenza riflette il Ym (Tabella 10.12 IPCC): per
+                    le vacche da latte dipende prima di tutto dal livello produttivo (produzione
+                    media kg/capo/anno, dai dati di stalla) — alta produzione (&gt;8.500 kg/anno) dà
+                    Ym 5,7-6,0%, media (5.000-8.500) 6,3%, bassa (&lt;5.000) 6,5% — e solo per le alte
+                    produttrici anche dall'NDF della dieta. Il Tier 1 è invece una media fissa,
+                    uguale per tutte le aziende della regione, che non distingue produzione né
+                    dieta. Il Tier 2 (basato sui tuoi dati reali) è più affidabile del Tier 1 per
+                    descrivere questa specifica azienda.
                   </p>
                 </div>
 
@@ -1010,8 +1023,9 @@ export default function SimulazioneZootecniaTool({
                       )}
                     </div>
                     <p className="mt-1 text-[11px] text-stone-400">
-                      Per diete da ingrasso ad alto concentrato (≥90% concentrato) la letteratura
-                      indica Ym ≈ 3,0%: inseriscilo qui a mano, non è riconosciuto automaticamente.
+                      {produzioneLatteKgCapoAnno != null
+                        ? `Calcolato automaticamente dal livello produttivo della mandria in lattazione (${n(produzioneLatteKgCapoAnno)} kg/capo/anno, dai dati di stalla) secondo la Tabella 10.12 IPCC — lascia vuoto per usarlo, o sovrascrivilo qui se hai un valore più accurato (es. da misurazione diretta).`
+                        : 'Senza produzione media di latte per capo nota, il calcolo automatico usa il TDN della dieta come proxy della digeribilità o, in mancanza di questo, l\'NDF — entrambi approssimazioni. Inserisci qui un valore manuale se ne hai uno più accurato.'}
                     </p>
                   </div>
                 </div>

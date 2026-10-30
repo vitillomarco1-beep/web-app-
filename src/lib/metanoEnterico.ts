@@ -30,12 +30,10 @@
  *
  * Fonte EF Tier 1: IPCC 2019 Refinement to the 2006 Guidelines, Vol. 4 Cap.
  * 10, Tabella 10.11 (aggiornata), Europa occidentale — 126 kg CH4/capo/anno
- * per bovini da latte, 52 per altri bovini (valori 2006 originali, non
- * aggiornati dal 2019 Refinement: 117 e 57). Valori ripresi da fonti
- * secondarie che citano la tabella (pagine 10.40-10.43): non sono riuscito a
- * verificarli direttamente sul PDF IPCC originale, non raggiungibile da
- * questo ambiente — verificali contro il testo ufficiale prima di un uso
- * diverso dalla pianificazione preliminare.
+ * per bovini da latte, 52 per altri bovini (valori 2006 originali: 117 e 57,
+ * aggiornati dal 2019 Refinement ai valori correnti). Verificati direttamente
+ * sulla Tabella 10.11 (Updated) del PDF ufficiale IPCC 2019 Refinement,
+ * caricata dall'utente.
  *
  * TIER 3 — stessa formula del Tier 1, ma con un fattore di emissione
  * misurato specifico dell'azienda o della categoria animale al posto del
@@ -52,37 +50,48 @@
  *   l'energia lorda dell'alimento, usato in assenza di una misura diretta (bomba
  *   calorimetrica) per ciascun alimento della razione.
  * - Ym = fattore di conversione del metano (% dell'energia lorda ingerita
- *   convertita in CH4). Il 2019 Refinement to the 2006 IPCC Guidelines
- *   differenzia Ym in base alla qualità della dieta (NDF%, energia digeribile%,
- *   quota di foraggio): qui approssimato con l'NDF (aNDFom) medio della razione,
- *   pesato sulla sostanza secca ingerita di ciascun alimento — la grandezza
- *   direttamente misurabile da un referto di laboratorio (si veda
- *   lib/analisiAlimenti.ts):
- *     NDF dieta ≤ 35% → Ym = 5,7% (dieta ad alta digeribilità/basso NDF)
- *     35% < NDF dieta ≤ 65% → Ym = 6,0% (dieta mista)
- *     NDF dieta > 65% → Ym = 7,0% (dieta a base di solo foraggio)
- *   In assenza di qualunque dato di NDF si usa il default generico IPCC (2006)
- *   per bovini, Ym = 6,5% (±1,0%). Per diete da ingrasso intensivo ad alto
- *   concentrato (≥90% concentrato in sostanza secca) la letteratura riporta un
- *   Ym molto più basso, 3,0% (±1,0%): qui non riconosciuto automaticamente (non
- *   si traccia la quota foraggio/concentrato della razione), va impostato a mano
- *   sostituendo il valore proposto.
+ *   convertita in CH4), dalla Tabella 10.12 (Updated) del 2019 Refinement to
+ *   the 2006 IPCC Guidelines, Vol. 4 Cap. 10 — verificata direttamente sul PDF
+ *   ufficiale caricato dall'utente. La tabella classifica le vacche da latte
+ *   PRIMA per livello produttivo, non per NDF da solo:
+ *     Alta produzione (>8.500 kg/capo/anno): NDF dieta ≤35% → Ym 5,7%; NDF
+ *       dieta ≥35% → Ym 6,0%. (In questa sola fascia l'NDF disambigua.)
+ *     Media produzione (5.000-8.500 kg/capo/anno) → Ym 6,3%
+ *     Bassa produzione (<5.000 kg/capo/anno) → Ym 6,5%
+ *   Per le vacche in asciutta la Tabella 10.12 (nota 4) assegna il valore
+ *   "non da latte, foraggio di qualità" invece di quello di lattazione:
+ *   Ym 6,3% per aziende ad alta/media produzione, Ym 7,0% per quelle a bassa
+ *   produzione — non ancora applicato in questo strumento (richiederebbe un
+ *   dato di ingestione separato per l'asciutta, che le aziende tipicamente non
+ *   hanno: si veda calcolaMetanoEntericoMisto più sotto).
+ *   Per bovini non da latte (categoria "Non dairy and multi-purpose Cattle",
+ *   stessa tabella), quando non è nota la produzione di latte per capo, si usa
+ *   il TDN medio della dieta come proxy della digeribilità DE% (i due valori
+ *   sono numericamente vicini in pratica, ma non identici — approssimazione
+ *   dichiarata):
+ *     TDN/DE ≥ 75% → Ym 3,0% (feedlot, mais fioccato a vapore, 0-10% foraggio)
+ *     TDN/DE ≥ 72% → Ym 4,0% (feedlot, altri cereali, 0-15% foraggio)
+ *     TDN/DE ≥ 62% → Ym 6,3% (foraggio di qualità o razione mista)
+ *     TDN/DE < 62% → Ym 7,0% (>75% foraggio di bassa qualità)
+ *   Se non è disponibile né la produzione di latte né il TDN, si ricade
+ *   sull'NDF medio della razione con le stesse soglie usate finora (5,7/6,0/
+ *   7,0%): un'approssimazione dichiarata, perché l'NDF da solo non è l'asse
+ *   di classificazione usato dalla Tabella 10.12 (lo è solo come criterio
+ *   secondario per le alte produttrici da latte). In assenza di qualunque
+ *   dato si usa il default generico IPCC (2006) per bovini, Ym = 6,5%
+ *   (±1,0%).
  * - 55,65 MJ/kg = contenuto energetico del metano (valore IPCC).
  *
- * L'NDF medio di dieta pesa TUTTO l'alimento ingerito, autoprodotto e
- * acquistato: ai fini del metano prodotto dall'animale non conta chi ha
+ * L'NDF e il TDN medi di dieta pesano TUTTO l'alimento ingerito, autoprodotto
+ * e acquistato: ai fini del metano prodotto dall'animale non conta chi ha
  * coltivato l'alimento, solo cosa mangia (a differenza del calcolo di
  * assorbimento di CO2 in lib/simulazioneZootecnia.ts, che considera solo
  * l'alimento autoprodotto per evitare un doppio conteggio).
  *
  * Fonti: IPCC (2006) Guidelines for National Greenhouse Gas Inventories, Vol. 4
- * Ch. 10 (equazione, GE default 18,45 MJ/kg, Ym generico 6,5%±1,0% per bovini,
- * 3,0%±1,0% per bovini da ingrasso ad alto concentrato); 2019 Refinement allo
- * stesso capitolo (Ym differenziato per qualità della dieta), nelle soglie qui
- * usate come ripreso da applicazioni Tier 2 paese-specifiche per bovini da
- * latte (es. Yang et al., "Developing country specific enteric methane
- * emission factor of the South Korean dairy cattle production using the 2019
- * refined IPCC Tier 2 methodology", J. Anim. Sci. 2020, 98(Suppl. 4):157).
+ * Ch. 10 (equazione, GE default 18,45 MJ/kg); 2019 Refinement to the 2006
+ * IPCC Guidelines, Vol. 4 Cap. 10, Tabella 10.11 (Updated) e Tabella 10.12
+ * (Updated) — entrambe verificate sul PDF ufficiale caricato dall'utente.
  *
  * QUESTA STIMA COPRE SOLO IL METANO ENTERICO — una componente delle emissioni
  * dirette dell'allevamento, non tutte (manca la gestione reflui e le emissioni
@@ -215,6 +224,7 @@ export interface RigaDietaInput {
   quantitaTAnno: number
   sostanzaSeccaPercento: number
   andfomPercento?: number
+  tdnPercento?: number
 }
 
 export interface RisultatoMetanoEnterico {
@@ -236,10 +246,16 @@ function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 3 }).format(v)
 }
 
-/** Tier 2 IPCC — metodo principale, basato sulla composizione della razione. */
+/** Tier 2 IPCC — metodo principale, basato sulla composizione della razione.
+ *
+ * produzioneLatteKgCapoAnno: produzione media di latte per capo in
+ * lattazione (kg/capo/anno) — se nota, classifica il Ym per livello
+ * produttivo secondo la Tabella 10.12 (Updated), l'asse primario usato da
+ * IPCC per le vacche da latte (si veda l'intestazione del file). */
 export function calcolaMetanoEnterico(
   righe: RigaDietaInput[],
   ymManualePercento?: number,
+  produzioneLatteKgCapoAnno?: number,
 ): RisultatoMetanoEnterico {
   const righeConSS = righe.map((r) => ({ ...r, ssTAnno: r.quantitaTAnno * (r.sostanzaSeccaPercento / 100) }))
   const sostanzaSeccaTotaleTAnno = righeConSS.reduce((tot, r) => tot + r.ssTAnno, 0)
@@ -263,23 +279,71 @@ export function calcolaMetanoEnterico(
       "Nessuna voce di alimento ha un valore di NDF (aNDFom) inserito nell'analisi di laboratorio completa."
   }
 
+  const righeConTdn = righeConSS.filter((r) => r.tdnPercento != null && r.ssTAnno > 0)
+  const ssConTdnTAnno = righeConTdn.reduce((tot, r) => tot + r.ssTAnno, 0)
+  const tdnDietaPercento =
+    ssConTdnTAnno > 0
+      ? righeConTdn.reduce((tot, r) => tot + r.ssTAnno * (r.tdnPercento ?? 0), 0) / ssConTdnTAnno
+      : null
+
   let ymPercento: number
   let formulaYm: string
   if (ymManualePercento != null) {
     ymPercento = ymManualePercento
     formulaYm = `Valore inserito manualmente: ${n(ymPercento)}%.`
-  } else if (ndfDietaPercento == null) {
-    ymPercento = 6.5
-    formulaYm = 'Nessun dato di fibra disponibile: default generico IPCC (2006) per bovini, Ym = 6,5%.'
-  } else if (ndfDietaPercento <= 35) {
-    ymPercento = 5.7
-    formulaYm = `NDF dieta ${n(ndfDietaPercento)}% ≤ 35% → Ym = 5,7% (dieta ad alta digeribilità, 2019 Refinement IPCC).`
-  } else if (ndfDietaPercento <= 65) {
-    ymPercento = 6.0
-    formulaYm = `NDF dieta ${n(ndfDietaPercento)}% tra 35% e 65% → Ym = 6,0% (dieta mista, 2019 Refinement IPCC).`
+  } else if (produzioneLatteKgCapoAnno != null && produzioneLatteKgCapoAnno > 0) {
+    // Vacche da latte — Tabella 10.12 (Updated), 2019 Refinement: classificazione
+    // primaria per livello produttivo, NDF come criterio secondario solo per le
+    // alte produttrici (si veda l'intestazione del file).
+    if (produzioneLatteKgCapoAnno > 8500) {
+      if (ndfDietaPercento != null && ndfDietaPercento >= 35) {
+        ymPercento = 6.0
+        formulaYm = `Alta produzione (${n(produzioneLatteKgCapoAnno)} kg/capo/anno > 8.500) con NDF dieta ${n(ndfDietaPercento)}% ≥ 35% → Ym = 6,0% (Tabella 10.12 Updated, 2019 Refinement IPCC).`
+      } else {
+        ymPercento = 5.7
+        formulaYm = `Alta produzione (${n(produzioneLatteKgCapoAnno)} kg/capo/anno > 8.500) con NDF dieta ${ndfDietaPercento != null ? `${n(ndfDietaPercento)}% ≤ 35%` : 'non disponibile'} → Ym = 5,7% (Tabella 10.12 Updated, 2019 Refinement IPCC).`
+      }
+    } else if (produzioneLatteKgCapoAnno >= 5000) {
+      ymPercento = 6.3
+      formulaYm = `Media produzione (${n(produzioneLatteKgCapoAnno)} kg/capo/anno, 5.000-8.500) → Ym = 6,3% (Tabella 10.12 Updated, 2019 Refinement IPCC).`
+    } else {
+      ymPercento = 6.5
+      formulaYm = `Bassa produzione (${n(produzioneLatteKgCapoAnno)} kg/capo/anno < 5.000) → Ym = 6,5% (Tabella 10.12 Updated, 2019 Refinement IPCC).`
+    }
+  } else if (tdnDietaPercento != null) {
+    // Bovini non da latte (o produzione di latte per capo non nota) — Tabella
+    // 10.12 (Updated), riga "Non dairy and multi-purpose Cattle", classificata
+    // per digeribilità DE%, qui approssimata con il TDN medio della dieta.
+    if (tdnDietaPercento >= 75) {
+      ymPercento = 3.0
+      formulaYm = `TDN dieta ${n(tdnDietaPercento)}% ≥ 75% (proxy DE%) → Ym = 3,0% (feedlot, mais fioccato a vapore — Tabella 10.12 Updated, bovini non da latte).`
+    } else if (tdnDietaPercento >= 72) {
+      ymPercento = 4.0
+      formulaYm = `TDN dieta ${n(tdnDietaPercento)}% ≥ 72% (proxy DE%) → Ym = 4,0% (feedlot, altri cereali — Tabella 10.12 Updated, bovini non da latte).`
+    } else if (tdnDietaPercento >= 62) {
+      ymPercento = 6.3
+      formulaYm = `TDN dieta ${n(tdnDietaPercento)}% tra 62% e 71% (proxy DE%) → Ym = 6,3% (foraggio di qualità/razione mista — Tabella 10.12 Updated, bovini non da latte).`
+    } else {
+      ymPercento = 7.0
+      formulaYm = `TDN dieta ${n(tdnDietaPercento)}% < 62% (proxy DE%) → Ym = 7,0% (>75% foraggio di bassa qualità — Tabella 10.12 Updated, bovini non da latte).`
+    }
+  } else if (ndfDietaPercento != null) {
+    // Fallback: né produzione di latte né TDN noti. L'NDF da solo non è l'asse
+    // di classificazione della Tabella 10.12 (lo è solo come criterio
+    // secondario per le alte produttrici da latte): approssimazione dichiarata.
+    if (ndfDietaPercento <= 35) {
+      ymPercento = 5.7
+      formulaYm = `Nessun dato di produzione di latte o TDN: approssimazione da NDF dieta ${n(ndfDietaPercento)}% ≤ 35% → Ym = 5,7% (non è l'asse primario della Tabella 10.12 — indicativo).`
+    } else if (ndfDietaPercento <= 65) {
+      ymPercento = 6.0
+      formulaYm = `Nessun dato di produzione di latte o TDN: approssimazione da NDF dieta ${n(ndfDietaPercento)}% tra 35% e 65% → Ym = 6,0% (non è l'asse primario della Tabella 10.12 — indicativo).`
+    } else {
+      ymPercento = 7.0
+      formulaYm = `Nessun dato di produzione di latte o TDN: approssimazione da NDF dieta ${n(ndfDietaPercento)}% > 65% → Ym = 7,0% (non è l'asse primario della Tabella 10.12 — indicativo).`
+    }
   } else {
-    ymPercento = 7.0
-    formulaYm = `NDF dieta ${n(ndfDietaPercento)}% > 65% → Ym = 7,0% (dieta a base di solo foraggio, 2019 Refinement IPCC).`
+    ymPercento = 6.5
+    formulaYm = 'Nessun dato di produzione di latte, TDN o NDF disponibile: default generico IPCC (2006) per bovini, Ym = 6,5%.'
   }
 
   const geiMJAnno = sostanzaSeccaTotaleTAnno * 1000 * GE_DEFAULT_MJ_PER_KG_SS
