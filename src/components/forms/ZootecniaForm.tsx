@@ -387,6 +387,7 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
         value={dati.simulazioneZootecnia}
         onChange={(simulazioneZootecnia) => setDati({ ...dati, simulazioneZootecnia })}
         regione={regioneCliente}
+        numeroCapiMedio={dati.numeroCapiMedio}
       />
 
       <div className="card">

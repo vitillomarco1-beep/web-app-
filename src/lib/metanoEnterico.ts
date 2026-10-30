@@ -1,11 +1,34 @@
 /**
  * Stima, esplicitamente parziale e non certificabile, dell'emissione di metano
- * enterico a partire dalla composizione della razione — perché al variare della
- * fibra (NDF) della dieta variano le emissioni di CH4 in fermentazione ruminale,
- * un meccanismo ben documentato in letteratura zootecnica.
+ * enterico — con tre livelli di accuratezza (Tier 1/2/3 IPCC), da scegliere in
+ * base ai dati realmente disponibili in azienda:
  *
- * Metodo Tier 2 IPCC (2006 Guidelines for National Greenhouse Gas Inventories,
- * Vol. 4 Cap. 10):
+ *   Tier 1 (bassa accuratezza): fattore di emissione di default per area
+ *     geografica × numero di capi — nessun dato aziendale richiesto.
+ *   Tier 2 (media accuratezza): stima dell'energia lorda ingerita dalla
+ *     razione, con dati specifici dell'azienda (sostanza secca, fibra) — il
+ *     metodo già implementato qui sotto (calcolaMetanoEnterico).
+ *   Tier 3 (alta accuratezza): fattore di emissione azienda/animale
+ *     specifico, da misurazione diretta (camera respiratoria, GreenFeed,
+ *     Sniffer) — inserito a mano dall'utente quando disponibile.
+ *
+ * TIER 1 — CH4 (kg/anno) = numero di capi × EF (kg CH4/capo/anno di default)
+ *
+ * Fonte EF Tier 1: IPCC 2019 Refinement to the 2006 Guidelines, Vol. 4 Cap.
+ * 10, Tabella 10.11 (aggiornata), Europa occidentale — 126 kg CH4/capo/anno
+ * per bovini da latte, 52 per altri bovini (valori 2006 originali, non
+ * aggiornati dal 2019 Refinement: 117 e 57). Valori ripresi da fonti
+ * secondarie che citano la tabella (pagine 10.40-10.43): non sono riuscito a
+ * verificarli direttamente sul PDF IPCC originale, non raggiungibile da
+ * questo ambiente — verificali contro il testo ufficiale prima di un uso
+ * diverso dalla pianificazione preliminare.
+ *
+ * TIER 3 — stessa formula del Tier 1, ma con un fattore di emissione
+ * misurato specifico dell'azienda o della categoria animale al posto del
+ * default regionale: CH4 (kg/anno) = numero di capi × EF misurato
+ * (kg CH4/capo/anno).
+ *
+ * TIER 2 (metodo principale, già in uso):
  *
  *   CH4 (kg/anno) = (GEI (MJ/anno) × Ym / 100) / 55,65
  *
@@ -56,10 +79,61 @@
  */
 
 import { GWP_VALORI } from './reportSteps'
+import type { TipologiaAllevamento } from '../types'
 
 export const GE_DEFAULT_MJ_PER_KG_SS = 18.45
 export const ENERGIA_METANO_MJ_PER_KG = 55.65
 const GWP_CH4 = GWP_VALORI.find((g) => g.formula === 'CH4')!.gwp
+
+export type TierMetanoEnterico = 'tier1' | 'tier2' | 'tier3'
+
+export interface EfTier1Riferimento {
+  valore: number
+  fonte: string
+}
+
+/** EF Tier 1 (kg CH4/capo/anno), Europa occidentale — si veda la nota di
+ * trasparenza sulle fonti nell'intestazione del file. */
+export const EF_TIER1_RIFERIMENTO: Partial<Record<TipologiaAllevamento, EfTier1Riferimento>> = {
+  bovini_da_latte: {
+    valore: 126,
+    fonte:
+      'IPCC 2019 Refinement, Vol.4 Cap.10, Tabella 10.11 (aggiornata), bovini da latte, Europa occidentale (valore 2006 originale: 117).',
+  },
+  bovini_da_carne: {
+    valore: 52,
+    fonte:
+      'IPCC 2019 Refinement, Vol.4 Cap.10, Tabella 10.11 (aggiornata), altri bovini, Europa occidentale (valore 2006 originale: 57).',
+  },
+}
+
+export interface RisultatoMetanoEntericoSemplice {
+  ch4KgAnno: number
+  formulaCh4: string
+  ch4TCO2eq: number
+  formulaCh4CO2eq: string
+}
+
+function formulaCh4CO2eqDa(ch4KgAnno: number): { ch4TCO2eq: number; formulaCh4CO2eq: string } {
+  const ch4TCO2eq = (ch4KgAnno / 1000) * GWP_CH4
+  const formulaCh4CO2eq = `${n(ch4KgAnno / 1000)} t CH4 × ${GWP_CH4} (GWP) = ${n(ch4TCO2eq)} t CO2eq`
+  return { ch4TCO2eq, formulaCh4CO2eq }
+}
+
+/** Tier 1 (default regionale) o Tier 3 (misurazione diretta): stessa
+ * formula, numero di capi × fattore di emissione per capo — cambia solo la
+ * provenienza del fattore (tabella IPCC vs. misura aziendale), passata come
+ * stringa fonte per la trasparenza. */
+export function calcolaMetanoEntericoDaFattore(
+  numeroCapi: number,
+  efKgPerCapoAnno: number,
+  fonteEf: string,
+): RisultatoMetanoEntericoSemplice {
+  const ch4KgAnno = numeroCapi * efKgPerCapoAnno
+  const formulaCh4 = `${n(numeroCapi)} capi × ${n(efKgPerCapoAnno)} kg CH4/capo/anno (${fonteEf}) = ${n(ch4KgAnno)} kg CH4/anno`
+  const { ch4TCO2eq, formulaCh4CO2eq } = formulaCh4CO2eqDa(ch4KgAnno)
+  return { ch4KgAnno, formulaCh4, ch4TCO2eq, formulaCh4CO2eq }
+}
 
 export interface RigaDietaInput {
   nomeMangime: string
@@ -87,6 +161,7 @@ function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 3 }).format(v)
 }
 
+/** Tier 2 IPCC — metodo principale, basato sulla composizione della razione. */
 export function calcolaMetanoEnterico(
   righe: RigaDietaInput[],
   ymManualePercento?: number,

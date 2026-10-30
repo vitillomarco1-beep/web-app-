@@ -14,7 +14,7 @@ import {
   suggerisciCarbonioDaCeneri,
   type AnalisiAlimento,
 } from '../../lib/analisiAlimenti'
-import { calcolaMetanoEnterico } from '../../lib/metanoEnterico'
+import { calcolaMetanoEnterico, calcolaMetanoEntericoDaFattore, EF_TIER1_RIFERIMENTO, type TierMetanoEnterico } from '../../lib/metanoEnterico'
 import {
   BO_RIFERIMENTO,
   TECNICHE_SPANDIMENTO,
@@ -47,6 +47,9 @@ interface Props {
   /** Regione del cliente, per proporre il link al servizio agrometeorologico
    * pubblico della zona (temperatura e umidità per il THI). */
   regione?: string
+  /** Numero medio di capi (dati generali dell'allevamento), riusato come base
+   * per il metano enterico Tier 1/Tier 3 (capi × fattore di emissione). */
+  numeroCapiMedio?: number
 }
 
 function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia {
@@ -343,6 +346,7 @@ export default function SimulazioneZootecniaTool({
   value,
   onChange,
   regione,
+  numeroCapiMedio,
 }: Props) {
   const [aperto, setAperto] = useState(false)
   const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
@@ -456,6 +460,17 @@ export default function SimulazioneZootecniaTool({
   const risultatoMetano = calcolaMetanoEnterico(righeDieta, sim.ymMetanoEntericoPercento)
   const risultatoTdn = calcolaTdnMedioDieta(righeDieta)
 
+  const tierMetanoEnterico = sim.tierMetanoEnterico ?? 'tier2'
+  const numeroCapiTier = numeroCapiMedio ?? 0
+  const efTier1Riferimento = EF_TIER1_RIFERIMENTO[tipologiaAllevamento]
+  const efTier1Usato = sim.efTier1ManualeKgPerCapoAnno ?? efTier1Riferimento?.valore ?? 0
+  const fonteEfTier1 = sim.efTier1ManualeKgPerCapoAnno != null ? 'valore manuale' : efTier1Riferimento?.fonte ?? 'nessun riferimento disponibile'
+  const risultatoMetanoTier1 = calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier1Usato, fonteEfTier1)
+  const efTier3Usato = sim.efTier3KgPerCapoAnno ?? 0
+  const risultatoMetanoTier3 = calcolaMetanoEntericoDaFattore(numeroCapiTier, efTier3Usato, 'misurazione diretta')
+  const risultatoMetanoSelezionato =
+    tierMetanoEnterico === 'tier1' ? risultatoMetanoTier1 : tierMetanoEnterico === 'tier3' ? risultatoMetanoTier3 : risultatoMetano
+
   function aggiornaRazioneMiscelata(patch: Partial<typeof razioneMiscelata>) {
     onChange({ ...sim, razioneMiscelata: { ...razioneMiscelata, ...patch } })
   }
@@ -491,7 +506,7 @@ export default function SimulazioneZootecniaTool({
     onChange({ ...sim, gestioneReflui: { ...gestioneReflui, ...patch } })
   }
 
-  const righeMitigazione = calcolaPotenzialeMitigazione(risultatoMetano.ch4TCO2eq, risultatoReflui.ch4TCO2eq)
+  const righeMitigazione = calcolaPotenzialeMitigazione(risultatoMetanoSelezionato.ch4TCO2eq, risultatoReflui.ch4TCO2eq)
 
   const climaThiMensile = sim.climaThiMensile ?? climaThiVuoto()
   const risultatoThi = calcolaThiMensile(climaThiMensile)
@@ -507,7 +522,7 @@ export default function SimulazioneZootecniaTool({
     aggiornaRazioneMiscelata({ analisiAlimento: { ...analisiRazioneMiscelata, ...patch } })
   }
 
-  const emissioniSpecificheTotaleTCO2 = risultatoMetano.ch4TCO2eq + risultatoReflui.totaleTCO2eq
+  const emissioniSpecificheTotaleTCO2 = risultatoMetanoSelezionato.ch4TCO2eq + risultatoReflui.totaleTCO2eq
   const datiSpecificiDisponibili = emissioniSpecificheTotaleTCO2 > 0
   const fonteEmissioniScelta = sim.fonteEmissioniBilancio ?? 'auto'
   const usaEmissioniSpecifiche =
@@ -517,8 +532,8 @@ export default function SimulazioneZootecniaTool({
     ? {
         totaleTCO2: emissioniSpecificheTotaleTCO2,
         formula:
-          `Metano enterico (${n(risultatoMetano.ch4TCO2eq)}) + gestione reflui (${n(risultatoReflui.totaleTCO2eq)}) ` +
-          `= ${n(emissioniSpecificheTotaleTCO2)} t CO2eq — dato specifico aziendale (Tier 2 IPCC), parziale: non include ` +
+          `Metano enterico (${n(risultatoMetanoSelezionato.ch4TCO2eq)}) + gestione reflui (${n(risultatoReflui.totaleTCO2eq)}) ` +
+          `= ${n(emissioniSpecificheTotaleTCO2)} t CO2eq — dato specifico aziendale (Tier ${tierMetanoEnterico === 'tier1' ? '1' : tierMetanoEnterico === 'tier3' ? '3' : '2'} IPCC), parziale: non include ` +
           `l'alimentazione a monte del mangime, l'energia, i capi di rimonta.`,
       }
     : undefined
@@ -618,22 +633,125 @@ export default function SimulazioneZootecniaTool({
               onClick={() => setApertoMetano((a) => !a)}
             >
               <span className="text-xs font-semibold text-stone-700">
-                🐄💨 Stima metano enterico dalla razione (IPCC Tier 2 — approfondimento)
+                🐄💨 Stima metano enterico (IPCC Tier 1/2/3 — approfondimento)
               </span>
               <span className="text-stone-500">{apertoMetano ? '−' : '+'}</span>
             </button>
             {apertoMetano && (
               <div className="space-y-3 border-t border-stone-200 p-3 text-xs">
                 <p className="text-stone-500">
-                  Al variare della fibra (NDF) della razione variano le emissioni di metano in
-                  fermentazione ruminale: questa stima usa l'NDF (aNDFom) inserito nell'analisi di
-                  laboratorio di ciascun alimento (sopra) per stimare il metano enterico con il
-                  metodo Tier 2 IPCC. Copre <strong>solo il metano enterico</strong>, non l'intera
-                  intensità emissiva usata nel bilancio (che da letteratura include anche gestione
-                  reflui ed emissioni a monte della produzione dell'alimento): resta un
-                  approfondimento parziale, <strong>non entra nel bilancio simulato</strong> qui
-                  sotto.
+                  Tre livelli di accuratezza IPCC, da scegliere in base ai dati realmente disponibili
+                  in azienda: Tier 1 (fattore di default per numero di capi, nessun dato aziendale
+                  richiesto), Tier 2 (energia ingerita stimata dalla razione, dati aziendali), Tier 3
+                  (fattore misurato in azienda — camera respiratoria, GreenFeed, Sniffer). Copre{' '}
+                  <strong>solo il metano enterico</strong>, non l'intera intensità emissiva usata nel
+                  bilancio (che da letteratura include anche gestione reflui ed emissioni a monte
+                  della produzione dell'alimento): resta un approfondimento parziale,{' '}
+                  <strong>non entra nel bilancio simulato</strong> qui sotto.
                 </p>
+
+                <div className="flex flex-wrap gap-3 text-[11px] text-stone-600">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="tierMetanoEnterico"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={tierMetanoEnterico === 'tier1'}
+                      onChange={() => onChange({ ...sim, tierMetanoEnterico: 'tier1' })}
+                    />
+                    Tier 1 — fattore di default (bassa accuratezza)
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="tierMetanoEnterico"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={tierMetanoEnterico === 'tier2'}
+                      onChange={() => onChange({ ...sim, tierMetanoEnterico: 'tier2' })}
+                    />
+                    Tier 2 — dalla razione (media accuratezza)
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="tierMetanoEnterico"
+                      className="h-3.5 w-3.5 border-stone-300 text-forest-600 focus:ring-forest-500"
+                      checked={tierMetanoEnterico === 'tier3'}
+                      onChange={() => onChange({ ...sim, tierMetanoEnterico: 'tier3' })}
+                    />
+                    Tier 3 — misurazione diretta (alta accuratezza)
+                  </label>
+                </div>
+
+                {tierMetanoEnterico === 'tier1' && (
+                  <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+                    <p className="text-[11px] text-stone-400">
+                      Numero di capi (dato generale dell'allevamento: {n(numeroCapiTier)}) × fattore
+                      di emissione di default per area geografica — nessun dato di razione richiesto.
+                    </p>
+                    <div className="rounded-md bg-stone-50 p-2">
+                      <p className="text-stone-600">Fattore di emissione (EF) di default</p>
+                      <p className="mt-0.5 text-stone-500">
+                        {efTier1Riferimento
+                          ? `${n(efTier1Riferimento.valore)} kg CH4/capo/anno — ${efTier1Riferimento.fonte}`
+                          : 'Nessun valore di riferimento per questa tipologia: inseriscilo a mano da fonte verificata.'}
+                      </p>
+                      <div className="mt-1 flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          className="input !py-1 w-32 text-xs"
+                          placeholder={efTier1Riferimento ? String(efTier1Riferimento.valore) : 'obbligatorio'}
+                          value={sim.efTier1ManualeKgPerCapoAnno ?? ''}
+                          onChange={(e) =>
+                            onChange({
+                              ...sim,
+                              efTier1ManualeKgPerCapoAnno: e.target.value === '' ? undefined : num(e.target.value),
+                            })
+                          }
+                        />
+                        <span className="text-[11px] text-stone-400">
+                          kg CH4/capo/anno manuale — lascia vuoto per usare il riferimento
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-md bg-stone-50 p-2">
+                      <p className="text-stone-600">Metano enterico stimato</p>
+                      <p className="mt-0.5 text-stone-500">{risultatoMetanoTier1.formulaCh4}</p>
+                    </div>
+                  </div>
+                )}
+
+                {tierMetanoEnterico === 'tier3' && (
+                  <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
+                    <p className="text-[11px] text-stone-400">
+                      Numero di capi (dato generale dell'allevamento: {n(numeroCapiTier)}) × fattore
+                      di emissione misurato specifico dell'azienda o della categoria animale (camera
+                      respiratoria, GreenFeed, Sniffer o metodo equivalente).
+                    </p>
+                    <div>
+                      <label className="text-[11px] text-stone-500">
+                        Fattore di emissione misurato (kg CH4/capo/anno)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        className="input !py-1 w-40 text-xs"
+                        value={sim.efTier3KgPerCapoAnno ?? 0}
+                        onChange={(e) => onChange({ ...sim, efTier3KgPerCapoAnno: num(e.target.value) })}
+                      />
+                    </div>
+                    <div className="rounded-md bg-stone-50 p-2">
+                      <p className="text-stone-600">Metano enterico stimato</p>
+                      <p className="mt-0.5 text-stone-500">{risultatoMetanoTier3.formulaCh4}</p>
+                    </div>
+                  </div>
+                )}
+
+                {tierMetanoEnterico === 'tier2' && (
+                  <>
                 <div className="flex flex-wrap gap-3 text-[11px] text-stone-600">
                   <label className="flex items-center gap-1.5">
                     <input
@@ -759,14 +877,17 @@ export default function SimulazioneZootecniaTool({
                   <p className="text-stone-600">Metano enterico stimato</p>
                   <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaCh4}</p>
                 </div>
+                  </>
+                )}
+
                 <div className="rounded-md bg-forest-50 p-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-stone-700">In CO2 equivalente (GWP CH4)</p>
                     <span className="font-semibold text-stone-800">
-                      {formatTCO2(risultatoMetano.ch4TCO2eq)} t CO2eq
+                      {formatTCO2(risultatoMetanoSelezionato.ch4TCO2eq)} t CO2eq
                     </span>
                   </div>
-                  <p className="mt-0.5 text-stone-500">{risultatoMetano.formulaCh4CO2eq}</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoMetanoSelezionato.formulaCh4CO2eq}</p>
                 </div>
               </div>
             )}

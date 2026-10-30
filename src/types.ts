@@ -223,6 +223,19 @@ export interface SimulazioneZootecnia {
    * del metano enterico dalla razione (si veda lib/metanoEnterico.ts). Se
    * assente, Ym è calcolato automaticamente dall'NDF medio della razione. */
   ymMetanoEntericoPercento?: number
+  /** Livello di accuratezza scelto per il metano enterico (IPCC Tier 1/2/3,
+   * si veda lib/metanoEnterico.ts): 'tier2' di default se assente — il
+   * metodo basato sulla razione, già in uso. 'tier1' usa un fattore di
+   * emissione di default regionale × numero di capi (nessun dato aziendale
+   * richiesto); 'tier3' lo stesso ma con un fattore misurato in azienda
+   * (camera respiratoria, GreenFeed, Sniffer). */
+  tierMetanoEnterico?: 'tier1' | 'tier2' | 'tier3'
+  /** Tier 1: override manuale del fattore di emissione di default regionale
+   * (kg CH4/capo/anno). Se assente si usa EF_TIER1_RIFERIMENTO. */
+  efTier1ManualeKgPerCapoAnno?: number
+  /** Tier 3: fattore di emissione misurato in azienda (kg CH4/capo/anno),
+   * da camera respiratoria, GreenFeed, Sniffer o simili. */
+  efTier3KgPerCapoAnno?: number
   /** Come ottenere sostanza secca/NDF per la stima del metano enterico: dai
    * singoli alimenti sopra (pesati sulla sostanza secca) oppure da un'unica
    * analisi della razione miscelata completa (TMR) già pronta — comodo quando
