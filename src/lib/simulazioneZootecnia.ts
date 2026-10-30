@@ -14,13 +14,20 @@
  * NOTA DI TRASPARENZA SULLE FONTI: la frazione di carbonio degli alimenti (~45%
  * della sostanza secca, valore tipico generico della biomassa vegetale) resta una
  * stima indicativa non verificata contro una tabella specifica. Le intensità
- * emissive per tipologia di allevamento, invece, sono tratte da una rassegna
- * sistematica peer-reviewed:
+ * emissive per tipologia di allevamento erano inizialmente tratte da un'unica
+ * rassegna sistematica peer-reviewed:
  *
  *   Tsigkas, N.; Anestis, V.; Vatsanidou, A.; Maraveas, C. Measurement, Reporting,
  *   and Verification of Agricultural and Livestock Emissions: A Combined
  *   Systematic and Bibliometric Review. AgriEngineering 2026, 8, 110.
  *   https://doi.org/10.3390/agriengineering8030110
+ *
+ * che cita studi da contesti molto diversi (Sud Africa, Brasile, Cina, Corea del
+ * Sud...), non sempre rappresentativi di un allevamento italiano/europeo. Per i
+ * bovini (da latte e da carne) i valori sono stati sostituiti con studi europei e
+ * nordamericani specifici (si veda la fonte di ciascuna voce qui sotto); per
+ * suini, ovicaprini e avicoli resta per ora la fonte Tsigkas et al. 2026 —
+ * revisione non ancora fatta, in sospeso.
  *
  * Sono comunque intervalli di letteratura molto ampi (i sistemi di allevamento
  * intensivi ed estensivi, e le diverse aree geografiche, danno risultati anche di
@@ -64,24 +71,34 @@ export interface IntensitaEmissivaRiferimento {
 export const INTENSITA_EMISSIVA_RIFERIMENTO: Partial<Record<TipologiaAllevamento, IntensitaEmissivaRiferimento>> = {
   bovini_da_latte: {
     prodotto: 'latte (FPCM, corretto per grasso e proteina)',
-    rangeMinTCO2PerTProdotto: 0.9,
-    rangeMaxTCO2PerTProdotto: 4.0,
-    defaultTCO2PerTProdotto: 1.36,
+    rangeMinTCO2PerTProdotto: 0.6,
+    rangeMaxTCO2PerTProdotto: 2.13,
+    defaultTCO2PerTProdotto: 1.43,
     fonte:
-      'Tsigkas et al. 2026: 0,90–1,10 t/t in media generale; 1,36 t/t in allevamenti da ' +
-      'pascolo (Sud Africa, 82 aziende); 2,19–2,41 t/t in piccole aziende familiari (Brasile); ' +
-      '2,73–3,99 t/t in sistemi estensivi (Grecia, Tier II IPCC). Scegli il valore più vicino ' +
-      'al tuo sistema di allevamento.',
+      'Studi europei e nordamericani (sostituiti i valori extra-UE/NA della fonte generale usata in ' +
+      "precedenza, Tsigkas et al. 2026): 1,43±0,30 t/t in Val Padana, Italia, 19 aziende conferenti a un " +
+      "caseificio Grana Padano DOP — default, stesso contesto geografico delle aziende clienti " +
+      "(Carbon Footprint Assessment of Dairy Milk and Grana Padano PDO Cheese and Improvement Scenarios: " +
+      "A Case Study in the Po Valley (Italy), PMC11939476); 1,20 t/t media (range 0,60–2,13) su 221 " +
+      "aziende irlandesi al pascolo (O'Brien, Hennessy, Moran, Shalloo 2015, J. Dairy Sci. 98(10):7394–7407). " +
+      'Per un confronto con metodologia armonizzata su scala più ampia (non ristretto a UE/Nord America, ' +
+      'range globale ricalcolato 0,74–5,99 t/t) si veda anche Mazzetto, Falconer, Ledgard 2022, J. Dairy ' +
+      'Sci. 105(12):9713–9725. Scegli il valore più vicino al tuo sistema di allevamento.',
   },
   bovini_da_carne: {
     prodotto: 'carne (peso vivo o carcassa)',
-    rangeMinTCO2PerTProdotto: 8.6,
-    rangeMaxTCO2PerTProdotto: 50.9,
-    defaultTCO2PerTProdotto: 15.3,
+    rangeMinTCO2PerTProdotto: 7.0,
+    rangeMaxTCO2PerTProdotto: 45.7,
+    defaultTCO2PerTProdotto: 20.5,
     fonte:
-      'Tsigkas et al. 2026: 15,3 t/t di peso vivo (Australia occidentale); intervallo ' +
-      '8,63–50,88 t/t di carcassa a seconda del sistema (studi basati su IPCC). Intervallo ' +
-      'molto ampio: verifica quale estremo si avvicina di più al tuo allevamento.',
+      'Studi europei e nordamericani (sostituiti i valori extra-UE/NA della fonte generale usata in ' +
+      'precedenza, Tsigkas et al. 2026): media UE 20,5 t/t carcassa, range 7,0–45,7 — default (13,5 t/t ' +
+      'per bovini da latte avviati a carne, 25,5 t/t per la linea vacca-vitello: scegli il valore più ' +
+      'vicino al tuo sistema) — Pishgar-Komleh & Beldman 2022, Wageningen Livestock Research per SAI ' +
+      'Platform/European Roundtable for Beef Sustainability; media USA 21,3±2,3 t/t carcassa, ' +
+      'valutazione nazionale su 7 regioni (Rotz, Asem-Hiablie, Place, Thoma 2018, Agricultural Systems ' +
+      '169:1–13); media Nord America 21,4 t/t (range 10,2–37,6), revisione di studi 2000-2023 (Wang, ' +
+      'Kreuter, Davis, Cheye 2024, PNAS 121(31):e2321245121).',
   },
   suini: {
     prodotto: 'carne (peso vivo)',
