@@ -11,6 +11,7 @@ import MandriaPage from './admin/MandriaPage'
 import ProduzionePage from './admin/ProduzionePage'
 import QualitaPage from './admin/QualitaPage'
 import ConsegnePage from './admin/ConsegnePage'
+import CaseificioPage from './admin/CaseificioPage'
 import MessaggiPage from './admin/MessaggiPage'
 import ImpostazioniPage from './admin/ImpostazioniPage'
 import { RichiedeAccesso } from './lib/auth'
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="mandria" element={<MandriaPage />} />
         <Route path="produzione" element={<ProduzionePage />} />
         <Route path="qualita" element={<QualitaPage />} />
+        <Route path="caseificio" element={<CaseificioPage />} />
         <Route path="consegne" element={<ConsegnePage />} />
         <Route path="messaggi" element={<MessaggiPage />} />
         <Route path="impostazioni" element={<ImpostazioniPage />} />

@@ -54,11 +54,40 @@ export interface Messaggio {
   letto: boolean
 }
 
+/** Una lavorazione in caseificio = un lotto di caciocavallo. */
+export interface Lavorazione {
+  id: string
+  lotto: string // codice lotto, es. CC-20261031-1
+  data: string // data di produzione
+  litriLatte: number
+  formeProdotte: number
+  pesoFrescoKg: number // peso totale delle forme a fine lavorazione
+  stagionaturaGiorni: number // stagionatura minima prevista prima della vendita
+  note?: string
+}
+
+export type TipoUscita = 'vendita' | 'scarto' | 'omaggio'
+
+/** Uscita di forme dal magazzino (vendita, scarto, omaggio/assaggi). */
+export interface UscitaForme {
+  id: string
+  lavorazioneId: string
+  data: string
+  tipo: TipoUscita
+  forme: number
+  pesoKg: number // peso effettivo all'uscita (dopo il calo di stagionatura)
+  cliente?: string
+  prezzoKg?: number // €/kg, solo per le vendite
+  documento?: string
+}
+
 export interface Dati {
   capi: Capo[]
   mungiture: Mungitura[]
   analisi: Analisi[]
   consegne: Consegna[]
+  lavorazioni: Lavorazione[]
+  uscite: UscitaForme[]
   messaggi: Messaggio[]
 }
 

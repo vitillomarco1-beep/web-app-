@@ -32,7 +32,7 @@ export default function ConsegnePage() {
 
   return (
     <>
-      <PageHeader titolo="Consegne" descrizione="Ritiri del latte e ricavi"
+      <PageHeader titolo="Consegne latte" descrizione="Latte conferito a terzi (non trasformato in caseificio) e ricavi"
         azioni={<button className="btn-primary" onClick={() => setModifica(nuova())}>+ Nuova consegna</button>} />
 
       <div className="mb-4">

@@ -16,7 +16,8 @@ export default function AdminLayout() {
     { to: '/area-riservata/mandria', label: 'Mandria' },
     { to: '/area-riservata/produzione', label: 'Produzione' },
     { to: '/area-riservata/qualita', label: 'Qualità latte' },
-    { to: '/area-riservata/consegne', label: 'Consegne' },
+    { to: '/area-riservata/caseificio', label: 'Caseificio' },
+    { to: '/area-riservata/consegne', label: 'Consegne latte' },
     { to: '/area-riservata/messaggi', label: 'Messaggi', badge: nonLetti },
     { to: '/area-riservata/impostazioni', label: 'Dati e backup' },
   ]

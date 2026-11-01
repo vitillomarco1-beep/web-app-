@@ -1,4 +1,4 @@
-import type { Analisi, Capo, Consegna, Dati, Mungitura } from './types'
+import type { Analisi, Capo, Consegna, Dati, Lavorazione, Mungitura, UscitaForme } from './types'
 import { aggiungiGiorni, isoGiorno, nuovoId } from './format'
 
 // Generatore pseudo-casuale deterministico, così i dati dimostrativi sono stabili.
@@ -42,8 +42,9 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   // Mandria complessiva di esempio: ~48 capi in lattazione (l'anagrafica sopra è un estratto)
   const mungiture: Mungitura[] = []
   const consegne: Consegna[] = []
+  const lavorazioni: Lavorazione[] = []
   let accumulato = 0
-  for (let g = 44; g >= 1; g--) {
+  for (let g = 100; g >= 1; g--) {
     const data = aggiungiGiorni(oggi, -g)
     const capiMunti = 46 + Math.floor(r() * 4)
     const perCapo = 29 + r() * 4
@@ -51,8 +52,26 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
     const mattina = Math.round(totale * (0.52 + r() * 0.03))
     mungiture.push({ id: nuovoId(), data, turno: 'mattina', litri: mattina, capiMunti })
     mungiture.push({ id: nuovoId(), data, turno: 'sera', litri: Math.round(totale) - mattina, capiMunti })
-    accumulato += Math.round(totale)
-    // Ritiro ogni due giorni da parte del caseificio
+    // Circa il 40% del latte viene trasformato in caciocavallo nel caseificio aziendale
+    // (riposo un giorno a settimana); il resto viene conferito.
+    let trasformato = 0
+    if (g % 7 !== 0) {
+      trasformato = Math.round((totale * (0.36 + r() * 0.08)) / 10) * 10
+      const resa = 9.6 + r() * 1.0 // kg di formaggio fresco ogni 100 l
+      const kg = Math.round(trasformato * resa) / 100
+      const stagionatura = [30, 60, 90][g % 3]
+      lavorazioni.push({
+        id: nuovoId(),
+        lotto: `CC-${data.replace(/-/g, '')}-1`,
+        data,
+        litriLatte: trasformato,
+        formeProdotte: Math.round(kg / (1.9 + r() * 0.3)),
+        pesoFrescoKg: kg,
+        stagionaturaGiorni: stagionatura,
+      })
+    }
+    accumulato += Math.round(totale) - trasformato
+    // Ritiro del latte non trasformato ogni due giorni
     if (g % 2 === 1) {
       consegne.push({
         id: nuovoId(),
@@ -67,7 +86,7 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 
   const analisi: Analisi[] = []
-  for (let g = 88; g >= 1; g -= 7) {
+  for (let g = 102; g >= 1; g -= 7) {
     analisi.push({
       id: nuovoId(),
       data: aggiungiGiorni(oggi, -g),
@@ -81,11 +100,41 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
     })
   }
 
+  // Uscite dal magazzino per i lotti che hanno completato la stagionatura
+  const CLIENTI = ['Vendita diretta in azienda', 'Alimentari Di Lorenzo', 'Ristorante Il Tratturo', 'Gastronomia Sannita']
+  const uscite: UscitaForme[] = []
+  for (const l of lavorazioni) {
+    const pronto = aggiungiGiorni(l.data, l.stagionaturaGiorni)
+    if (pronto > oggi) continue
+    let rimaste = l.formeProdotte
+    const pesoMedio = l.pesoFrescoKg / l.formeProdotte
+    for (let k = 0; k < 2 && rimaste > 0; k++) {
+      const giorniDisponibili = Math.max(0, Math.round((new Date(oggi).getTime() - new Date(pronto).getTime()) / 86_400_000))
+      const data = aggiungiGiorni(pronto, Math.floor(r() * (giorniDisponibili + 1)))
+      const forme = Math.min(rimaste, Math.max(1, Math.round(l.formeProdotte * (0.25 + r() * 0.3))))
+      const calo = l.stagionaturaGiorni >= 90 ? 0.84 : l.stagionaturaGiorni >= 60 ? 0.87 : 0.9
+      const scarto = r() < 0.05
+      uscite.push({
+        id: nuovoId(),
+        lavorazioneId: l.id,
+        data,
+        tipo: scarto ? 'scarto' : 'vendita',
+        forme: scarto ? 1 : forme,
+        pesoKg: Math.round((scarto ? 1 : forme) * pesoMedio * calo * 10) / 10,
+        cliente: scarto ? undefined : CLIENTI[Math.floor(r() * CLIENTI.length)],
+        prezzoKg: scarto ? undefined : 13 + Math.round(r() * 8) / 2 + (l.stagionaturaGiorni >= 90 ? 2 : 0),
+      })
+      rimaste -= scarto ? 1 : forme
+    }
+  }
+
   return {
     capi,
     mungiture,
     analisi,
     consegne,
+    lavorazioni,
+    uscite,
     messaggi: [
       {
         id: nuovoId(),
@@ -100,4 +149,4 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 }
 
-export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], messaggi: [] }
+export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], messaggi: [] }

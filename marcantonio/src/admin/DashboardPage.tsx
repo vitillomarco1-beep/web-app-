@@ -4,6 +4,7 @@ import { PageHeader, StatTile, BadgeEsito } from '../components/ui'
 import BarChart from '../components/BarChart'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno } from '../lib/format'
 import { serieGiorni, totaleConsegne } from '../lib/statistiche'
+import { dataPronta, formeDisponibili, statoLotto } from '../lib/caseificio'
 import { LIMITE_CBT, LIMITE_SCC, esito, mediaMobileCbt, mediaMobileScc } from '../lib/qualita'
 
 export default function DashboardPage() {
@@ -32,6 +33,14 @@ export default function DashboardPage() {
   const cbt = mediaMobileCbt(dati.analisi, oggi)
   const scc = mediaMobileScc(dati.analisi, oggi)
 
+  // Caseificio e bilancio del latte (ultimi 30 giorni)
+  const lotti = dati.lavorazioni.map((l) => ({ l, stato: statoLotto(l, dati.uscite, oggi), disp: formeDisponibili(l, dati.uscite) }))
+  const formePronte = lotti.filter((x) => x.stato === 'pronto').reduce((s, x) => s + x.disp, 0)
+  const formeInStag = lotti.filter((x) => x.stato === 'in stagionatura').reduce((s, x) => s + x.disp, 0)
+  const prossimi = lotti.filter((x) => x.stato === 'in stagionatura').sort((a, b) => dataPronta(a.l).localeCompare(dataPronta(b.l))).slice(0, 3)
+  const prodotto30 = dati.mungiture.filter((m) => m.data >= da30 && m.data <= oggi).reduce((s, m) => s + m.litri, 0)
+  const trasformato30 = dati.lavorazioni.filter((l) => l.data >= da30 && l.data <= oggi).reduce((s, l) => s + l.litriLatte, 0)
+
   const inScadenzaParto = dati.capi
     .filter((c) => c.stato === 'asciutta' && c.ultimoParto)
     .map((c) => ({ c, previsto: aggiungiGiorni(c.ultimoParto!, 365) })) // stima interparto ~12 mesi
@@ -49,7 +58,7 @@ export default function DashboardPage() {
           nota={varPerc === null ? '—' : `${varPerc >= 0 ? '▲' : '▼'} ${fmt1(Math.abs(varPerc))}% sulla settimana precedente`} />
         <StatTile etichetta="Resa per capo" valore={fmt1(litriCapo)} unita="l/capo"
           nota={`${ultimo.capi} capi munti · ${inLattazione} in lattazione in anagrafica`} />
-        <StatTile etichetta="Consegnato ultimi 30 giorni" valore={fmt0(tot.litri)} unita="litri"
+        <StatTile etichetta="Latte consegnato – 30 giorni" valore={fmt0(tot.litri)} unita="litri"
           nota={`${fmtEur(tot.importo)} · media ${fmt2(tot.prezzoMedio)} €/l`} />
       </div>
 
@@ -86,7 +95,33 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <section className="card">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Caseificio</h2>
+            <Link to="/area-riservata/caseificio" className="btn-link">Magazzino</Link>
+          </div>
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div><dt className="text-stone-500">Forme pronte</dt><dd className="text-2xl font-bold tabular-nums">{fmt0(formePronte)}</dd></div>
+            <div><dt className="text-stone-500">In stagionatura</dt><dd className="text-2xl font-bold tabular-nums">{fmt0(formeInStag)}</dd></div>
+          </dl>
+          {prossimi.length > 0 && (
+            <>
+              <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Prossimi lotti pronti</h3>
+              <ul className="mt-1 divide-y divide-stone-100 text-sm">
+                {prossimi.map(({ l, disp }) => (
+                  <li key={l.id} className="flex justify-between py-1.5"><span className="font-mono text-xs">{l.lotto}</span><span className="tabular-nums">{disp} forme · {fmtData(dataPronta(l))}</span></li>
+                ))}
+              </ul>
+            </>
+          )}
+          <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Latte ultimi 30 giorni</h3>
+          <dl className="mt-1 space-y-1 text-sm">
+            <div className="flex justify-between"><dt>Prodotto</dt><dd className="tabular-nums">{fmt0(prodotto30)} l</dd></div>
+            <div className="flex justify-between"><dt>Trasformato in caseificio</dt><dd className="tabular-nums">{fmt0(trasformato30)} l{prodotto30 > 0 && ` (${fmt0((trasformato30 / prodotto30) * 100)}%)`}</dd></div>
+            <div className="flex justify-between"><dt>Consegnato a terzi</dt><dd className="tabular-nums">{fmt0(tot.litri)} l</dd></div>
+          </dl>
+        </section>
         <section className="card">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Vacche in asciutta – parto previsto</h2>
@@ -103,7 +138,7 @@ export default function DashboardPage() {
         </section>
         <section className="card">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Ultime consegne</h2>
+            <h2 className="font-semibold">Ultime consegne di latte</h2>
             <Link to="/area-riservata/consegne" className="btn-link">Tutte</Link>
           </div>
           <ul className="mt-3 divide-y divide-stone-100 text-sm">

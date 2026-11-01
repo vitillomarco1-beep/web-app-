@@ -8,7 +8,12 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
   - **Mandria**: anagrafica dei capi (matricola, razza, stato produttivo, parti, giorni di lattazione)
   - **Produzione**: registro delle mungiture (mattina/sera), riepilogo mensile, export CSV
   - **Qualità latte**: analisi (grasso, proteine, lattosio, cellule somatiche, carica batterica, inibenti) e verifica dei requisiti del Reg. (CE) 853/2004 (medie geometriche mobili: CBT ≤ 100.000/ml su 2 mesi, cellule somatiche ≤ 400.000/ml su 3 mesi)
-  - **Consegne**: ritiri, DDT, prezzo €/l, ricavi per mese e per acquirente
+  - **Caseificio**: lavorazioni di caciocavallo come lotti (codice CC-AAAAMMGG-n, litri di latte,
+    forme, peso fresco, resa kg/100 l, stagionatura minima); magazzino con avanzamento della
+    stagionatura e forme disponibili; uscite (vendite €/kg, omaggi, scarti) con calo peso;
+    scheda lotto per la tracciabilità (mungiture del giorno, analisi del latte di riferimento,
+    clienti a cui sono andate le forme)
+  - **Consegne latte**: latte conferito a terzi, DDT, prezzo €/l, ricavi per mese e per acquirente
   - **Messaggi**: richieste arrivate dal modulo contatti
   - **Dati e backup**: export/import JSON, ripristino dei dati dimostrativi
 
