@@ -148,7 +148,7 @@ export default function AlimentazionePage() {
     setModStalla(null)
   }
   const creaTreStalle = () => {
-    ;[1, 2, 3].forEach((n) => aggiungi('stalle', { id: nuovoId(), numero: n, nome: `Stalla ${n}`, capi: 0 }))
+    ;[[1, 1], [2, 21], [3, 4]].forEach(([n, g]) => aggiungi('stalle', { id: nuovoId(), numero: n, nome: `Stalla ${n}`, capi: 0, gruppoDairyComp: g }))
   }
 
   if (stalle.length === 0) {
@@ -375,6 +375,7 @@ export default function AlimentazionePage() {
                 <div>
                   <div className="text-2xl font-bold text-brand-800">{s.numero}</div>
                   <div className="text-sm font-medium">{s.nome || `Stalla ${s.numero}`}</div>
+                  {s.gruppoDairyComp !== undefined && <div className="text-xs text-stone-400">Gruppo DairyComp {s.gruppoDairyComp}</div>}
                   <div className="text-sm text-stone-500">{s.capi} capi{s.capi > 0 && ` · ${fmt1(mediaCapoStalla(s))} kg/capo/giorno`}</div>
                 </div>
                 <button className="btn-link" onClick={() => setModStalla(s)}>Modifica</button>
@@ -391,6 +392,7 @@ export default function AlimentazionePage() {
           <form onSubmit={salvaStalla} className="grid gap-4 sm:grid-cols-2">
             <Campo label="Numero *"><input className="input" type="number" min={1} required value={modStalla.numero} onChange={(e) => setModStalla({ ...modStalla, numero: Number(e.target.value) })} disabled={!!modStalla.id} /></Campo>
             <Campo label="Capi presenti"><input className="input" type="number" min={0} value={modStalla.capi} onChange={(e) => setModStalla({ ...modStalla, capi: Number(e.target.value) })} /></Campo>
+            <Campo label="Gruppo in DairyComp"><input className="input" type="number" min={0} value={modStalla.gruppoDairyComp ?? ''} onChange={(e) => setModStalla({ ...modStalla, gruppoDairyComp: e.target.value === '' ? undefined : Number(e.target.value) })} /></Campo>
             <Campo label="Nome / gruppo" className="sm:col-span-2"><input className="input" placeholder="es. Lattazione – primipare" value={modStalla.nome} onChange={(e) => setModStalla({ ...modStalla, nome: e.target.value })} /></Campo>
             <div className="flex justify-end gap-2 sm:col-span-2">
               <button type="button" className="btn-secondary" onClick={() => setModStalla(null)}>Annulla</button>

@@ -5,7 +5,7 @@ export function PageHeader({ titolo, descrizione, azioni }: { titolo: string; de
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">{titolo}</h1>
+        <h1 className="font-serif text-2xl font-bold text-brand-900 sm:text-3xl">{titolo}</h1>
         {descrizione && <p className="mt-1 text-sm text-stone-500">{descrizione}</p>}
       </div>
       {azioni && <div className="flex gap-2">{azioni}</div>}

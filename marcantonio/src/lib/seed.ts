@@ -131,9 +131,9 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   // Alimentazione: 3 stalle, scarico del carro miscelatore mattina e sera
   const stalle: Stalla[] = [
     // tutte e tre le stalle ospitano vacche in lattazione
-    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18 },
-    { id: nuovoId(), numero: 2, nome: 'Lattazione', capi: 16 },
-    { id: nuovoId(), numero: 3, nome: 'Lattazione', capi: 14 },
+    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18, gruppoDairyComp: 1 },
+    { id: nuovoId(), numero: 2, nome: 'Lattazione', capi: 16, gruppoDairyComp: 21 },
+    { id: nuovoId(), numero: 3, nome: 'Lattazione', capi: 14, gruppoDairyComp: 4 },
   ]
   const kgCapo: Record<number, number> = { 1: 48, 2: 47, 3: 46 } // kg t.q./capo/giorno indicativi
   const scarichi: Scarico[] = []

@@ -87,6 +87,7 @@ export interface Stalla {
   numero: number
   nome: string
   capi: number // capi presenti, per calcolare i kg per capo
+  gruppoDairyComp?: number // gruppo (PEN) corrispondente in DairyComp, per importare i capi
 }
 
 /** Razione scaricata dal carro miscelatore in una stalla (peso tal quale). */
