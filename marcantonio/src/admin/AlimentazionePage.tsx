@@ -5,6 +5,7 @@ import { Campo, Modale, PageHeader, StatTile, Vuoto } from '../components/ui'
 import BarChart from '../components/BarChart'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, isoGiorno, lunediDi, nuovoId } from '../lib/format'
 import { perGiorno } from '../lib/statistiche'
+import { parseKg, pesateDaScarichi, scarichiDaPesate } from '../lib/pesate'
 import VerificaSettimanale from './VerificaSettimanale'
 
 const TURNI: Turno[] = ['mattina', 'sera']
@@ -19,39 +20,74 @@ export default function AlimentazionePage() {
 
   const [scheda, setScheda] = useState<'scarichi' | 'verifica'>('scarichi')
 
-  // ---- Griglia di inserimento del giorno
+  // ---- Inserimento del giorno: pesate del carro (predefinito) o kg diretti per stalla
   const [giorno, setGiorno] = useState(oggi)
+  const [modo, setModo] = useState<'pesate' | 'diretto'>('pesate')
   const [griglia, setGriglia] = useState<Griglia>({})
+  const [pesate, setPesate] = useState<Record<Turno, string[]>>({ mattina: [], sera: [] })
+  const [parziali, setParziali] = useState<Record<Turno, boolean>>({ mattina: false, sera: false })
   const [salvato, setSalvato] = useState(false)
+  const [errore, setErrore] = useState('')
   const delGiorno = useMemo(() => scarichi.filter((s) => s.data === giorno), [scarichi, giorno])
+  const numeri = stalle.map((s) => s.numero) // ordine di scarico = numero di stalla
 
   useEffect(() => {
     const g: Griglia = {}
-    for (const s of delGiorno) g[chiave(s.stalla, s.turno)] = String(s.kg)
+    for (const s of delGiorno) g[chiave(s.stalla, s.turno)] = String((Number(g[chiave(s.stalla, s.turno)]) || 0) + s.kg)
     setGriglia(g)
+    const p: Record<Turno, string[]> = { mattina: [], sera: [] }
+    const parz: Record<Turno, boolean> = { mattina: false, sera: false }
+    for (const t of TURNI) {
+      const kg = numeri.map((n) => (g[chiave(n, t)] !== undefined ? Number(g[chiave(n, t)]) : null))
+      const letture = pesateDaScarichi(kg)
+      if (letture) p[t] = letture.map(String)
+      else parz[t] = kg.some((k) => k !== null)
+    }
+    setPesate(p)
+    setParziali(parz)
     setSalvato(false)
-  }, [giorno, delGiorno])
+    setErrore('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [giorno, delGiorno, numeri.join(',')])
+
+  /** kg per stalla calcolati dalle pesate di un turno, nell'ordine di scarico. */
+  const calcolati = (t: Turno) => scarichiDaPesate(numeri.map((_, i) => parseKg(pesate[t][i])))
+
+  const scriviScarico = (stalla: number, t: Turno, kg: number | null) => {
+    const esistenti = delGiorno.filter((s) => s.stalla === stalla && s.turno === t)
+    if (kg === null) { esistenti.forEach((s) => elimina('scarichi', s.id)); return }
+    const [primo, ...doppi] = esistenti
+    if (primo) { if (primo.kg !== kg) aggiorna('scarichi', { ...primo, kg }) }
+    else aggiungi('scarichi', { id: nuovoId(), data: giorno, turno: t, stalla, kg })
+    doppi.forEach((s) => elimina('scarichi', s.id))
+  }
 
   const salvaGiorno = (e: FormEvent) => {
     e.preventDefault()
-    for (const st of stalle) {
-      for (const t of TURNI) {
-        const val = griglia[chiave(st.numero, t)]?.trim()
-        const esistenti = delGiorno.filter((s) => s.stalla === st.numero && s.turno === t)
-        if (!val) {
-          esistenti.forEach((s) => elimina('scarichi', s.id))
-          continue
-        }
-        const kg = Number(val.replace(',', '.'))
-        if (!Number.isFinite(kg) || kg < 0) continue
-        const [primo, ...doppi] = esistenti
-        if (primo) {
-          if (primo.kg !== kg) aggiorna('scarichi', { ...primo, kg })
-        } else {
-          aggiungi('scarichi', { id: nuovoId(), data: giorno, turno: t, stalla: st.numero, kg })
-        }
-        doppi.forEach((s) => elimina('scarichi', s.id))
+    setErrore('')
+    if (modo === 'diretto') {
+      for (const n of numeri) for (const t of TURNI) scriviScarico(n, t, parseKg(griglia[chiave(n, t)]))
+      setSalvato(true)
+      return
+    }
+    // controlli: ogni pesata deve essere minore o uguale alla precedente
+    for (const t of TURNI) {
+      const kg = calcolati(t)
+      const neg = kg.findIndex((k) => k !== null && k < 0)
+      if (neg >= 0) {
+        setErrore(`${t === 'mattina' ? 'Mattina' : 'Sera'}: la pesata dopo la stalla ${numeri[neg]} è maggiore di quella precedente. Controlla le foto.`)
+        return
       }
+    }
+    for (const t of TURNI) {
+      const vuoto = pesate[t].every((v) => !v?.trim())
+      if (vuoto && parziali[t]) continue // kg inseriti direttamente: non toccarli
+      const kg = calcolati(t)
+      numeri.forEach((n, i) => {
+        // se manca la lettura necessaria per una stalla, il suo scarico resta com'era
+        if (kg[i] === null && !vuoto) return
+        scriviScarico(n, t, kg[i])
+      })
     }
     setSalvato(true)
   }
@@ -123,7 +159,13 @@ export default function AlimentazionePage() {
     )
   }
 
-  const totaleGriglia = Object.values(griglia).reduce((s, v) => s + (Number(String(v).replace(',', '.')) || 0), 0)
+  const totaleGriglia = modo === 'diretto'
+    ? Object.values(griglia).reduce((s, v) => s + (parseKg(v) ?? 0), 0)
+    : TURNI.reduce((s, t) => s + calcolati(t).reduce<number>((a, k) => a + (k && k > 0 ? k : 0), 0), 0)
+  const etichettaFoto = (i: number) =>
+    i === 0 ? 'Carico totale'
+      : i === numeri.length - 1 ? `Dopo st. ${numeri[i - 1]} → st. ${numeri[i]}`
+        : `Dopo stalla ${numeri[i - 1]}`
 
   return (
     <>
@@ -162,33 +204,82 @@ export default function AlimentazionePage() {
       <div className="grid gap-6 xl:grid-cols-5">
         {/* Inserimento del giorno */}
         <section className="card xl:col-span-2">
-          <h2 className="font-semibold">Inserisci gli scarichi del giorno</h2>
-          <p className="mt-1 text-xs text-stone-500">Kg letti sulla pesata del carro. Lascia vuoto se non c'è stato scarico.</p>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h2 className="font-semibold">Inserisci gli scarichi del giorno</h2>
+            <button type="button" className="btn-link text-xs" onClick={() => { setModo(modo === 'pesate' ? 'diretto' : 'pesate'); setErrore('') }}>
+              {modo === 'pesate' ? 'Inserisci i kg per stalla' : 'Inserisci le pesate del carro'}
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-stone-500">
+            {modo === 'pesate'
+              ? `Scrivi i ${numeri.length} numeri delle foto della bilancia, nell'ordine: i kg scaricati in ogni stalla vengono calcolati.`
+              : 'Kg scaricati in ogni stalla. Lascia vuoto se non c\'è stato scarico.'}
+          </p>
           <form onSubmit={salvaGiorno} className="mt-4">
             <div className="mb-4 flex items-center gap-2">
               <button type="button" className="btn-secondary px-3" onClick={() => setGiorno(aggiungiGiorni(giorno, -1))} aria-label="Giorno precedente">‹</button>
               <input className="input" type="date" max={oggi} value={giorno} onChange={(e) => e.target.value && setGiorno(e.target.value)} />
               <button type="button" className="btn-secondary px-3" disabled={giorno >= oggi} onClick={() => setGiorno(aggiungiGiorni(giorno, 1))} aria-label="Giorno successivo">›</button>
             </div>
-            <table className="table">
-              <thead><tr><th>Stalla</th><th className="num">Mattina (kg)</th><th className="num">Sera (kg)</th></tr></thead>
-              <tbody>
-                {stalle.map((st) => (
-                  <tr key={st.id}>
-                    <td><b>{st.numero}</b> <span className="text-xs text-stone-500">{st.nome}</span></td>
-                    {TURNI.map((t) => (
-                      <td key={t} className="num">
-                        <input className="input w-28 text-right tabular-nums" inputMode="decimal" aria-label={`Stalla ${st.numero}, ${t}`}
-                          value={griglia[chiave(st.numero, t)] ?? ''}
-                          onChange={(e) => { setSalvato(false); setGriglia({ ...griglia, [chiave(st.numero, t)]: e.target.value.replace(/[^\d.,]/g, '') }) }} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+            {modo === 'pesate' ? (
+              <div className="space-y-4">
+                {TURNI.map((t) => {
+                  const kg = calcolati(t)
+                  return (
+                    <fieldset key={t} className="rounded-lg border border-stone-200 p-3">
+                      <legend className="px-1 text-sm font-semibold">{t === 'mattina' ? 'Mattina' : 'Sera'}</legend>
+                      {parziali[t] && pesate[t].every((v) => !v) && (
+                        <p className="mb-2 text-xs text-amber-800">Per questo turno ci sono kg inseriti direttamente solo per alcune stalle: correggili con “Inserisci i kg per stalla”.</p>
+                      )}
+                      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${numeri.length}, minmax(0, 1fr))` }}>
+                        {numeri.map((_, i) => (
+                          <label key={i} className="block">
+                            <span className="mb-1 block text-[11px] font-medium leading-tight text-stone-600">Foto {i + 1}<br />{etichettaFoto(i)}</span>
+                            <input className="input text-right tabular-nums" inputMode="decimal" aria-label={`${t}, foto ${i + 1}: ${etichettaFoto(i)}`}
+                              value={pesate[t][i] ?? ''}
+                              onChange={(e) => {
+                                setSalvato(false); setErrore('')
+                                const nuove = [...pesate[t]]; nuove[i] = e.target.value.replace(/[^\d.,]/g, '')
+                                setPesate({ ...pesate, [t]: nuove })
+                              }} />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        {numeri.map((n, i) => (
+                          <span key={n} className={kg[i] !== null && kg[i]! < 0 ? 'font-semibold text-red-700' : 'text-stone-600'}>
+                            Stalla {n}: <b className="tabular-nums">{kg[i] === null ? '—' : `${fmt0(kg[i]!)} kg`}</b>
+                          </span>
+                        ))}
+                      </div>
+                    </fieldset>
+                  )
+                })}
+              </div>
+            ) : (
+              <table className="table">
+                <thead><tr><th>Stalla</th><th className="num">Mattina (kg)</th><th className="num">Sera (kg)</th></tr></thead>
+                <tbody>
+                  {stalle.map((st) => (
+                    <tr key={st.id}>
+                      <td><b>{st.numero}</b> <span className="text-xs text-stone-500">{st.nome}</span></td>
+                      {TURNI.map((t) => (
+                        <td key={t} className="num">
+                          <input className="input w-28 text-right tabular-nums" inputMode="decimal" aria-label={`Stalla ${st.numero}, ${t}`}
+                            value={griglia[chiave(st.numero, t)] ?? ''}
+                            onChange={(e) => { setSalvato(false); setGriglia({ ...griglia, [chiave(st.numero, t)]: e.target.value.replace(/[^\d.,]/g, '') }) }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {errore && <p className="mt-3 text-sm text-red-700" role="alert">✕ {errore}</p>}
             <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-sm text-stone-600">Totale: <b className="tabular-nums">{fmt0(totaleGriglia)} kg</b></span>
+              <span className="text-sm text-stone-600">Totale scaricato: <b className="tabular-nums">{fmt0(totaleGriglia)} kg</b></span>
               <div className="flex items-center gap-3">
                 {salvato && <span className="text-sm text-green-700">✓ Salvato</span>}
                 <button className="btn-primary">Salva</button>

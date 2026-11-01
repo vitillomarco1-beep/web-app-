@@ -155,7 +155,7 @@ export default function VerificaSettimanale({ onApriGiorno }: { onApriGiorno: (d
         </div>
         <p className="mt-2 text-xs text-stone-500">
           In giallo i valori che si scostano più del {SOGLIA_ANOMALIA * 100}% dalla mediana delle 4 settimane precedenti (stessa stalla e turno):
-          confrontali con la foto della pesata. Clicca su un giorno per correggerlo.
+          confrontali con le foto della pesata (stalla 1 = foto 1 − foto 2, stalla 2 = foto 2 − foto 3, stalla 3 = foto 3). Clicca su un giorno per vedere le pesate e correggerle.
         </p>
 
         {!settimanaFutura && !settimanaInCorso && (
