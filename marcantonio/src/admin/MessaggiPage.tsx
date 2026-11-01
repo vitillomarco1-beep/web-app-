@@ -14,11 +14,11 @@ export default function MessaggiPage() {
       {elenco.length === 0 ? <Vuoto>Nessun messaggio.</Vuoto> : (
         <ul className="space-y-3">
           {elenco.map((m) => (
-            <li key={m.id} className={`card p-0 ${m.letto ? '' : 'ring-2 ring-prato-200'}`}>
+            <li key={m.id} className={`card p-0 ${m.letto ? '' : 'ring-2 ring-brand-200'}`}>
               <button className="flex w-full flex-wrap items-center justify-between gap-2 p-4 text-left"
                 onClick={() => { setAperto(aperto === m.id ? null : m.id); if (!m.letto) aggiorna('messaggi', { ...m, letto: true }) }}>
                 <span>
-                  {!m.letto && <span className="mr-2 rounded bg-prato-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Nuovo</span>}
+                  {!m.letto && <span className="mr-2 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Nuovo</span>}
                   <span className="font-semibold">{m.nome}</span> <span className="text-stone-500">· {m.oggetto}</span>
                 </span>
                 <span className="text-xs text-stone-500">{fmtDataOra(m.data)}</span>

@@ -44,7 +44,7 @@ export default function BarChart({ dati, unita, altezza = 220, formatta = (n: nu
             <g key={i}>
               <path
                 d={`M${x},${y(0)} V${y(0) - h + r} Q${x},${y(0) - h} ${x + r},${y(0) - h} H${x + bw - r} Q${x + bw},${y(0) - h} ${x + bw},${y(0) - h + r} V${y(0)} Z`}
-                className={attivo === null || attivo === i ? 'fill-prato-500' : 'fill-prato-200'}
+                className={attivo === null || attivo === i ? 'fill-brand-500' : 'fill-brand-200'}
               />
               {i % ogniN === 0 && (
                 <text x={x + bw / 2} y={H - 8} textAnchor="middle" className="fill-stone-500 text-[11px]">{d.etichetta}</text>

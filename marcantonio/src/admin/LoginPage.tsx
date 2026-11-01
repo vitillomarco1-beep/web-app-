@@ -22,9 +22,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-prato-700 to-prato-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-700 to-brand-900 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
-        <div className="mb-6 flex justify-center"><Logo /></div>
+        <div className="mb-6 flex justify-center"><Logo altezza="h-28" /></div>
         <h1 className="text-center text-xl font-semibold">Area riservata</h1>
         <form onSubmit={invia} className="mt-6 space-y-4">
           <label className="block"><span className="label">Utente</span><input className="input" autoComplete="username" value={utente} onChange={(e) => setUtente(e.target.value)} autoFocus /></label>

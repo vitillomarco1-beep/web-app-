@@ -13,13 +13,13 @@ const VOCI = [
 export default function PublicLayout() {
   const [aperto, setAperto] = useState(false)
   const cls = ({ isActive }: { isActive: boolean }) =>
-    `rounded-md px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-prato-50 text-prato-800' : 'text-stone-600 hover:text-prato-700'}`
+    `rounded-md px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-brand-50 text-brand-800' : 'text-stone-600 hover:text-brand-700'}`
 
   return (
     <div className="flex min-h-screen flex-col bg-crema-50">
       <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/" onClick={() => setAperto(false)}><Logo /></Link>
+          <Link to="/" onClick={() => setAperto(false)} aria-label="Home"><Logo altezza="h-14 sm:h-16" /></Link>
           <nav className="hidden items-center gap-1 md:flex">
             {VOCI.map((v) => <NavLink key={v.to} to={v.to} end={v.end} className={cls}>{v.label}</NavLink>)}
             <Link to="/area-riservata" className="btn-primary ml-3">Area riservata</Link>
@@ -40,11 +40,11 @@ export default function PublicLayout() {
 
       <main className="flex-1"><Outlet /></main>
 
-      <footer className="bg-prato-900 text-prato-100">
+      <footer className="bg-brand-900 text-brand-100">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
           <div>
-            <Logo chiaro />
-            <p className="mt-3 text-sm text-prato-200">{AZIENDA.slogan}</p>
+            <Logo suScuro altezza="h-20" />
+            <p className="mt-3 text-sm text-brand-200">{AZIENDA.descrizioneBreve}</p>
           </div>
           <div className="text-sm">
             <h3 className="mb-2 font-semibold text-white">Contatti</h3>
@@ -57,7 +57,7 @@ export default function PublicLayout() {
             <p>{AZIENDA.orari}</p>
           </div>
         </div>
-        <div className="border-t border-prato-800 py-4 text-center text-xs text-prato-300">
+        <div className="border-t border-brand-800 py-4 text-center text-xs text-brand-300">
           © {new Date().getFullYear()} {AZIENDA.nome} · P.IVA {AZIENDA.partitaIva}
         </div>
       </footer>

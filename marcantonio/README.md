@@ -1,6 +1,6 @@
-# Azienda Agricola Marcantonio – Web app
+# Fratelli Marcantonio – Web app
 
-Web app per un'azienda produttrice di latte bovino, composta da:
+Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Miscano): allevamento di bovine da latte e produzione di caciocavallo. Composta da:
 
 - **Sito pubblico**: Home, L'azienda (allevamento e qualità), Prodotti, Contatti (con modulo).
 - **Area riservata** (gestionale), su `#/area-riservata`:
@@ -46,3 +46,10 @@ src/
   public/             pagine del sito pubblico
   admin/              pagine del gestionale
 ```
+
+## Marchio
+
+- Logo: `src/assets/logo-marcantonio.png` (ricavato dal logo ufficiale, sfondo trasparente);
+  favicon con la corona in `public/`.
+- Colori (in `tailwind.config.js`): prugna `brand` (#613846) e arancio `arancio` (#F7941D).
+  L'arancio si usa per accenti e su fondi scuri, non per testo piccolo su bianco (contrasto insufficiente).

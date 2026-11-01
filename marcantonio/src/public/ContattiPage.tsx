@@ -22,13 +22,13 @@ export default function ContattiPage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-5">
       <div className="lg:col-span-2">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-prato-600">Contatti</p>
-        <h1 className="mt-2 font-serif text-4xl font-bold text-prato-900">Parliamone</h1>
-        <p className="mt-4 text-stone-600">Per forniture, vendita diretta, visite in azienda o qualsiasi altra richiesta.</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">Contatti</p>
+        <h1 className="mt-2 font-serif text-4xl font-bold text-brand-900">Parliamone</h1>
+        <p className="mt-4 text-stone-600">Per ordini di caciocavallo, forniture, vendita diretta, visite in azienda o qualsiasi altra richiesta.</p>
         <dl className="mt-8 space-y-4 text-sm">
           <div><dt className="font-semibold">Indirizzo</dt><dd className="text-stone-600">{AZIENDA.indirizzo}</dd></div>
-          <div><dt className="font-semibold">Telefono</dt><dd><a className="text-prato-700 hover:underline" href={`tel:${AZIENDA.telefono.replace(/\s/g, '')}`}>{AZIENDA.telefono}</a></dd></div>
-          <div><dt className="font-semibold">Email</dt><dd><a className="text-prato-700 hover:underline" href={`mailto:${AZIENDA.email}`}>{AZIENDA.email}</a></dd></div>
+          <div><dt className="font-semibold">Telefono</dt><dd><a className="text-brand-700 hover:underline" href={`tel:${AZIENDA.telefono.replace(/\s/g, '')}`}>{AZIENDA.telefono}</a></dd></div>
+          <div><dt className="font-semibold">Email</dt><dd><a className="text-brand-700 hover:underline" href={`mailto:${AZIENDA.email}`}>{AZIENDA.email}</a></dd></div>
           <div><dt className="font-semibold">Orari</dt><dd className="text-stone-600">{AZIENDA.orari}</dd></div>
         </dl>
       </div>
@@ -36,7 +36,7 @@ export default function ContattiPage() {
       <div className="card lg:col-span-3">
         {inviato ? (
           <div className="py-10 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-prato-100 text-2xl text-prato-700">✓</div>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-2xl text-brand-700">✓</div>
             <h2 className="mt-4 text-xl font-semibold">Messaggio inviato</h2>
             <p className="mt-2 text-stone-600">Grazie! Ti risponderemo al più presto.</p>
             <button className="btn-secondary mt-6" onClick={() => setInviato(false)}>Invia un altro messaggio</button>
@@ -48,7 +48,7 @@ export default function ContattiPage() {
             <label className="block"><span className="label">Telefono</span><input className="input" type="tel" value={form.telefono} onChange={set('telefono')} /></label>
             <label className="block"><span className="label">Oggetto</span>
               <select className="input" value={form.oggetto} onChange={set('oggetto')}>
-                {['Informazioni', 'Fornitura latte', 'Vendita diretta', 'Visita in azienda', 'Altro'].map((o) => <option key={o}>{o}</option>)}
+                {['Informazioni', 'Ordine caciocavallo', 'Vendita diretta', 'Fornitura per negozi/ristoranti', 'Visita in azienda', 'Altro'].map((o) => <option key={o}>{o}</option>)}
               </select>
             </label>
             <label className="block sm:col-span-2"><span className="label">Messaggio *</span><textarea className="input min-h-32" required value={form.testo} onChange={set('testo')} /></label>

@@ -49,11 +49,11 @@ export default function MandriaPage() {
         azioni={<button className="btn-primary" onClick={() => setModifica(nuovo())}>+ Nuovo capo</button>} />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button onClick={() => setFiltro('tutti')} className={`rounded-full px-3 py-1 text-sm ${filtro === 'tutti' ? 'bg-prato-700 text-white' : 'bg-white ring-1 ring-stone-200'}`}>
+        <button onClick={() => setFiltro('tutti')} className={`rounded-full px-3 py-1 text-sm ${filtro === 'tutti' ? 'bg-brand-700 text-white' : 'bg-white ring-1 ring-stone-200'}`}>
           Attivi ({dati.capi.filter((c) => c.stato !== 'uscita').length})
         </button>
         {STATI.map((s) => (
-          <button key={s.v} onClick={() => setFiltro(s.v)} className={`rounded-full px-3 py-1 text-sm ${filtro === s.v ? 'bg-prato-700 text-white' : 'bg-white ring-1 ring-stone-200'}`}>
+          <button key={s.v} onClick={() => setFiltro(s.v)} className={`rounded-full px-3 py-1 text-sm ${filtro === s.v ? 'bg-brand-700 text-white' : 'bg-white ring-1 ring-stone-200'}`}>
             {s.l} ({conteggi[s.v] ?? 0})
           </button>
         ))}
