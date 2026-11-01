@@ -1,4 +1,4 @@
-import type { Analisi, Capo, Consegna, Dati, Lavorazione, Mungitura, Scarico, Stalla, UscitaForme, VerificaSettimana } from './types'
+import type { AnimaleDC, Analisi, Capo, ImportDC, Consegna, Dati, Lavorazione, Mungitura, Scarico, Stalla, UscitaForme, VerificaSettimana } from './types'
 import { aggiungiGiorni, isoGiorno, lunediDi, nuovoId } from './format'
 
 // Generatore pseudo-casuale deterministico, così i dati dimostrativi sono stabili.
@@ -158,7 +158,41 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
     verifiche.push({ id: nuovoId(), settimana: lun, verificataIl: aggiungiGiorni(dom, 1) + 'T09:00:00.000Z', verificataDa: 'admin', totaleKg: tot })
   }
 
+  // DairyComp: esportazioni di esempio ogni 3 giorni. Gruppo 1 = vacche adulte ad alta produzione,
+  // gruppo 21 = primipare, gruppo 4 = fine lattazione, gruppo 30 = asciutte (fuori dalle stalle).
+  const curva = (dim: number, primipara: boolean) =>
+    primipara ? 16 * dim ** 0.17 * Math.exp(-0.0025 * dim) : 20 * dim ** 0.2 * Math.exp(-0.004 * dim)
+  const mandria: { id: string; gruppo: number; lact: number; dim0: number; liv: number; scc: number }[] = []
+  let num = 1100
+  const aggiungiVacche = (gruppo: number, n: number, lact: () => number, dim: () => number) => {
+    for (let i = 0; i < n; i++) mandria.push({ id: String(num += 7), gruppo, lact: lact(), dim0: dim(), liv: 0.9 + r() * 0.2, scc: 60 + Math.round(r() * 250) })
+  }
+  aggiungiVacche(1, 18, () => 2 + Math.floor(r() * 4), () => 15 + Math.floor(r() * 150))
+  aggiungiVacche(21, 16, () => 1, () => 10 + Math.floor(r() * 220))
+  aggiungiVacche(4, 14, () => 2 + Math.floor(r() * 3), () => 190 + Math.floor(r() * 150))
+  aggiungiVacche(30, 6, () => 2 + Math.floor(r() * 3), () => 0)
+  const importDC: ImportDC[] = []
+  for (let g = 30; g >= 1; g -= 3) {
+    const data = aggiungiGiorni(oggi, -g)
+    const animali: AnimaleDC[] = mandria.map((v) => {
+      const asciutta = v.gruppo === 30
+      const dim = asciutta ? null : v.dim0 + (30 - g)
+      const latte = asciutta || dim === null ? null : Math.round(curva(dim, v.lact === 1) * v.liv * (0.95 + r() * 0.1) * 10) / 10
+      return {
+        id: v.id, gruppo: v.gruppo, lattazione: v.lact, dim, latte,
+        grasso: asciutta ? null : Math.round((3.5 + (dim ?? 0) / 400 + r() * 0.3) * 100) / 100,
+        proteine: asciutta ? null : Math.round((3.15 + (dim ?? 0) / 600 + r() * 0.2) * 100) / 100,
+        cellule: asciutta ? null : Math.round(v.scc * (0.8 + r() * 0.4)),
+        codiceRiproduttivo: asciutta ? '7' : dim !== null && dim > 120 ? '5' : '3',
+        giorniGravidanza: asciutta ? 230 + Math.floor(r() * 40) : dim !== null && dim > 120 ? Math.max(0, dim - 110) : 0,
+        extra: {},
+      }
+    })
+    importDC.push({ id: nuovoId(), data, importatoIl: data + 'T08:00:00.000Z', nomeFile: `dairycomp-${data}.csv (esempio)`, animali })
+  }
+
   return {
+    importDC,
     stalle,
     scarichi,
     verifiche,
@@ -182,4 +216,4 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 }
 
-export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], messaggi: [] }
+export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], messaggi: [] }

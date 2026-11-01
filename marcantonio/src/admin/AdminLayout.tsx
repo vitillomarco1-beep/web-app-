@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Camera, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
+  BarChart3, Camera, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
   Settings, Tag, Truck, Wheat, X, type LucideIcon,
 } from 'lucide-react'
 import Logo from '../components/Logo'
@@ -31,6 +31,7 @@ export default function AdminLayout() {
           { to: `${R}/mandria`, label: 'Mandria', icona: Tag },
         ] },
         { titolo: 'Latte', voci: [
+          { to: `${R}/latte`, label: 'Gruppi e mandria', icona: BarChart3 },
           { to: `${R}/produzione`, label: 'Mungiture', icona: Milk },
           { to: `${R}/qualita`, label: 'Qualità', icona: FlaskConical },
           { to: `${R}/consegne`, label: 'Consegne', icona: Truck },
@@ -47,7 +48,7 @@ export default function AdminLayout() {
     { to: R, label: 'Oggi', icona: Home, end: true },
     { to: `${R}/pesata`, label: 'Pesata', icona: Camera },
     { to: `${R}/alimentazione`, label: 'Stalle', icona: Wheat },
-    { to: `${R}/produzione`, label: 'Latte', icona: Milk },
+    { to: `${R}/latte`, label: 'Latte', icona: Milk },
   ]
   const inBarra = barra.some((v) => (v.end ? location.pathname === v.to : location.pathname.startsWith(v.to)))
 

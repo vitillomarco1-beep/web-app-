@@ -110,6 +110,31 @@ export interface VerificaSettimana {
   note?: string
 }
 
+/** Una vacca come risulta da un'esportazione di DairyComp. */
+export interface AnimaleDC {
+  id: string // numero/matricola in DairyComp
+  gruppo: number | null // PEN
+  lattazione: number | null // LACT
+  dim: number | null // giorni di lattazione
+  latte: number | null // kg/giorno
+  grasso?: number | null // %
+  proteine?: number | null // %
+  cellule?: number | null // migliaia/ml
+  scs?: number | null // punteggio lineare cellule (LGSCC)
+  codiceRiproduttivo?: string | null // RC
+  giorniGravidanza?: number | null // DCC
+  extra?: Record<string, number | string> // tutte le altre colonne del file
+}
+
+/** Un'esportazione di DairyComp importata (fotografia della mandria a una data). */
+export interface ImportDC {
+  id: string
+  data: string // data a cui si riferiscono i dati
+  importatoIl: string
+  nomeFile: string
+  animali: AnimaleDC[]
+}
+
 export interface Dati {
   capi: Capo[]
   mungiture: Mungitura[]
@@ -120,6 +145,7 @@ export interface Dati {
   stalle: Stalla[]
   scarichi: Scarico[]
   verifiche: VerificaSettimana[]
+  importDC: ImportDC[]
   messaggi: Messaggio[]
 }
 
