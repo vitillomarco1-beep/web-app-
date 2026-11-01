@@ -28,6 +28,7 @@ export default function AlimentazionePage() {
   const [parziali, setParziali] = useState<Record<Turno, boolean>>({ mattina: false, sera: false })
   const [salvato, setSalvato] = useState(false)
   const [errore, setErrore] = useState('')
+  const [turnoErrato, setTurnoErrato] = useState<Turno | null>(null)
   const delGiorno = useMemo(() => scarichi.filter((s) => s.data === giorno), [scarichi, giorno])
   const numeri = stalle.map((s) => s.numero) // ordine di scarico = numero di stalla
 
@@ -65,6 +66,7 @@ export default function AlimentazionePage() {
   const salvaGiorno = (e: FormEvent) => {
     e.preventDefault()
     setErrore('')
+    setTurnoErrato(null)
     if (modo === 'diretto') {
       for (const n of numeri) for (const t of TURNI) scriviScarico(n, t, parseKg(griglia[chiave(n, t)]))
       setSalvato(true)
@@ -75,7 +77,8 @@ export default function AlimentazionePage() {
       const kg = calcolati(t)
       const neg = kg.findIndex((k) => k !== null && k < 0)
       if (neg >= 0) {
-        setErrore(`${t === 'mattina' ? 'Mattina' : 'Sera'}: la pesata dopo la stalla ${numeri[neg]} è maggiore di quella precedente. Controlla le foto.`)
+        setErrore(`${t === 'mattina' ? 'Mattina' : 'Sera'}: una pesata è più alta della precedente, ma durante il giro il carro può solo alleggerirsi. Le foto sono probabilmente arrivate in ordine diverso.`)
+        setTurnoErrato(t)
         return
       }
     }
@@ -277,7 +280,19 @@ export default function AlimentazionePage() {
               </table>
             )}
 
-            {errore && <p className="mt-3 text-sm text-red-700" role="alert">✕ {errore}</p>}
+            {errore && (
+              <div className="mt-3 text-sm text-red-700" role="alert">
+                <p>✕ {errore}</p>
+                {turnoErrato && (
+                  <button type="button" className="btn-secondary mt-2" onClick={() => {
+                    // il carro si svuota durante il giro: l'ordine giusto è dalla pesata più alta alla più bassa
+                    const ordinate = [...pesate[turnoErrato]].map((v) => ({ v, n: parseKg(v) ?? -1 })).sort((a, b) => b.n - a.n).map((x) => x.v)
+                    setPesate({ ...pesate, [turnoErrato]: ordinate })
+                    setErrore(''); setTurnoErrato(null)
+                  }}>Riordina dalla più pesante alla più leggera</button>
+                )}
+              </div>
+            )}
             <div className="mt-4 flex items-center justify-between gap-3">
               <span className="text-sm text-stone-600">Totale scaricato: <b className="tabular-nums">{fmt0(totaleGriglia)} kg</b></span>
               <div className="flex items-center gap-3">
