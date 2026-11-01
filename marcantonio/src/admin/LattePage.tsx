@@ -54,6 +54,7 @@ export default function LattePage() {
   const mandriaPrima = precedente ? riepilogo(inLattazione(precedente.animali)) : undefined
   const asciutte = corrente.animali.length - mandria.capi
   const gruppi = perGruppo(corrente.animali).map(([g, a]) => ({ g, r: riepilogo(a), animali: a }))
+  const robotTotali = dati.stalle.reduce((s, x) => s + (x.robot?.numero ?? 0), 0)
   const maxLatte = Math.max(1, ...gruppi.map((x) => x.r.latteMedio ?? 0))
   const extraChiavi = Object.keys(mandria.extra)
   const haGrasso = mandria.grasso !== null, haProt = mandria.proteine !== null, haCell = mandria.cellule !== null
@@ -142,7 +143,7 @@ export default function LattePage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Gruppo</th><th className="num">Capi</th><th className="num">DIM medio</th><th className="num">Latte medio (kg/capo)</th>
+              <th>Gruppo</th><th>Robot</th><th className="num">Vacche/robot</th><th className="num">Latte/robot (kg)</th><th className="num">Capi</th><th className="num">DIM medio</th><th className="num">Latte medio (kg/capo)</th>
               <th className="num">Latte totale (kg)</th><th className="num">Primipare</th>
               {haGrasso && <th className="num">Grasso %</th>}{haProt && <th className="num">Proteine %</th>}{haCell && <th className="num">Cellule (×1000)</th>}
               {extraChiavi.map((k) => <th key={k} className="num">{k}</th>)}
@@ -154,6 +155,9 @@ export default function LattePage() {
               return (
                 <tr key={String(g)} className={`cursor-pointer ${gruppoFiltro === g ? 'bg-brand-50' : ''}`} onClick={() => setGruppoFiltro(gruppoFiltro === g ? 'tutti' : g)}>
                   <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : r.dimMedio === null ? <span className="ml-2 text-xs text-stone-400">asciutte</span> : null}</td>
+                  <td className="whitespace-nowrap text-stone-600">{st?.robot ? `${st.robot.numero} × ${st.robot.marca}` : '—'}</td>
+                  <td className="num">{st?.robot ? fmt0(r.capi / st.robot.numero) : '—'}</td>
+                  <td className="num">{st?.robot && r.latteTotale ? fmt0(r.latteTotale / st.robot.numero) : '—'}</td>
                   {rigaRiepilogo(r)}
                 </tr>
               )
@@ -162,6 +166,9 @@ export default function LattePage() {
           <tfoot>
             <tr className="bg-stone-50 font-semibold">
               <td className="px-3 py-2">Intera mandria <span className="text-xs font-normal text-stone-500">(in lattazione)</span></td>
+              <td className="px-3 py-2 font-normal text-stone-600">{robotTotali ? `${robotTotali} robot` : '—'}</td>
+              <td className="num px-3 py-2">{robotTotali ? fmt0(mandria.capi / robotTotali) : '—'}</td>
+              <td className="num px-3 py-2">{robotTotali ? fmt0(mandria.latteTotale / robotTotali) : '—'}</td>
               {rigaRiepilogo(mandria)}
             </tr>
           </tfoot>

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Collezione, Dati } from './types'
 import { DATI_VUOTI, datiDimostrativi } from './seed'
 
-const CHIAVE = 'marcantonio:dati:v1'
+const CHIAVE = 'marcantonio:dati:v2' // v2: robot e gruppi aggiornati nei dati di esempio
 
 function carica(): Dati {
   try {

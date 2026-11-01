@@ -131,9 +131,9 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   // Alimentazione: 3 stalle, scarico del carro miscelatore mattina e sera
   const stalle: Stalla[] = [
     // tutte e tre le stalle ospitano vacche in lattazione
-    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18, gruppoDairyComp: 1 },
-    { id: nuovoId(), numero: 2, nome: 'Lattazione', capi: 16, gruppoDairyComp: 21 },
-    { id: nuovoId(), numero: 3, nome: 'Lattazione', capi: 14, gruppoDairyComp: 4 },
+    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18, gruppoDairyComp: 1, robot: { marca: 'DeLaval', numero: 2 } },
+    { id: nuovoId(), numero: 2, nome: 'Lattazione', capi: 16, gruppoDairyComp: 21, robot: { marca: 'DeLaval', numero: 1 } },
+    { id: nuovoId(), numero: 3, nome: 'Primipare', capi: 14, gruppoDairyComp: 4, robot: { marca: 'Lely', numero: 1 } },
   ]
   const kgCapo: Record<number, number> = { 1: 48, 2: 47, 3: 46 } // kg t.q./capo/giorno indicativi
   const scarichi: Scarico[] = []
@@ -158,8 +158,8 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
     verifiche.push({ id: nuovoId(), settimana: lun, verificataIl: aggiungiGiorni(dom, 1) + 'T09:00:00.000Z', verificataDa: 'admin', totaleKg: tot })
   }
 
-  // DairyComp: esportazioni di esempio ogni 3 giorni. Gruppo 1 = vacche adulte ad alta produzione,
-  // gruppo 21 = primipare, gruppo 4 = fine lattazione, gruppo 30 = asciutte (fuori dalle stalle).
+  // DairyComp: esportazioni di esempio ogni 3 giorni. Gruppo 1 (2 robot DeLaval) e gruppo 21
+  // (1 robot DeLaval) = pluripare, gruppo 4 (1 robot Lely) = sole primipare, gruppo 30 = asciutte.
   const curva = (dim: number, primipara: boolean) =>
     primipara ? 16 * dim ** 0.17 * Math.exp(-0.0025 * dim) : 20 * dim ** 0.2 * Math.exp(-0.004 * dim)
   const mandria: { id: string; gruppo: number; lact: number; dim0: number; liv: number; scc: number }[] = []
@@ -168,8 +168,8 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
     for (let i = 0; i < n; i++) mandria.push({ id: String(num += 7), gruppo, lact: lact(), dim0: dim(), liv: 0.9 + r() * 0.2, scc: 60 + Math.round(r() * 250) })
   }
   aggiungiVacche(1, 18, () => 2 + Math.floor(r() * 4), () => 15 + Math.floor(r() * 150))
-  aggiungiVacche(21, 16, () => 1, () => 10 + Math.floor(r() * 220))
-  aggiungiVacche(4, 14, () => 2 + Math.floor(r() * 3), () => 190 + Math.floor(r() * 150))
+  aggiungiVacche(21, 16, () => 2 + Math.floor(r() * 3), () => 120 + Math.floor(r() * 200))
+  aggiungiVacche(4, 14, () => 1, () => 10 + Math.floor(r() * 220))
   aggiungiVacche(30, 6, () => 2 + Math.floor(r() * 3), () => 0)
   const importDC: ImportDC[] = []
   for (let g = 30; g >= 1; g -= 3) {
