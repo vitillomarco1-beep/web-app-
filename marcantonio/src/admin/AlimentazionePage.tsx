@@ -62,20 +62,21 @@ export default function AlimentazionePage() {
   const sommaGiorno = (data: string, stalla?: number) =>
     kgDi(scarichi.filter((s) => s.data === data && (stalla === undefined || s.stalla === stalla)))
 
-  const da7 = ultimoGiorno ? aggiungiGiorni(ultimoGiorno, -6) : oggi
-  const giorni7 = new Set(scarichi.filter((s) => s.data >= da7 && s.data <= ultimoGiorno).map((s) => s.data)).size || 1
-  const mediaCapoStalla = (st: Stalla) => {
-    const kg = kgDi(scarichi.filter((s) => s.stalla === st.numero && s.data >= da7 && s.data <= ultimoGiorno))
-    return st.capi > 0 ? kg / giorni7 / st.capi : 0
-  }
+  // Le medie usano solo giorni conclusi: oggi è di solito ancora incompleto
+  const ultimoCompleto = scarichi.reduce((m, s) => (s.data < oggi && s.data > m ? s.data : m), '') || ultimoGiorno
+  const da7 = ultimoCompleto ? aggiungiGiorni(ultimoCompleto, -6) : oggi
+  const scarichi7 = scarichi.filter((s) => s.data >= da7 && s.data <= ultimoCompleto)
+  const giorni7 = new Set(scarichi7.map((s) => s.data)).size || 1
+  const mediaCapoStalla = (st: Stalla) => (st.capi > 0 ? kgDi(scarichi7.filter((s) => s.stalla === st.numero)) / giorni7 / st.capi : 0)
+  const capiTotali = stalle.reduce((s, x) => s + x.capi, 0)
+  const mediaCapo = capiTotali > 0 ? kgDi(scarichi7) / giorni7 / capiTotali : 0
 
-  // Latte per kg di razione: confronto tra la stalla delle vacche in lattazione e le mungiture
-  const stallaLatte = stalle.find((s) => /latt/i.test(s.nome)) ?? stalle[0]
-  const latteGiorni = perGiorno(dati.mungiture.filter((m) => m.data >= da7 && m.data <= ultimoGiorno))
+  // Latte per kg di razione: tutte le stalle ospitano vacche in lattazione,
+  // quindi si confronta la razione complessiva con il latte munto negli stessi giorni.
+  const latteGiorni = perGiorno(dati.mungiture.filter((m) => m.data >= da7 && m.data <= ultimoCompleto))
   const litri7 = [...latteGiorni.values()].reduce((s, g) => s + g.litri, 0)
-  const razioneLatte7 = stallaLatte
-    ? kgDi(scarichi.filter((s) => s.stalla === stallaLatte.numero && s.data >= da7 && s.data <= ultimoGiorno && latteGiorni.has(s.data)))
-    : 0
+  const razione7 = kgDi(scarichi7.filter((s) => latteGiorni.has(s.data)))
+  const ultimaMungitura = [...latteGiorni.values()].sort((a, b) => b.data.localeCompare(a.data))[0]
 
   // ---- Grafico per stalla
   const [stallaGrafico, setStallaGrafico] = useState<number | null>(null)
@@ -129,15 +130,15 @@ export default function AlimentazionePage() {
       <PageHeader titolo="Alimentazione" descrizione="Razione scaricata dal carro miscelatore (peso tal quale), mattina e sera, per stalla" />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta={ultimoGiorno ? `Razione scaricata il ${fmtData(ultimoGiorno)}` : 'Razione scaricata'}
-          valore={fmt0(ultimoGiorno ? sommaGiorno(ultimoGiorno) : 0)} unita="kg"
-          nota={stalle.map((s) => `St. ${s.numero}: ${fmt0(ultimoGiorno ? sommaGiorno(ultimoGiorno, s.numero) : 0)}`).join(' · ')} />
-        {stalle.slice(0, 2).map((s) => (
-          <StatTile key={s.id} etichetta={`Stalla ${s.numero} – kg per capo al giorno`} valore={s.capi > 0 ? fmt1(mediaCapoStalla(s)) : '—'} unita="kg/capo"
-            nota={`${s.nome} · ${s.capi} capi · media 7 giorni`} />
-        ))}
-        <StatTile etichetta="Latte per kg di razione" valore={razioneLatte7 > 0 ? fmt2(litri7 / razioneLatte7) : '—'} unita="l/kg"
-          nota={stallaLatte ? `Stalla ${stallaLatte.numero}, ultimi 7 giorni (razione tal quale)` : '—'} />
+        <StatTile etichetta={ultimoCompleto ? `Razione scaricata il ${fmtData(ultimoCompleto)}` : 'Razione scaricata'}
+          valore={fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto) : 0)} unita="kg"
+          nota={stalle.map((s) => `St. ${s.numero}: ${fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto, s.numero) : 0)}`).join(' · ')} />
+        <StatTile etichetta="Kg per vacca al giorno" valore={capiTotali > 0 ? fmt1(mediaCapo) : '—'} unita="kg/capo"
+          nota={capiTotali > 0 ? `Media 7 giorni · ${stalle.map((s) => `St. ${s.numero}: ${s.capi ? fmt1(mediaCapoStalla(s)) : '—'}`).join(' · ')}` : 'Inserisci i capi presenti in ogni stalla'} />
+        <StatTile etichetta="Latte per kg di razione" valore={razione7 > 0 ? fmt2(litri7 / razione7) : '—'} unita="l/kg"
+          nota="Tutte le stalle, ultimi 7 giorni (razione tal quale)" />
+        <StatTile etichetta="Vacche alimentate" valore={fmt0(capiTotali)} unita="capi"
+          nota={ultimaMungitura ? <>Munte il {fmtData(ultimaMungitura.data)}: {ultimaMungitura.capi}{Math.abs(ultimaMungitura.capi - capiTotali) > capiTotali * 0.1 && <span className="font-medium text-amber-700"> · aggiorna i capi per stalla</span>}</> : 'Somma dei capi nelle stalle'} />
       </div>
 
       {(() => {
@@ -258,7 +259,7 @@ export default function AlimentazionePage() {
           <h2 className="font-semibold">Stalle</h2>
           <button className="btn-link" onClick={() => setModStalla({ id: '', numero: Math.max(0, ...stalle.map((s) => s.numero)) + 1, nome: '', capi: 0 })}>+ Aggiungi stalla</button>
         </div>
-        <p className="mt-1 text-xs text-stone-500">Il numero deve corrispondere a quello che i collaboratori scrivono nei messaggi. Tieni aggiornato il numero di capi per avere i kg per capo corretti.</p>
+        <p className="mt-1 text-xs text-stone-500">Il numero deve corrispondere a quello che i collaboratori scrivono nei messaggi. Tutte le stalle ospitano vacche in lattazione: tieni aggiornato il numero di capi di ciascuna per avere i kg per capo corretti.</p>
         <ul className="mt-3 grid gap-3 sm:grid-cols-3">
           {stalle.map((s) => (
             <li key={s.id} className="rounded-lg border border-stone-200 p-4">
@@ -266,7 +267,7 @@ export default function AlimentazionePage() {
                 <div>
                   <div className="text-2xl font-bold text-brand-800">{s.numero}</div>
                   <div className="text-sm font-medium">{s.nome || `Stalla ${s.numero}`}</div>
-                  <div className="text-sm text-stone-500">{s.capi} capi</div>
+                  <div className="text-sm text-stone-500">{s.capi} capi{s.capi > 0 && ` · ${fmt1(mediaCapoStalla(s))} kg/capo/giorno`}</div>
                 </div>
                 <button className="btn-link" onClick={() => setModStalla(s)}>Modifica</button>
               </div>
@@ -282,7 +283,7 @@ export default function AlimentazionePage() {
           <form onSubmit={salvaStalla} className="grid gap-4 sm:grid-cols-2">
             <Campo label="Numero *"><input className="input" type="number" min={1} required value={modStalla.numero} onChange={(e) => setModStalla({ ...modStalla, numero: Number(e.target.value) })} disabled={!!modStalla.id} /></Campo>
             <Campo label="Capi presenti"><input className="input" type="number" min={0} value={modStalla.capi} onChange={(e) => setModStalla({ ...modStalla, capi: Number(e.target.value) })} /></Campo>
-            <Campo label="Nome / gruppo" className="sm:col-span-2"><input className="input" placeholder="es. Vacche in lattazione" value={modStalla.nome} onChange={(e) => setModStalla({ ...modStalla, nome: e.target.value })} /></Campo>
+            <Campo label="Nome / gruppo" className="sm:col-span-2"><input className="input" placeholder="es. Lattazione – primipare" value={modStalla.nome} onChange={(e) => setModStalla({ ...modStalla, nome: e.target.value })} /></Campo>
             <div className="flex justify-end gap-2 sm:col-span-2">
               <button type="button" className="btn-secondary" onClick={() => setModStalla(null)}>Annulla</button>
               <button className="btn-primary">Salva</button>

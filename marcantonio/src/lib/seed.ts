@@ -130,17 +130,18 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
 
   // Alimentazione: 3 stalle, scarico del carro miscelatore mattina e sera
   const stalle: Stalla[] = [
-    { id: nuovoId(), numero: 1, nome: 'Vacche in lattazione', capi: 48 },
-    { id: nuovoId(), numero: 2, nome: 'Asciutte e preparto', capi: 8 },
-    { id: nuovoId(), numero: 3, nome: 'Manze e rimonta', capi: 14 },
+    // tutte e tre le stalle ospitano vacche in lattazione
+    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18 },
+    { id: nuovoId(), numero: 2, nome: 'Lattazione', capi: 16 },
+    { id: nuovoId(), numero: 3, nome: 'Lattazione', capi: 14 },
   ]
-  const kgCapo: Record<number, number> = { 1: 48, 2: 30, 3: 24 } // kg t.q./capo/giorno indicativi
+  const kgCapo: Record<number, number> = { 1: 48, 2: 47, 3: 46 } // kg t.q./capo/giorno indicativi
   const scarichi: Scarico[] = []
   for (let g = 60; g >= 1; g--) {
     const data = aggiungiGiorni(oggi, -g)
     for (const s of stalle) {
       const giorno = s.capi * kgCapo[s.numero] * (0.96 + r() * 0.08)
-      const quotaMattina = s.numero === 1 ? 0.55 : 0.5
+      const quotaMattina = 0.55
       scarichi.push({ id: nuovoId(), data, turno: 'mattina', stalla: s.numero, kg: Math.round((giorno * quotaMattina) / 5) * 5 })
       scarichi.push({ id: nuovoId(), data, turno: 'sera', stalla: s.numero, kg: Math.round((giorno * (1 - quotaMattina)) / 5) * 5 })
     }
