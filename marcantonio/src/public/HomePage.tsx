@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { AZIENDA, PRODOTTI, VALORI } from '../config/azienda'
+import SezioneRobot from './SezioneRobot'
 
 export default function HomePage() {
   return (
@@ -38,6 +39,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Mungitura robotizzata */}
+      <SezioneRobot />
+
       {/* Filiera */}
       <section className="bg-white py-16">
         <div className="mx-auto max-w-6xl px-4">
@@ -45,7 +49,7 @@ export default function HomePage() {
           <ol className="mt-10 grid gap-6 md:grid-cols-4">
             {[
               ['Allevamento', 'Le nostre bovine da latte, accudite ogni giorno in stalla.'],
-              ['Mungitura', 'Due mungiture al giorno; il latte viene subito refrigerato.'],
+              ['Mungitura robotizzata', 'Ogni vacca si fa mungere quando vuole; il latte viene subito refrigerato.'],
               ['Filatura', 'La cagliata viene filata a caldo e modellata a mano nella tipica forma.'],
               ['Stagionatura', 'Le forme riposano appese, a coppie, fino alla giusta maturazione.'],
             ].map(([t, d], i) => (

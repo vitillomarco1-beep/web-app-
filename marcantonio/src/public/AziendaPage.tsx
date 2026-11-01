@@ -1,4 +1,4 @@
-import { AZIENDA, VALORI } from '../config/azienda'
+import { AZIENDA, BENEFICI_ROBOT, ROBOT, VALORI } from '../config/azienda'
 
 export default function AziendaPage() {
   return (
@@ -29,6 +29,20 @@ export default function AziendaPage() {
           </div>
         ))}
       </div>
+
+      <h2 className="mt-14 font-serif text-2xl font-bold text-brand-900">La mungitura robotizzata</h2>
+      <p className="mt-4 text-stone-700">
+        Le nostre vacche vengono munte da {ROBOT.totale} robot ({ROBOT.descrizione}). Sono loro a decidere quando farsi mungere,
+        mentre a ogni mungitura i sensori controllano il latte e la salute di ciascun animale.
+      </p>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        {BENEFICI_ROBOT.map((b) => (
+          <li key={b.titolo} className="rounded-lg border border-stone-200 bg-white p-4">
+            <span className="font-semibold">{b.titolo}</span>
+            <span className="block text-sm text-stone-600">{b.testo}</span>
+          </li>
+        ))}
+      </ul>
 
       <h2 className="mt-14 font-serif text-2xl font-bold text-brand-900">Qualità e controlli</h2>
       <p className="mt-4 text-stone-700">
