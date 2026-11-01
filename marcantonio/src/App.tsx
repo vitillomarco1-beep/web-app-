@@ -15,7 +15,12 @@ import CaseificioPage from './admin/CaseificioPage'
 import AlimentazionePage from './admin/AlimentazionePage'
 import MessaggiPage from './admin/MessaggiPage'
 import ImpostazioniPage from './admin/ImpostazioniPage'
+import PesataPage from './admin/PesataPage'
 import { RichiedeAccesso } from './lib/auth'
+import type { ReactNode } from 'react'
+
+/** Pagine riservate al titolare. */
+const T = (el: ReactNode) => <RichiedeAccesso ruoli={['titolare']}>{el}</RichiedeAccesso>
 
 export default function App() {
   return (
@@ -35,15 +40,16 @@ export default function App() {
           </RichiedeAccesso>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="mandria" element={<MandriaPage />} />
-        <Route path="produzione" element={<ProduzionePage />} />
-        <Route path="qualita" element={<QualitaPage />} />
-        <Route path="alimentazione" element={<AlimentazionePage />} />
-        <Route path="caseificio" element={<CaseificioPage />} />
-        <Route path="consegne" element={<ConsegnePage />} />
-        <Route path="messaggi" element={<MessaggiPage />} />
-        <Route path="impostazioni" element={<ImpostazioniPage />} />
+        <Route index element={T(<DashboardPage />)} />
+        <Route path="pesata" element={<PesataPage />} />
+        <Route path="mandria" element={T(<MandriaPage />)} />
+        <Route path="produzione" element={T(<ProduzionePage />)} />
+        <Route path="qualita" element={T(<QualitaPage />)} />
+        <Route path="alimentazione" element={T(<AlimentazionePage />)} />
+        <Route path="caseificio" element={T(<CaseificioPage />)} />
+        <Route path="consegne" element={T(<ConsegnePage />)} />
+        <Route path="messaggi" element={T(<MessaggiPage />)} />
+        <Route path="impostazioni" element={T(<ImpostazioniPage />)} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,35 +1,47 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { CREDENZIALI_DEMO } from '../config/azienda'
+import { UTENTI_DEMO, type Ruolo } from '../config/azienda'
 
 // ⚠️ Autenticazione SOLO dimostrativa: le credenziali sono nel codice del browser.
-// Prima dell'uso reale va sostituita con un backend (es. Supabase, Firebase, API propria).
+// Prima dell'uso reale va sostituita con il servizio online (Supabase Auth), vedi docs/CONFIGURAZIONE.md.
 const CHIAVE = 'marcantonio:sessione'
+
+interface Sessione { utente: string; ruolo: Ruolo }
 
 interface AuthApi {
   autenticato: boolean
-  accedi: (utente: string, password: string) => boolean
+  sessione: Sessione | null
+  accedi: (utente: string, password: string) => Sessione | null
   esci: () => void
 }
 
 const AuthCtx = createContext<AuthApi | null>(null)
 
+function leggiSessione(): Sessione | null {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(CHIAVE) ?? 'null')
+    return s && s.utente && s.ruolo ? s : null
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [autenticato, setAutenticato] = useState(() => sessionStorage.getItem(CHIAVE) === '1')
+  const [sessione, setSessione] = useState<Sessione | null>(leggiSessione)
 
   const accedi = (utente: string, password: string) => {
-    const ok = utente.trim() === CREDENZIALI_DEMO.utente && password === CREDENZIALI_DEMO.password
-    if (ok) {
-      sessionStorage.setItem(CHIAVE, '1')
-      setAutenticato(true)
-    }
-    return ok
+    const u = UTENTI_DEMO.find((x) => x.utente === utente.trim().toLowerCase() && x.password === password)
+    if (!u) return null
+    const s = { utente: u.utente, ruolo: u.ruolo }
+    sessionStorage.setItem(CHIAVE, JSON.stringify(s))
+    setSessione(s)
+    return s
   }
   const esci = () => {
     sessionStorage.removeItem(CHIAVE)
-    setAutenticato(false)
+    setSessione(null)
   }
-  return <AuthCtx.Provider value={{ autenticato, accedi, esci }}>{children}</AuthCtx.Provider>
+  return <AuthCtx.Provider value={{ autenticato: !!sessione, sessione, accedi, esci }}>{children}</AuthCtx.Provider>
 }
 
 export function useAuth(): AuthApi {
@@ -38,9 +50,13 @@ export function useAuth(): AuthApi {
   return ctx
 }
 
-export function RichiedeAccesso({ children }: { children: ReactNode }) {
-  const { autenticato } = useAuth()
+export const paginaIniziale = (ruolo: Ruolo) => (ruolo === 'collaboratore' ? '/area-riservata/pesata' : '/area-riservata')
+
+/** Protegge una pagina: richiede l'accesso e, se indicato, uno dei ruoli ammessi. */
+export function RichiedeAccesso({ children, ruoli }: { children: ReactNode; ruoli?: Ruolo[] }) {
+  const { sessione } = useAuth()
   const location = useLocation()
-  if (!autenticato) return <Navigate to="/area-riservata/login" replace state={{ da: location.pathname }} />
+  if (!sessione) return <Navigate to="/area-riservata/login" replace state={{ da: location.pathname }} />
+  if (ruoli && !ruoli.includes(sessione.ruolo)) return <Navigate to={paginaIniziale(sessione.ruolo)} replace />
   return <>{children}</>
 }

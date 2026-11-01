@@ -66,4 +66,10 @@ export const VALORI = [
 
 // Accesso all'area riservata (vedi README: è una protezione solo dimostrativa,
 // lato browser; per l'uso reale serve un backend con autenticazione).
-export const CREDENZIALI_DEMO = { utente: 'admin', password: 'marcantonio' }
+export type Ruolo = 'titolare' | 'collaboratore'
+
+/** Utenti dimostrativi: il titolare vede tutto, il collaboratore solo la schermata "Pesata". */
+export const UTENTI_DEMO: { utente: string; password: string; ruolo: Ruolo; descrizione: string }[] = [
+  { utente: 'admin', password: 'marcantonio', ruolo: 'titolare', descrizione: 'titolare (tutto il gestionale)' },
+  { utente: 'stalla', password: 'stalla', ruolo: 'collaboratore', descrizione: 'collaboratore (solo pesate)' },
+]

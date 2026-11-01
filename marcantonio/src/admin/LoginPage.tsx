@@ -1,23 +1,24 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
-import { useAuth } from '../lib/auth'
-import { CREDENZIALI_DEMO } from '../config/azienda'
+import { paginaIniziale, useAuth } from '../lib/auth'
+import { UTENTI_DEMO } from '../config/azienda'
 
 export default function LoginPage() {
-  const { autenticato, accedi } = useAuth()
+  const { sessione, accedi } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [utente, setUtente] = useState('')
   const [password, setPassword] = useState('')
   const [errore, setErrore] = useState('')
-  const destinazione = (location.state as { da?: string } | null)?.da ?? '/area-riservata'
+  const richiesta = (location.state as { da?: string } | null)?.da
 
-  if (autenticato) return <Navigate to={destinazione} replace />
+  if (sessione) return <Navigate to={richiesta ?? paginaIniziale(sessione.ruolo)} replace />
 
   const invia = (e: FormEvent) => {
     e.preventDefault()
-    if (accedi(utente, password)) navigate(destinazione, { replace: true })
+    const s = accedi(utente, password)
+    if (s) navigate(richiesta ?? paginaIniziale(s.ruolo), { replace: true })
     else setErrore('Credenziali non valide')
   }
 
@@ -33,7 +34,8 @@ export default function LoginPage() {
           <button className="btn-primary w-full">Accedi</button>
         </form>
         <p className="mt-4 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
-          Versione dimostrativa: utente <b>{CREDENZIALI_DEMO.utente}</b>, password <b>{CREDENZIALI_DEMO.password}</b>.
+          Versione dimostrativa. Accessi di prova:
+          {UTENTI_DEMO.map((u) => <span key={u.utente} className="block">• <b>{u.utente}</b> / <b>{u.password}</b> — {u.descrizione}</span>)}
         </p>
         <Link to="/" className="mt-4 block text-center text-sm text-stone-500 hover:underline">← Torna al sito</Link>
       </div>

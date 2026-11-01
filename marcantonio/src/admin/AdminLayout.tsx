@@ -5,23 +5,28 @@ import { useAuth } from '../lib/auth'
 import { useStore } from '../lib/store'
 
 export default function AdminLayout() {
-  const { esci } = useAuth()
+  const { esci, sessione } = useAuth()
+  const collaboratore = sessione?.ruolo === 'collaboratore'
   const { dati } = useStore()
   const navigate = useNavigate()
   const [aperto, setAperto] = useState(false)
   const nonLetti = dati.messaggi.filter((m) => !m.letto).length
 
-  const voci = [
+  const vociTitolare = [
     { to: '/area-riservata', label: 'Cruscotto', end: true },
     { to: '/area-riservata/mandria', label: 'Mandria' },
     { to: '/area-riservata/produzione', label: 'Produzione' },
     { to: '/area-riservata/alimentazione', label: 'Alimentazione' },
+    { to: '/area-riservata/pesata', label: '📷 Pesata carro' },
     { to: '/area-riservata/qualita', label: 'Qualità latte' },
     { to: '/area-riservata/caseificio', label: 'Caseificio' },
     { to: '/area-riservata/consegne', label: 'Consegne latte' },
     { to: '/area-riservata/messaggi', label: 'Messaggi', badge: nonLetti },
     { to: '/area-riservata/impostazioni', label: 'Dati e backup' },
   ]
+  const voci: { to: string; label: string; end?: boolean; badge?: number }[] = collaboratore
+    ? [{ to: '/area-riservata/pesata', label: '📷 Pesata carro' }]
+    : vociTitolare
 
   const nav = (
     <nav className="flex flex-col gap-1">

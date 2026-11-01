@@ -7,6 +7,7 @@ import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, isoGiorno, lunediDi, nuovoId
 import { perGiorno } from '../lib/statistiche'
 import { parseKg, pesateDaScarichi, scarichiDaPesate } from '../lib/pesate'
 import VerificaSettimanale from './VerificaSettimanale'
+import FotoPesate from '../components/FotoPesate'
 
 const TURNI: Turno[] = ['mattina', 'sera']
 type Griglia = Record<string, string> // chiave `${stalla}-${turno}` -> kg digitati
@@ -249,6 +250,7 @@ export default function AlimentazionePage() {
                           </label>
                         ))}
                       </div>
+                      <FotoPesate data={giorno} turno={t} quante={numeri.length} etichette={numeri.map((_, i) => etichettaFoto(i))} />
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                         {numeri.map((n, i) => (
                           <span key={n} className={kg[i] !== null && kg[i]! < 0 ? 'font-semibold text-red-700' : 'text-stone-600'}>

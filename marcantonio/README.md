@@ -14,6 +14,10 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
     per stalla, kg/capo/giorno, latte per kg di razione. **Verifica settimanale**: tabella della
     settimana con mancanti e valori anomali (±15% dalla mediana delle 4 settimane precedenti),
     conferma con nome e note, avviso se i dati cambiano dopo la verifica; promemoria nel cruscotto
+  - **Pesata carro** (schermata per il telefono): si scattano o scelgono le 3 foto del display,
+    vengono ordinate dalla più pesante, si calcolano i kg per stalla e le foto restano come prova
+    (visibili nella vista del giorno e nella verifica settimanale). Con il servizio online i numeri
+    vengono letti in automatico: vedi `docs/CONFIGURAZIONE.md`
   - **Qualità latte**: analisi (grasso, proteine, lattosio, cellule somatiche, carica batterica, inibenti) e verifica dei requisiti del Reg. (CE) 853/2004 (medie geometriche mobili: CBT ≤ 100.000/ml su 2 mesi, cellule somatiche ≤ 400.000/ml su 3 mesi)
   - **Caseificio**: lavorazioni di caciocavallo come lotti (codice CC-AAAAMMGG-n, litri di latte,
     forme, peso fresco, resa kg/100 l, stagionatura minima); magazzino con avanzamento della
@@ -33,7 +37,8 @@ npm run dev      # sviluppo
 npm run build    # build di produzione in dist/ (sito statico, ospitabile ovunque)
 ```
 
-Accesso demo all'area riservata: utente `admin`, password `marcantonio`.
+Accessi demo all'area riservata: `admin` / `marcantonio` (titolare, tutto il gestionale) e
+`stalla` / `stalla` (collaboratore, solo la schermata Pesata).
 
 ## Da sapere prima della messa in produzione
 
