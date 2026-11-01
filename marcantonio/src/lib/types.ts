@@ -81,6 +81,34 @@ export interface UscitaForme {
   documento?: string
 }
 
+/** Stalla (o gruppo di alimentazione) identificata dal numero usato nei messaggi. */
+export interface Stalla {
+  id: string
+  numero: number
+  nome: string
+  capi: number // capi presenti, per calcolare i kg per capo
+}
+
+/** Razione scaricata dal carro miscelatore in una stalla (peso tal quale). */
+export interface Scarico {
+  id: string
+  data: string
+  turno: Turno
+  stalla: number // numero della stalla
+  kg: number
+  note?: string
+}
+
+/** Verifica settimanale degli scarichi di razione. */
+export interface VerificaSettimana {
+  id: string
+  settimana: string // lunedì della settimana (yyyy-mm-dd)
+  verificataIl: string // ISO datetime
+  verificataDa: string
+  totaleKg: number // totale al momento della verifica, per accorgersi di modifiche successive
+  note?: string
+}
+
 export interface Dati {
   capi: Capo[]
   mungiture: Mungitura[]
@@ -88,6 +116,9 @@ export interface Dati {
   consegne: Consegna[]
   lavorazioni: Lavorazione[]
   uscite: UscitaForme[]
+  stalle: Stalla[]
+  scarichi: Scarico[]
+  verifiche: VerificaSettimana[]
   messaggi: Messaggio[]
 }
 

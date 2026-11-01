@@ -1,5 +1,5 @@
-import type { Analisi, Capo, Consegna, Dati, Lavorazione, Mungitura, UscitaForme } from './types'
-import { aggiungiGiorni, isoGiorno, nuovoId } from './format'
+import type { Analisi, Capo, Consegna, Dati, Lavorazione, Mungitura, Scarico, Stalla, UscitaForme, VerificaSettimana } from './types'
+import { aggiungiGiorni, isoGiorno, lunediDi, nuovoId } from './format'
 
 // Generatore pseudo-casuale deterministico, così i dati dimostrativi sono stabili.
 function rng(seme: number) {
@@ -128,7 +128,39 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
     }
   }
 
+  // Alimentazione: 3 stalle, scarico del carro miscelatore mattina e sera
+  const stalle: Stalla[] = [
+    { id: nuovoId(), numero: 1, nome: 'Vacche in lattazione', capi: 48 },
+    { id: nuovoId(), numero: 2, nome: 'Asciutte e preparto', capi: 8 },
+    { id: nuovoId(), numero: 3, nome: 'Manze e rimonta', capi: 14 },
+  ]
+  const kgCapo: Record<number, number> = { 1: 48, 2: 30, 3: 24 } // kg t.q./capo/giorno indicativi
+  const scarichi: Scarico[] = []
+  for (let g = 60; g >= 1; g--) {
+    const data = aggiungiGiorni(oggi, -g)
+    for (const s of stalle) {
+      const giorno = s.capi * kgCapo[s.numero] * (0.96 + r() * 0.08)
+      const quotaMattina = s.numero === 1 ? 0.55 : 0.5
+      scarichi.push({ id: nuovoId(), data, turno: 'mattina', stalla: s.numero, kg: Math.round((giorno * quotaMattina) / 5) * 5 })
+      scarichi.push({ id: nuovoId(), data, turno: 'sera', stalla: s.numero, kg: Math.round((giorno * (1 - quotaMattina)) / 5) * 5 })
+    }
+  }
+
+  // Settimane complete già verificate, tranne l'ultima (da verificare)
+  const verifiche: VerificaSettimana[] = []
+  const lunCorrente = lunediDi(oggi)
+  for (let w = 8; w >= 2; w--) {
+    const lun = aggiungiGiorni(lunCorrente, -7 * w)
+    const dom = aggiungiGiorni(lun, 6)
+    const tot = scarichi.filter((s) => s.data >= lun && s.data <= dom).reduce((t, s) => t + s.kg, 0)
+    if (tot === 0) continue
+    verifiche.push({ id: nuovoId(), settimana: lun, verificataIl: aggiungiGiorni(dom, 1) + 'T09:00:00.000Z', verificataDa: 'admin', totaleKg: tot })
+  }
+
   return {
+    stalle,
+    scarichi,
+    verifiche,
     capi,
     mungiture,
     analisi,
@@ -149,4 +181,4 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 }
 
-export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], messaggi: [] }
+export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], messaggi: [] }

@@ -32,6 +32,14 @@ export function aggiungiGiorni(iso: string, giorni: number): string {
   return isoGiorno(new Date(y, m - 1, d + giorni))
 }
 
+/** Lunedì della settimana che contiene la data. */
+export function lunediDi(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  const giorno = (dt.getDay() + 6) % 7 // 0 = lunedì
+  return isoGiorno(new Date(y, m - 1, d - giorno))
+}
+
 export function etaMesi(dataNascita: string, oggi = isoGiorno()): number {
   const [y1, m1, d1] = dataNascita.split('-').map(Number)
   const [y2, m2, d2] = oggi.split('-').map(Number)

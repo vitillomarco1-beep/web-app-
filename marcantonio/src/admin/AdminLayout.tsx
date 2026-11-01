@@ -15,6 +15,7 @@ export default function AdminLayout() {
     { to: '/area-riservata', label: 'Cruscotto', end: true },
     { to: '/area-riservata/mandria', label: 'Mandria' },
     { to: '/area-riservata/produzione', label: 'Produzione' },
+    { to: '/area-riservata/alimentazione', label: 'Alimentazione' },
     { to: '/area-riservata/qualita', label: 'Qualità latte' },
     { to: '/area-riservata/caseificio', label: 'Caseificio' },
     { to: '/area-riservata/consegne', label: 'Consegne latte' },

@@ -22,7 +22,7 @@ export default function ImpostazioniPage() {
   const importa = async (f: File) => {
     try {
       const d = JSON.parse(await f.text()) as Partial<Dati>
-      const chiavi: (keyof Dati)[] = ['capi', 'mungiture', 'analisi', 'consegne', 'lavorazioni', 'uscite', 'messaggi']
+      const chiavi: (keyof Dati)[] = ['capi', 'mungiture', 'analisi', 'consegne', 'lavorazioni', 'uscite', 'stalle', 'scarichi', 'verifiche', 'messaggi']
       if (!chiavi.some((k) => Array.isArray(d[k]))) throw new Error('formato non riconosciuto')
       if (!conferma('Sostituire tutti i dati attuali con quelli del backup?')) return
       sostituisciTutto({ ...DATI_VUOTI, ...d } as Dati)
@@ -32,7 +32,7 @@ export default function ImpostazioniPage() {
     }
   }
 
-  const conteggio = `${dati.capi.length} capi, ${dati.mungiture.length} mungiture, ${dati.analisi.length} analisi, ${dati.consegne.length} consegne, ${dati.lavorazioni.length} lotti di caseificio, ${dati.uscite.length} uscite di forme, ${dati.messaggi.length} messaggi`
+  const conteggio = `${dati.capi.length} capi, ${dati.mungiture.length} mungiture, ${dati.analisi.length} analisi, ${dati.consegne.length} consegne, ${dati.lavorazioni.length} lotti di caseificio, ${dati.uscite.length} uscite di forme, ${dati.scarichi.length} scarichi di razione, ${dati.messaggi.length} messaggi`
 
   return (
     <>

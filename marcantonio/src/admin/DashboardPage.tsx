@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import { PageHeader, StatTile, BadgeEsito } from '../components/ui'
 import BarChart from '../components/BarChart'
-import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno } from '../lib/format'
+import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno, lunediDi } from '../lib/format'
 import { serieGiorni, totaleConsegne } from '../lib/statistiche'
 import { dataPronta, formeDisponibili, statoLotto } from '../lib/caseificio'
 import { LIMITE_CBT, LIMITE_SCC, esito, mediaMobileCbt, mediaMobileScc } from '../lib/qualita'
@@ -46,10 +46,25 @@ export default function DashboardPage() {
     .map((c) => ({ c, previsto: aggiungiGiorni(c.ultimoParto!, 365) })) // stima interparto ~12 mesi
     .sort((a, b) => a.previsto.localeCompare(b.previsto))
 
+  const lunScorso = aggiungiGiorni(lunediDi(oggi), -7)
+  const scarichiDaVerificare =
+    dati.scarichi.some((s) => s.data >= lunScorso && s.data <= aggiungiGiorni(lunScorso, 6)) &&
+    !dati.verifiche.some((v) => v.settimana === lunScorso)
+  const scarichiOggi = new Set(dati.scarichi.filter((s) => s.data === oggi).map((s) => `${s.stalla}-${s.turno}`)).size
+
   return (
     <>
+      {scarichiDaVerificare && (
+        <Link to="/area-riservata/alimentazione" className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-inset ring-amber-200 hover:bg-amber-100">
+          <span><b>!</b> Scarichi di razione della settimana scorsa ({fmtData(lunScorso)} – {fmtData(aggiungiGiorni(lunScorso, 6))}) da verificare.</span>
+          <span className="font-medium">Verifica →</span>
+        </Link>
+      )}
       <PageHeader titolo="Cruscotto" descrizione={`Situazione aggiornata al ${fmtData(oggi)}`}
-        azioni={<Link to="/area-riservata/produzione" className="btn-primary">+ Registra mungitura</Link>} />
+        azioni={<>
+          <Link to="/area-riservata/alimentazione" className="btn-secondary">Scarichi razione oggi: {scarichiOggi}/{dati.stalle.length * 2}</Link>
+          <Link to="/area-riservata/produzione" className="btn-primary">+ Registra mungitura</Link>
+        </>} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile etichetta={`Produzione del ${fmtData(riferimento)}`} valore={fmt0(ultimo.litri)} unita="litri"

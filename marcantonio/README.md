@@ -7,6 +7,11 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
   - **Cruscotto**: produzione dell'ultimo giorno, media 7 giorni, resa per capo, consegne, grafico degli ultimi 30 giorni, qualità del latte, parti previsti
   - **Mandria**: anagrafica dei capi (matricola, razza, stato produttivo, parti, giorni di lattazione)
   - **Produzione**: registro delle mungiture (mattina/sera), riepilogo mensile, export CSV
+  - **Alimentazione**: 3 stalle (numero = quello scritto nei messaggi dei collaboratori), griglia
+    giornaliera dei kg di razione scaricati mattina e sera, registro con scarichi mancanti, grafico
+    per stalla, kg/capo/giorno, latte per kg di razione. **Verifica settimanale**: tabella della
+    settimana con mancanti e valori anomali (±15% dalla mediana delle 4 settimane precedenti),
+    conferma con nome e note, avviso se i dati cambiano dopo la verifica; promemoria nel cruscotto
   - **Qualità latte**: analisi (grasso, proteine, lattosio, cellule somatiche, carica batterica, inibenti) e verifica dei requisiti del Reg. (CE) 853/2004 (medie geometriche mobili: CBT ≤ 100.000/ml su 2 mesi, cellule somatiche ≤ 400.000/ml su 3 mesi)
   - **Caseificio**: lavorazioni di caciocavallo come lotti (codice CC-AAAAMMGG-n, litri di latte,
     forme, peso fresco, resa kg/100 l, stagionatura minima); magazzino con avanzamento della
