@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  BarChart3, Camera, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
+  BarChart3, Camera, FileUp, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
   Settings, Tag, Truck, Wheat, X, type LucideIcon,
 } from 'lucide-react'
 import Logo from '../components/Logo'
@@ -25,7 +25,7 @@ export default function AdminLayout() {
   const gruppi: { titolo?: string; voci: Voce[] }[] = collaboratore
     ? [{ voci: [{ to: `${R}/pesata`, label: 'Pesata carro', icona: Camera }] }]
     : [
-        { voci: [{ to: R, label: 'Oggi', icona: Home, end: true }, { to: `${R}/pesata`, label: 'Pesata carro', icona: Camera }] },
+        { voci: [{ to: R, label: 'Oggi', icona: Home, end: true }, { to: `${R}/pesata`, label: 'Pesata carro', icona: Camera }, { to: `${R}/carica`, label: 'Carica la settimana', icona: FileUp }] },
         { titolo: 'Stalla', voci: [
           { to: `${R}/alimentazione`, label: 'Alimentazione', icona: Wheat },
           { to: `${R}/mandria`, label: 'Mandria', icona: Tag },

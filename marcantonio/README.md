@@ -24,6 +24,9 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
     grasso/proteine ponderati, cellule, più la media di ogni altra colonna numerica), fasi di
     lattazione, andamento nel tempo, elenco vacche ordinabile. Gruppi collegati alle stalle
     (1 → stalla 1, 21 → stalla 2, 4 → stalla 3): l'importazione aggiorna i capi di ogni stalla
+  - **Carica la settimana** (ogni lunedì): una casella per gruppo (1, 21, 4) per caricare gli
+    export dei robot della settimana precedente, con stato "x/7 giorni", controllo dei periodi e
+    blocco dei file di un altro gruppo; promemoria nel cruscotto finché la settimana non è completa
   - **Mungiture robot** (DeLaval DelPro): importazione dell'export "Mungiture" (una riga per
     mungitura); si conservano i riepiloghi per robot e per vacca di ogni giorno. Latte, vacche,
     mungiture per vacca, tabella per robot (durata media, occupazione, distacchi, incomplete,

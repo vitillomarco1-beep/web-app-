@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Eye, Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
@@ -74,7 +75,10 @@ export default function RobotPage() {
   return (
     <>
       <PageHeader titolo="Mungiture robot" descrizione="Dati dei robot di mungitura, giorno per giorno"
-        azioni={<button className="btn-primary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DeLaval</button>} />
+        azioni={<>
+          <button className="btn-secondary" onClick={() => setImporta(true)}>Importa un file</button>
+          <Link to="/area-riservata/carica" className="btn-primary"><Upload className="h-4 w-4" />Carica la settimana</Link>
+        </>} />
 
       {/* Scelta del giorno */}
       <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
