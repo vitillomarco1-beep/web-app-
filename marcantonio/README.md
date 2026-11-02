@@ -52,8 +52,8 @@ npm run dev      # sviluppo
 npm run build    # build di produzione in dist/ (sito statico, ospitabile ovunque)
 ```
 
-Accessi demo all'area riservata: `admin` / `marcantonio` (titolare, tutto il gestionale) e
-`stalla` / `stalla` (collaboratore, solo la schermata Pesata).
+Accessi all'area riservata: utenti dimostrativi definiti in `src/config/azienda.ts` (ruoli titolare e
+collaboratore). Le credenziali non sono riportate qui.
 
 ## Da sapere prima della messa in produzione
 

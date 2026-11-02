@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import { paginaIniziale, useAuth } from '../lib/auth'
-import { UTENTI_DEMO } from '../config/azienda'
 
 export default function LoginPage() {
   const { sessione, accedi } = useAuth()
@@ -33,10 +32,6 @@ export default function LoginPage() {
           {errore && <p className="text-sm text-red-600" role="alert">{errore}</p>}
           <button className="btn-primary w-full">Accedi</button>
         </form>
-        <p className="mt-4 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
-          Versione dimostrativa. Accessi di prova:
-          {UTENTI_DEMO.map((u) => <span key={u.utente} className="block">• <b>{u.utente}</b> / <b>{u.password}</b> — {u.descrizione}</span>)}
-        </p>
         <Link to="/" className="mt-4 block text-center text-sm text-stone-500 hover:underline">← Torna al sito</Link>
       </div>
     </div>
