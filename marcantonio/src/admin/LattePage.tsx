@@ -158,7 +158,7 @@ export default function LattePage() {
 
       {/* Intera mandria */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={mandria.lattazioneMedia !== null ? `${asciutte} asciutte · ${fmt0(mandria.primipare)} primipare` : asciutte ? `${asciutte} asciutte` : 'nel file importato'} />
+        <StatTile etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={[asciutte ? `${asciutte} asciutte` : '', mandria.lattazioneMedia !== null ? `${fmt0(mandria.primipare)} primipare` : ''].filter(Boolean).join(' · ') || 'nel file importato'} />
         <StatTile etichetta="DIM medio" valore={n0(mandria.dimMedio)} unita="giorni" nota={<Variazione ora={mandria.dimMedio} prima={mandriaPrima?.dimMedio} unita=" gg" decimali={0} />} />
         <StatTile etichetta="Latte medio per capo" valore={n1(mandria.latteMedio)} unita="kg/giorno"
           nota={latteDaiRobot ? `dai robot, media dal ${fmtData(giorniRobot[0])} al ${fmtData(giorniRobot[giorniRobot.length - 1])}` : <Variazione ora={mandria.latteMedio} prima={mandriaPrima?.latteMedio} unita=" kg" />} />

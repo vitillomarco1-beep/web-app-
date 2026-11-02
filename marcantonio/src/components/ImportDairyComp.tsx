@@ -13,6 +13,7 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
   const [abbinamento, setAbbinamento] = useState<Partial<Record<Campo, number>>>({})
   const [data, setData] = useState(isoGiorno())
   const [aggiornaStalle, setAggiornaStalle] = useState(true)
+  const [esclusi, setEsclusi] = useState<Set<string> | null>(null) // gruppi da non importare (null = proposta automatica)
   const [errore, setErrore] = useState('')
 
   const carica = (testo: string, nome: string) => {
@@ -29,18 +30,30 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
 
   const animali = useMemo(() => (file ? costruisciAnimali(file, abbinamento) : []), [file, abbinamento])
   const gruppi = perGruppo(animali)
+  // Proposta: solo i gruppi collegati alle stalle (es. 1, 21, 4); se nessuno corrisponde, tutti
+  const gruppiStalle = new Set(dati.stalle.map((st) => st.gruppoDairyComp).filter((g): g is number => g !== undefined))
+  const proposti = gruppi.some(([g]) => g !== null && gruppiStalle.has(g))
+    ? new Set(gruppi.filter(([g]) => !(g !== null && gruppiStalle.has(g))).map(([g]) => String(g)))
+    : new Set<string>()
+  const fuori = esclusi ?? proposti
+  const daImportare = animali.filter((a) => !fuori.has(String(a.gruppo)))
+  const scambia = (g: number | null) => {
+    const n = new Set(fuori)
+    if (n.has(String(g))) n.delete(String(g)); else n.add(String(g))
+    setEsclusi(n)
+  }
   const stallePerGruppo = new Map(dati.stalle.filter((s) => s.gruppoDairyComp !== undefined).map((s) => [s.gruppoDairyComp!, s]))
   const esistente = dati.importDC.find((i) => i.data === data)
 
   const conferma = () => {
     if (abbinamento.id === undefined) { setErrore('Indica quale colonna contiene il numero della vacca.'); return }
-    if (!animali.length) { setErrore('Nessuna vacca trovata nel file.'); return }
+    if (!daImportare.length) { setErrore('Nessuna vacca da importare: seleziona almeno un gruppo.'); return }
     if (esistente) elimina('importDC', esistente.id)
     // al primo file vero, i dati di esempio non servono più
     const esempi = dati.importDC.filter((i) => i.nomeFile.endsWith('(esempio)') && i.id !== esistente?.id)
     esempi.forEach((i) => elimina('importDC', i.id))
     const id = nuovoId()
-    aggiungi('importDC', { id, data, importatoIl: new Date().toISOString(), nomeFile, animali })
+    aggiungi('importDC', { id, data, importatoIl: new Date().toISOString(), nomeFile, animali: daImportare })
     // conserva solo le fotografie più recenti
     const vecchie = [...dati.importDC].filter((i) => i.id !== esistente?.id && !esempi.includes(i)).sort((a, b) => b.data.localeCompare(a.data)).slice(MAX_IMPORT - 1)
     vecchie.forEach((i) => elimina('importDC', i.id))
@@ -49,7 +62,7 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
     if (aggiornaStalle && piuRecente) {
       for (const s of dati.stalle) {
         if (s.gruppoDairyComp === undefined) continue
-        const capi = animali.filter((a) => a.gruppo === s.gruppoDairyComp).length
+        const capi = daImportare.filter((a) => a.gruppo === s.gruppoDairyComp).length
         if (capi !== s.capi) aggiorna('stalle', { ...s, capi })
       }
     }
@@ -99,14 +112,21 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
           </div>
 
           <div>
-            <h3 className="mb-2 font-semibold">Gruppi trovati</h3>
+            <h3 className="mb-1 font-semibold">Gruppi da importare</h3>
+            <p className="mb-2 text-xs text-stone-500">Selezionati i gruppi collegati alle stalle. Tocca un gruppo per includerlo o escluderlo.</p>
             <ul className="flex flex-wrap gap-2">
-              {gruppi.map(([g, a]) => (
-                <li key={String(g)} className="rounded-full bg-stone-100 px-3 py-1 text-xs">
-                  Gruppo {g ?? '—'}{g !== null && stallePerGruppo.has(g) && <b> · Stalla {stallePerGruppo.get(g)!.numero}</b>}: {a.length} capi
-                  {a.some((x) => x.latte !== null) && <>, {fmt1(a.reduce((s, x) => s + (x.latte ?? 0), 0) / Math.max(1, a.filter((x) => x.latte !== null).length))} kg/capo</>}
-                </li>
-              ))}
+              {gruppi.map(([g, a]) => {
+                const incluso = !fuori.has(String(g))
+                return (
+                  <li key={String(g)}>
+                    <button type="button" onClick={() => scambia(g)}
+                      className={`rounded-full px-3 py-1 text-xs ring-1 ring-inset ${incluso ? 'bg-brand-700 text-white ring-brand-700' : 'bg-white text-stone-500 ring-stone-200 line-through'}`}>
+                      {incluso ? '✓ ' : ''}Gruppo {g ?? '—'}{g !== null && stallePerGruppo.has(g) && <b> · Stalla {stallePerGruppo.get(g)!.numero}</b>}: {a.length}
+                      {a.some((x) => x.latte !== null) && <>, {fmt1(a.reduce((s, x) => s + (x.latte ?? 0), 0) / Math.max(1, a.filter((x) => x.latte !== null).length))} kg/capo</>}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           </div>
 
@@ -119,7 +139,7 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
 
           <div className="flex justify-between gap-2">
             <button className="btn-secondary" onClick={() => setFile(null)}>Cambia file</button>
-            <button className="btn-primary" onClick={conferma}>Importa {fmt0(animali.length)} vacche</button>
+            <button className="btn-primary" onClick={conferma}>Importa {fmt0(daImportare.length)} capi</button>
           </div>
         </div>
       )}
