@@ -9,15 +9,15 @@ export type Campo = 'id' | 'gruppo' | 'lattazione' | 'dim' | 'latte' | 'grasso' 
 export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'id', etichetta: 'Numero vacca (ID)', alias: ['ID', 'COW', 'VACCA', 'MATRICOLA', 'MATR', 'BARN', 'NUMERO', 'ANIMALE'] },
   { campo: 'gruppo', etichetta: 'Gruppo (PEN)', alias: ['PEN', 'GR', 'GRUPPO', 'GRP', 'GROUP', 'BOX'] },
-  { campo: 'lattazione', etichetta: 'Lattazione (LACT)', alias: ['LACT', 'LAT', 'LATT', 'LATTAZIONE', 'PARITY', 'NLAT', 'PARTI'] },
-  { campo: 'dim', etichetta: 'Giorni di lattazione (DIM)', alias: ['DIM', 'GGL', 'GIORNILATTAZIONE', 'DAYSINMILK', 'GGLATT'] },
+  { campo: 'lattazione', etichetta: 'Lattazione (LACT)', alias: ['LACT', 'LAT', 'LATT', 'NLAT', 'NLATT', 'LATTAZIONE', 'PARITY', 'PARTI'] },
+  { campo: 'dim', etichetta: 'Giorni di lattazione (DIM)', alias: ['DIM', 'GLAT', 'GGL', 'GIORNILATTAZIONE', 'DAYSINMILK', 'GGLATT'] },
   { campo: 'latte', etichetta: 'Latte kg/giorno (MEDSE / MILK)', alias: ['MEDSE', 'MILK', 'LATTE', 'MLK', 'KGLATTE', 'KG', 'PRODUZIONE', 'PROD'] },
   { campo: 'grasso', etichetta: 'Grasso %', alias: ['PCTF', 'FAT', 'GRASSO', 'PCTFAT', 'GRAS', 'FATPCT'] },
   { campo: 'proteine', etichetta: 'Proteine %', alias: ['PCTP', 'PROT', 'PROTEINE', 'PCTPROT', 'PROTPCT'] },
   { campo: 'cellule', etichetta: 'Cellule somatiche (×1000/ml)', alias: ['SCC', 'CELLULE', 'CS', 'CCS'] },
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
   { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
-  { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA'] },
+  { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA'] },
 ]
 
 const norm = (s: string) => s.toUpperCase().normalize('NFD').replace(/[^A-Z0-9]/g, '')
@@ -191,6 +191,7 @@ export function riepilogo(animali: AnimaleDC[]): Riepilogo {
 /** Nomi leggibili delle colonne DairyComp più comuni (le altre restano con la sigla). */
 const ETICHETTE: Record<string, string> = {
   MEDSE: 'Media settimanale (kg)',
+  MATR: 'Matricola', ETA: 'Età (anni-mesi)', PPR: 'Parto previsto', DASPR: 'Asciutta prevista',
   SOML2: 'Somma L1P–L3P (kg)',
   L1P: 'L1P (kg)', L2P: 'L2P (kg)', L3P: 'L3P (kg)',
   AGE: 'Età (anni)',
