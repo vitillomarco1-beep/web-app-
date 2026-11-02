@@ -1,0 +1,233 @@
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { HeartPulse, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useStore } from '../lib/store'
+import type { CasoClinico, Severita } from '../lib/types'
+import { Campo, Modale, PageHeader, StatTile } from '../components/ui'
+import { PATOLOGIE, nomePatologia, stimaPerdita, type StimaPerdita } from '../lib/salute'
+import { ultimoImport } from '../lib/dairycomp'
+import { aggiungiGiorni, fmt0, fmt1, fmtData, isoGiorno, nuovoId } from '../lib/format'
+
+const SEVERITA: { v: Severita; label: string; cls: string }[] = [
+  { v: 'lieve', label: 'Lieve', cls: 'bg-green-50 text-green-800 ring-green-200' },
+  { v: 'moderata', label: 'Moderata', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  { v: 'grave', label: 'Grave', cls: 'bg-red-50 text-red-800 ring-red-200' },
+]
+const QUARTI = ['AS', 'AD', 'PS', 'PD']
+const BadgeSev = ({ s }: { s: Severita }) => {
+  const x = SEVERITA.find((y) => y.v === s)!
+  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${x.cls}`}>{x.label}</span>
+}
+
+export default function SalutePage() {
+  const { dati, aggiungi, aggiorna, elimina } = useStore()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const oggi = isoGiorno()
+  const [patologia, setPatologia] = useState<string | null>(null)
+  const [modifica, setModifica] = useState<CasoClinico | null>(null)
+  const [daEliminare, setDaEliminare] = useState<string | null>(null)
+
+  // lista DairyComp reale (per riconoscere le vacche e per la stima con le vacche simili)
+  const lista = dati.mandriaDC[0] ?? (() => { const u = ultimoImport(dati.importDC); return u && !u.nomeFile.endsWith('(esempio)') ? u : undefined })()
+  const vaccheNote = useMemo(() => [...new Set([...(lista?.animali.map((a) => a.id) ?? []), ...dati.robotVacche.map((v) => v.vacca)])]
+    .sort((a, b) => a.localeCompare(b, 'it', { numeric: true })), [lista, dati.robotVacche])
+  const trattamentiUsati = [...new Set(dati.casi.map((c) => c.trattamento).filter(Boolean))]
+
+  const nuovo = (pat: string, vacca = ''): CasoClinico => ({ id: '', vacca, patologia: pat, dataInizio: oggi, severita: 'lieve', trattamento: '', quarti: [] })
+
+  // arrivo dalla pagina Mungiture robot con una vacca da registrare
+  useEffect(() => {
+    const v = (location.state as { vacca?: string } | null)?.vacca
+    if (v) { setModifica(nuovo('mastite', v)); navigate(location.pathname, { replace: true }) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const stime = useMemo(() => {
+    const m = new Map<string, StimaPerdita | null>()
+    for (const c of dati.casi) m.set(c.id, stimaPerdita(c, dati.robotVacche, dati.robotGiorni, lista, dati.casi))
+    return m
+  }, [dati.casi, dati.robotVacche, dati.robotGiorni, lista])
+
+  const da30 = aggiungiGiorni(oggi, -30)
+  const casiRecenti = dati.casi.filter((c) => c.dataInizio >= da30 || !c.dataFine)
+  const attivi = dati.casi.filter((c) => !c.dataFine)
+  const perditaRecente = casiRecenti.reduce((s, c) => { const x = stime.get(c.id); return s + (x ? x.calo + x.separato : 0) }, 0)
+
+  const salva = (e: FormEvent) => {
+    e.preventDefault()
+    if (!modifica) return
+    const c = { ...modifica, vacca: modifica.vacca.trim(), dataFine: modifica.dataFine || undefined, note: modifica.note?.trim() || undefined,
+      quarti: PATOLOGIE.find((p) => p.id === modifica.patologia)?.quarti ? modifica.quarti : undefined }
+    if (c.id) aggiorna('casi', c)
+    else aggiungi('casi', { ...c, id: nuovoId() })
+    setPatologia(c.patologia)
+    setModifica(null)
+  }
+
+  const elenco = (patologia ? dati.casi.filter((c) => c.patologia === patologia) : dati.casi)
+    .slice().sort((a, b) => (a.dataFine ? 1 : 0) - (b.dataFine ? 1 : 0) || b.dataInizio.localeCompare(a.dataInizio))
+  const infoVacca = (id: string) => lista?.animali.find((a) => a.id === id)
+
+  return (
+    <>
+      <PageHeader titolo="Salute" descrizione="Patologie, trattamenti e latte perso per ogni vacca"
+        azioni={<button className="btn-primary" onClick={() => setModifica(nuovo(patologia ?? 'mastite'))}><Plus className="h-4 w-4" />Registra un caso</button>} />
+
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatTile etichetta="Casi in corso" valore={fmt0(attivi.length)} unita="vacche" />
+        <StatTile etichetta="Casi ultimi 30 giorni" valore={fmt0(dati.casi.filter((c) => c.dataInizio >= da30).length)} unita="casi" />
+        <StatTile etichetta="Latte perso (30 giorni e in corso)" valore={fmt0(perditaRecente)} unita="kg" nota="calo di produzione + latte separato" />
+        <StatTile etichetta="Vacche coinvolte" valore={fmt0(new Set(casiRecenti.map((c) => c.vacca)).size)} unita="vacche" />
+      </div>
+
+      {/* Pulsanti delle patologie */}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {PATOLOGIE.map((p) => {
+          const casi = dati.casi.filter((c) => c.patologia === p.id)
+          const inCorso = casi.filter((c) => !c.dataFine).length
+          const perso = casi.reduce((s, c) => { const x = stime.get(c.id); return s + (x ? x.calo + x.separato : 0) }, 0)
+          const sel = patologia === p.id
+          return (
+            <button key={p.id} onClick={() => setPatologia(sel ? null : p.id)}
+              className={`rounded-2xl p-4 text-left transition ${sel ? 'bg-brand-700 text-white shadow-lg' : 'bg-white ring-1 ring-stone-200 hover:ring-brand-300'}`}>
+              <div className="flex items-center justify-between">
+                <HeartPulse className={`h-5 w-5 ${sel ? 'text-arancio-300' : 'text-brand-500'}`} />
+                {inCorso > 0 && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${sel ? 'bg-white/20' : 'bg-amber-100 text-amber-800'}`}>{inCorso} in corso</span>}
+              </div>
+              <div className="mt-2 font-semibold">{p.nome}</div>
+              <div className={`text-xs ${sel ? 'text-brand-100' : 'text-stone-500'}`}>{p.descrizione}</div>
+              <div className={`mt-2 text-xs ${sel ? 'text-brand-100' : 'text-stone-600'}`}>{casi.length} casi{perso > 0 && ` · ${fmt0(perso)} kg persi`}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Elenco casi */}
+      <section className="card mt-6 overflow-x-auto p-0">
+        <div className="flex flex-wrap items-center gap-3 p-5 pb-3">
+          <h2 className="font-semibold">{patologia ? nomePatologia(patologia) : 'Tutti i casi'} <span className="font-normal text-stone-500">({elenco.length})</span></h2>
+          {patologia && <button className="btn-secondary ml-auto" onClick={() => setModifica(nuovo(patologia))}><Plus className="h-4 w-4" />Nuovo caso di {nomePatologia(patologia).toLowerCase()}</button>}
+          {patologia && <button className="btn-link" onClick={() => setPatologia(null)}>Mostra tutte</button>}
+        </div>
+        {elenco.length === 0 ? (
+          <p className="px-5 pb-5 text-sm text-stone-500">Nessun caso registrato{patologia ? ' per questa patologia' : ''}. Usa "Registra un caso" per inserirne uno.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Vacca</th>{!patologia && <th>Patologia</th>}<th>Periodo</th><th>Severità</th><th>Trattamento</th>
+                <th className="num">Atteso</th><th className="num">Durante</th><th className="num">Calo</th><th className="num">Separato</th><th className="num">Totale perso</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {elenco.map((c) => {
+                const s = stime.get(c.id)
+                const a = infoVacca(c.vacca)
+                return (
+                  <tr key={c.id}>
+                    <td className="whitespace-nowrap"><b>{c.vacca}</b>
+                      <span className="block text-xs text-stone-500">{[a?.gruppo !== undefined && a?.gruppo !== null ? `gr. ${a.gruppo}` : '', s?.robot ? `robot ${s.robot}` : '', a?.lattazione ? `${a.lattazione}ª latt.` : ''].filter(Boolean).join(' · ')}</span>
+                    </td>
+                    {!patologia && <td className="whitespace-nowrap">{nomePatologia(c.patologia)}{c.quarti?.length ? <span className="block text-xs text-stone-500">{c.quarti.join(', ')}</span> : null}</td>}
+                    <td className="whitespace-nowrap">{fmtData(c.dataInizio)} → {c.dataFine ? fmtData(c.dataFine) : <span className="font-medium text-amber-700">in corso</span>}
+                      {s && <span className="block text-xs text-stone-500">{s.giorni} giorni con dati</span>}
+                    </td>
+                    <td><BadgeSev s={c.severita} /></td>
+                    <td className="max-w-[16rem] text-sm">{c.trattamento || '—'}{c.patologia === 'mastite' && patologia && c.quarti?.length ? <span className="block text-xs text-stone-500">Quarti: {c.quarti.join(', ')}</span> : null}</td>
+                    <td className="num">{s?.media != null ? <>{fmt1(s.media)}<span className="block text-[11px] text-stone-400">{s.fonte === 'simili' ? `${s.nSimili} vacche simili` : 'sua media'}</span></> : <span className="text-xs text-stone-400">{s && s.giorni ? 'storico insufficiente' : 'nessun dato'}</span>}</td>
+                    <td className="num">{s?.mediaDurante != null ? fmt1(s.mediaDurante) : '—'}</td>
+                    <td className="num">{s?.fonte ? `${fmt0(s.calo)} kg` : '—'}</td>
+                    <td className="num">{s && s.separato > 0 ? `${fmt0(s.separato)} kg` : '—'}</td>
+                    <td className="num font-semibold">{s && (s.fonte || s.separato > 0) ? `${fmt0(s.calo + s.separato)} kg` : '—'}</td>
+                    <td className="whitespace-nowrap text-right">
+                      {daEliminare === c.id ? (
+                        <span className="text-sm">Eliminare? <button className="btn-danger-link mx-1" onClick={() => { elimina('casi', c.id); setDaEliminare(null) }}>Sì</button><button className="btn-link" onClick={() => setDaEliminare(null)}>No</button></span>
+                      ) : (
+                        <>
+                          {!c.dataFine && <button className="btn-link mr-3" onClick={() => aggiorna('casi', { ...c, dataFine: oggi })}>Guarita oggi</button>}
+                          <button className="mr-2 text-stone-400 hover:text-brand-700" onClick={() => setModifica(c)} aria-label="Modifica"><Pencil className="h-4 w-4" /></button>
+                          <button className="text-stone-400 hover:text-red-700" onClick={() => setDaEliminare(c.id)} aria-label="Elimina"><Trash2 className="h-4 w-4" /></button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+        <p className="px-5 pb-4 pt-2 text-xs text-stone-500">
+          Atteso: media della vacca nei 7 giorni prima della malattia, oppure (per le vacche senza storico, es. post-parto) media delle vacche
+          simili sullo stesso robot. Calo = somma giornaliera di quanto prodotto in meno rispetto all'atteso, sui giorni caricati dai robot.
+          Separato = latte non consegnato nel periodo.
+        </p>
+      </section>
+
+      {modifica && (() => {
+        const pat = PATOLOGIE.find((p) => p.id === modifica.patologia)
+        const a = infoVacca(modifica.vacca.trim())
+        const anteprima = modifica.vacca.trim() ? stimaPerdita({ ...modifica, id: modifica.id || 'nuovo', dataFine: modifica.dataFine || undefined }, dati.robotVacche, dati.robotGiorni, lista, dati.casi) : null
+        return (
+          <Modale titolo={modifica.id ? `Modifica caso · vacca ${modifica.vacca}` : 'Registra un caso'} onChiudi={() => setModifica(null)}>
+            <form onSubmit={salva} className="grid gap-4 sm:grid-cols-2">
+              <Campo label="Numero vacca *">
+                <input className="input" list="vacche-note" required inputMode="numeric" value={modifica.vacca} onChange={(e) => setModifica({ ...modifica, vacca: e.target.value })} autoFocus={!modifica.vacca} />
+                <datalist id="vacche-note">{vaccheNote.map((v) => <option key={v} value={v} />)}</datalist>
+                {modifica.vacca.trim() && (
+                  <span className={`mt-1 block text-xs ${a || vaccheNote.includes(modifica.vacca.trim()) ? 'text-stone-500' : 'text-amber-700'}`}>
+                    {a ? `Gruppo ${a.gruppo ?? '—'} · ${a.lattazione ?? '?'}ª lattazione · ${a.dim ?? '?'} giorni di lattazione · ${a.codiceRiproduttivo ?? ''}` : vaccheNote.includes(modifica.vacca.trim()) ? 'Vacca presente nei dati dei robot' : '! Vacca non trovata nei dati caricati'}
+                  </span>
+                )}
+              </Campo>
+              <Campo label="Patologia">
+                <select className="input" value={modifica.patologia} onChange={(e) => setModifica({ ...modifica, patologia: e.target.value })}>
+                  {PATOLOGIE.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+              </Campo>
+              {pat?.quarti && (
+                <div className="sm:col-span-2">
+                  <span className="label">Quarti colpiti</span>
+                  <div className="flex gap-2">
+                    {QUARTI.map((q) => {
+                      const on = modifica.quarti?.includes(q)
+                      return <button key={q} type="button" onClick={() => setModifica({ ...modifica, quarti: on ? modifica.quarti!.filter((x) => x !== q) : [...(modifica.quarti ?? []), q] })}
+                        className={`rounded-lg px-4 py-2 text-sm font-semibold ring-1 ring-inset ${on ? 'bg-brand-700 text-white ring-brand-700' : 'bg-white text-stone-600 ring-stone-300'}`}>{q}</button>
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="sm:col-span-2">
+                <span className="label">Severità</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {SEVERITA.map((x) => (
+                    <button key={x.v} type="button" onClick={() => setModifica({ ...modifica, severita: x.v })}
+                      className={`rounded-lg py-2 text-sm font-semibold ring-1 ring-inset ${modifica.severita === x.v ? x.cls + ' ring-2' : 'bg-white text-stone-600 ring-stone-300'}`}>{x.label}</button>
+                  ))}
+                </div>
+              </div>
+              <Campo label="Trattamento" className="sm:col-span-2">
+                <input className="input" list="trattamenti" placeholder="es. antibiotico intramammario, antinfiammatorio…" value={modifica.trattamento} onChange={(e) => setModifica({ ...modifica, trattamento: e.target.value })} />
+                <datalist id="trattamenti">{trattamentiUsati.map((t) => <option key={t} value={t} />)}</datalist>
+              </Campo>
+              <Campo label="Inizio *"><input className="input" type="date" required max={oggi} value={modifica.dataInizio} onChange={(e) => setModifica({ ...modifica, dataInizio: e.target.value })} /></Campo>
+              <Campo label="Guarigione (vuoto = in corso)"><input className="input" type="date" min={modifica.dataInizio} max={oggi} value={modifica.dataFine ?? ''} onChange={(e) => setModifica({ ...modifica, dataFine: e.target.value })} /></Campo>
+              <Campo label="Note" className="sm:col-span-2"><textarea className="input" value={modifica.note ?? ''} onChange={(e) => setModifica({ ...modifica, note: e.target.value })} /></Campo>
+              {anteprima && anteprima.giorni > 0 && (
+                <p className="rounded-xl bg-stone-50 p-3 text-sm text-stone-700 sm:col-span-2">
+                  Con i dati caricati: atteso <b>{anteprima.media != null ? `${fmt1(anteprima.media)} kg/giorno` : '—'}</b>
+                  {anteprima.fonte === 'simili' && ` (da ${anteprima.nSimili} vacche simili)`}, prodotto <b>{anteprima.mediaDurante != null ? fmt1(anteprima.mediaDurante) : '—'}</b> su {anteprima.giorni} giorni
+                  → latte perso <b>{fmt0(anteprima.calo + anteprima.separato)} kg</b>{anteprima.separato > 0 && ` (di cui ${fmt0(anteprima.separato)} separati)`}.
+                </p>
+              )}
+              <div className="flex justify-end gap-2 sm:col-span-2">
+                <button type="button" className="btn-secondary" onClick={() => setModifica(null)}>Annulla</button>
+                <button className="btn-primary">Salva</button>
+              </div>
+            </form>
+          </Modale>
+        )
+      })()}
+    </>
+  )
+}

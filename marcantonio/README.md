@@ -35,6 +35,12 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
     rifiuti, fermi del robot oltre 2 ore), andamento giornaliero, vacche da controllare (allarmi
     AMD ripetuti, latte separato, calo di produzione su due giorni, meno di 2 mungiture) e
     dettaglio per vacca. Robot collegati alle stalle (VMS1, VMS2 → stalla 1)
+  - **Salute**: un pulsante per ogni patologia principale (mastite, zoppia, chetosi, ipocalcemia,
+    dislocazione abomaso, ritenzione di placenta, metrite, respiratorie, digestive, altro); casi con
+    vacca, date, severità, trattamento, quarti (mastite) e note. Latte perso per caso dai dati dei robot:
+    produzione attesa = media della vacca nei 7 giorni prima (o, senza storico, media delle vacche
+    simili sullo stesso robot: stessa classe di lattazione, DIM ±20), calo giornaliero sommato + latte
+    separato (colostro dei primi 5 giorni escluso). Collegamento "Registra caso" dalle vacche da controllare
   - **Qualità latte**: analisi (grasso, proteine, lattosio, cellule somatiche, carica batterica, inibenti) e verifica dei requisiti del Reg. (CE) 853/2004 (medie geometriche mobili: CBT ≤ 100.000/ml su 2 mesi, cellule somatiche ≤ 400.000/ml su 3 mesi)
   - **Caseificio**: lavorazioni di caciocavallo come lotti (codice CC-AAAAMMGG-n, litri di latte,
     forme, peso fresco, resa kg/100 l, stagionatura minima); magazzino con avanzamento della

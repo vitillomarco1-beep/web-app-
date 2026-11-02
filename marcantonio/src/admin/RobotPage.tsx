@@ -137,7 +137,7 @@ export default function RobotPage() {
                 <li key={s.vacca} className="py-2.5">
                   <div className="flex items-baseline justify-between gap-2">
                     <b className="text-base">Vacca {s.vacca}</b>
-                    <span className="text-xs text-stone-500">{s.robot}</span>
+                    <span className="text-xs text-stone-500">{s.robot} · <Link to="/area-riservata/salute" state={{ vacca: s.vacca }} className="font-medium text-brand-700 hover:underline">Registra caso</Link></span>
                   </div>
                   <ul className="mt-1 space-y-0.5 text-sm text-stone-700">
                     {s.motivi.map((m) => <li key={m} className="flex gap-1.5"><span className="text-amber-600">•</span>{m}</li>)}
