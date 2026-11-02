@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { applicaGruppiRobot } from '../lib/gruppi'
 import { Link } from 'react-router-dom'
 import { Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
@@ -49,27 +50,8 @@ export default function LattePage() {
     )
   }
 
-  // Latte dai robot: se la lista DairyComp non ha il latte, si usa la media per vacca dei giorni
-  // completi dei robot (fino a 7) che arrivano alla data della lista.
-  const giorniRobot = [...new Set(dati.robotGiorni.filter((g) => g.completo && g.data <= corrente.data).map((g) => g.data))].sort().slice(-7)
-  const robotDiVacca = new Map<string, { kg: number; n: number; robot: string }>()
-  for (const v of dati.robotVacche) {
-    if (!giorniRobot.includes(v.data) || v.mungiture === 0) continue
-    const x = robotDiVacca.get(v.vacca) ?? { kg: 0, n: 0, robot: v.robot }
-    x.kg += v.kg; x.n++; x.robot = v.robot
-    robotDiVacca.set(v.vacca, x)
-  }
-  const latteDaiRobot = robotDiVacca.size > 0 && corrente.animali.some((a) => a.latte === null && lattante(a))
-  const animaliTutti: AnimaleDC[] = corrente.animali.map((a) => {
-    const r = robotDiVacca.get(a.id)
-    return a.latte === null && r && lattante(a) ? { ...a, latte: Math.round((r.kg / r.n) * 10) / 10 } : a
-  })
-  // Vacche munte dal robot di una stalla ma registrate in DairyComp in un altro gruppo
-  const gruppoDelRobot = (robot: string) => dati.stalle.find((st) => st.robot?.nomi?.includes(robot))?.gruppoDairyComp
-  const incoerenze = corrente.animali
-    .filter(lattante)
-    .map((a) => ({ a, gRobot: robotDiVacca.has(a.id) ? gruppoDelRobot(robotDiVacca.get(a.id)!.robot) : undefined, robot: robotDiVacca.get(a.id)?.robot }))
-    .filter((x) => x.gRobot !== undefined && x.gRobot !== x.a.gruppo)
+  // Latte dai robot e gruppo effettivo: comanda il robot che munge la vacca
+  const { animali: animaliTutti, incoerenze, giorniRobot, latteDaiRobot } = applicaGruppiRobot(corrente.animali, dati.robotVacche, dati.robotGiorni, dati.stalle, corrente.data)
   const nonInLattazione = corrente.animali.filter((a) => !lattante(a))
   const perStato = [...nonInLattazione.reduce((m, a) => m.set(a.codiceRiproduttivo ?? '—', (m.get(a.codiceRiproduttivo ?? '—') ?? 0) + 1), new Map<string, number>())]
 
@@ -215,12 +197,12 @@ export default function LattePage() {
 
       {incoerenze.length > 0 && (
         <section className="card mt-6 ring-1 ring-amber-200">
-          <h2 className="font-semibold text-amber-900">! {incoerenze.length} vacche con il gruppo da controllare</h2>
-          <p className="mt-1 text-sm text-stone-600">Sono munte dal robot di un gruppo ma in DairyComp risultano in un altro. Aggiorna il gruppo in DairyComp, oppure verifica la stalla.</p>
+          <h2 className="font-semibold text-amber-900">! {incoerenze.length} vacche da sistemare in DairyComp</h2>
+          <p className="mt-1 text-sm text-stone-600">Sono munte dal robot di un gruppo ma in DairyComp risultano in un altro. Qui vengono già conteggiate nel gruppo del robot: aggiorna il gruppo in DairyComp e alla prossima importazione l'avviso sparisce.</p>
           <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-            {incoerenze.map(({ a, gRobot, robot }) => (
-              <li key={a.id} className="rounded-full bg-amber-50 px-3 py-1 text-amber-900 ring-1 ring-inset ring-amber-200">
-                <b>{a.id}</b>: DairyComp gruppo {a.gruppo ?? '—'} · robot {robot} (gruppo {gRobot})
+            {incoerenze.map((x) => (
+              <li key={x.vacca} className="rounded-full bg-amber-50 px-3 py-1 text-amber-900 ring-1 ring-inset ring-amber-200">
+                <b>{x.vacca}</b>: gruppo {x.gruppoDairyComp ?? '—'} → <b>{x.gruppoRobot}</b> <span className="text-amber-700">(robot {x.robot})</span>
               </li>
             ))}
           </ul>

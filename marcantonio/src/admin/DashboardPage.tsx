@@ -5,6 +5,8 @@ import BarChart from '../components/BarChart'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno, lunediDi } from '../lib/format'
 import { serieGiorni, totaleConsegne } from '../lib/statistiche'
 import { giorniCaricati } from './CaricaSettimanaPage'
+import { applicaGruppiRobot } from '../lib/gruppi'
+import { ultimoImport } from '../lib/dairycomp'
 import { dataPronta, formeDisponibili, statoLotto } from '../lib/caseificio'
 import { LIMITE_CBT, LIMITE_SCC, esito, mediaMobileCbt, mediaMobileScc } from '../lib/qualita'
 
@@ -51,11 +53,19 @@ export default function DashboardPage() {
   const scarichiDaVerificare =
     dati.scarichi.some((s) => s.data >= lunScorso && s.data <= aggiungiGiorni(lunScorso, 6)) &&
     !dati.verifiche.some((v) => v.settimana === lunScorso)
+  const ultimaListaDC = ultimoImport(dati.importDC)
+  const daSistemare = ultimaListaDC ? applicaGruppiRobot(ultimaListaDC.animali, dati.robotVacche, dati.robotGiorni, dati.stalle, ultimaListaDC.data).incoerenze : []
   const gruppiDaCaricare = dati.stalle.filter((s) => s.robot).sort((a, b) => a.numero - b.numero).filter((s) => giorniCaricati(dati.robotGiorni, s, lunScorso) < 7)
   const scarichiOggi = new Set(dati.scarichi.filter((s) => s.data === oggi).map((s) => `${s.stalla}-${s.turno}`)).size
 
   return (
     <>
+      {daSistemare.length > 0 && (
+        <Link to="/area-riservata/latte" className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-inset ring-amber-200 hover:bg-amber-100">
+          <span><b>!</b> {daSistemare.length} vacche da sistemare in DairyComp: sono munte dal robot di un altro gruppo ({daSistemare.slice(0, 6).map((x) => x.vacca).join(', ')}{daSistemare.length > 6 ? '…' : ''}).</span>
+          <span className="font-medium">Vedi →</span>
+        </Link>
+      )}
       {gruppiDaCaricare.length > 0 && (
         <Link to="/area-riservata/carica" className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-inset ring-brand-200 hover:bg-brand-100">
           <span><b>↑</b> Carica i file dei robot della settimana scorsa ({fmtData(lunScorso)} – {fmtData(aggiungiGiorni(lunScorso, 6))}): mancano {gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}.</span>

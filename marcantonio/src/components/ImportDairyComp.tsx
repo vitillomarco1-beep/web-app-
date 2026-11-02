@@ -3,6 +3,7 @@ import { useStore } from '../lib/store'
 import { Modale } from './ui'
 import { CAMPI, abbinaColonne, costruisciAnimali, leggiFile, perGruppo, type Campo, type FileLetto } from '../lib/dairycomp'
 import { fmt0, fmt1, isoGiorno, nuovoId } from '../lib/format'
+import { applicaGruppiRobot } from '../lib/gruppi'
 
 const MAX_IMPORT = 120 // fotografie conservate nel browser (con il servizio online: nessun limite)
 
@@ -59,10 +60,12 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
     vecchie.forEach((i) => elimina('importDC', i.id))
     // capi per stalla dal gruppo corrispondente (solo se è il dato più recente)
     const piuRecente = !dati.importDC.some((i) => i.data > data && !esempi.includes(i))
+    // capi per stalla contati con il gruppo effettivo (quello del robot che munge la vacca)
+    const effettivi = applicaGruppiRobot(daImportare, dati.robotVacche, dati.robotGiorni, dati.stalle, data).animali
     if (aggiornaStalle && piuRecente) {
       for (const s of dati.stalle) {
         if (s.gruppoDairyComp === undefined) continue
-        const capi = daImportare.filter((a) => a.gruppo === s.gruppoDairyComp).length
+        const capi = effettivi.filter((a) => a.gruppo === s.gruppoDairyComp).length
         if (capi !== s.capi) aggiorna('stalle', { ...s, capi })
       }
     }
