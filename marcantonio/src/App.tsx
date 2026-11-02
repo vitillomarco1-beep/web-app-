@@ -19,6 +19,7 @@ import PesataPage from './admin/PesataPage'
 import LattePage from './admin/LattePage'
 import RobotPage from './admin/RobotPage'
 import SalutePage from './admin/SalutePage'
+import FarmaciPage from './admin/FarmaciPage'
 import CaricaSettimanaPage from './admin/CaricaSettimanaPage'
 import { RichiedeAccesso } from './lib/auth'
 import type { ReactNode } from 'react'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="latte" element={T(<LattePage />)} />
         <Route path="mungiture" element={T(<RobotPage />)} />
         <Route path="salute" element={T(<SalutePage />)} />
+        <Route path="farmaci" element={T(<FarmaciPage />)} />
         <Route path="carica" element={T(<CaricaSettimanaPage />)} />
         <Route path="mandria" element={T(<MandriaPage />)} />
         <Route path="produzione" element={T(<ProduzionePage />)} />

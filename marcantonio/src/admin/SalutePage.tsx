@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { HeartPulse, Pencil, Plus, Trash2 } from 'lucide-react'
+import { HeartPulse, Pencil, Pill, Plus, Trash2, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import type { CasoClinico, Severita } from '../lib/types'
 import { Campo, Modale, PageHeader, StatTile } from '../components/ui'
-import { PATOLOGIE, PREZZO_LATTE_PREDEFINITO, euroDaKg, nomePatologia, stimaPerdita, type StimaPerdita } from '../lib/salute'
+import { PATOLOGIE, PREZZO_LATTE_PREDEFINITO, costoFarmaci, costoUnitario, euroDaKg, nomePatologia, stimaPerdita, type StimaPerdita } from '../lib/salute'
 import { ultimoImport } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno, nuovoId } from '../lib/format'
 
@@ -56,6 +57,14 @@ export default function SalutePage() {
     return m
   }, [dati.casi, dati.robotVacche, dati.robotGiorni, lista])
 
+  /** Costo totale di un caso: latte perso (in euro) + farmaci + altri costi. */
+  const costoCaso = (c: CasoClinico) => {
+    const st = stime.get(c.id)
+    return (st ? euroDaKg(st.calo + st.separato, prezzo) : 0) + costoFarmaci(c) + (c.costoAltro ?? 0)
+  }
+  const farmacoDi = (id: string) => dati.farmaci.find((f) => f.id === id)
+  const sospensione = (c: CasoClinico) => Math.max(0, ...(c.farmaci ?? []).map((u) => farmacoDi(u.farmacoId)?.sospensioneLatte ?? 0))
+
   const da30 = aggiungiGiorni(oggi, -30)
   const casiRecenti = dati.casi.filter((c) => c.dataInizio >= da30 || !c.dataFine)
   const attivi = dati.casi.filter((c) => !c.dataFine)
@@ -66,10 +75,26 @@ export default function SalutePage() {
     if (!modifica) return
     const c = { ...modifica, vacca: modifica.vacca.trim(), dataFine: modifica.dataFine || undefined, note: modifica.note?.trim() || undefined,
       quarti: PATOLOGIE.find((p) => p.id === modifica.patologia)?.quarti ? modifica.quarti : undefined }
+    c.farmaci = (c.farmaci ?? []).filter((u) => u.farmacoId && u.quantita > 0)
+    c.costoAltro = c.costoAltro && c.costoAltro > 0 ? c.costoAltro : undefined
+    // giacenze: si scala la differenza rispetto a quanto già registrato per questo caso
+    const prima = c.id ? dati.casi.find((x) => x.id === c.id)?.farmaci ?? [] : []
+    aggiornaGiacenze(prima, c.farmaci)
     if (c.id) aggiorna('casi', c)
     else aggiungi('casi', { ...c, id: nuovoId() })
     setPatologia(c.patologia)
     setModifica(null)
+  }
+
+  /** Scala dal magazzino le quantità nuove e restituisce quelle tolte. */
+  const aggiornaGiacenze = (prima: { farmacoId: string; quantita: number }[], dopo: { farmacoId: string; quantita: number }[]) => {
+    const delta = new Map<string, number>()
+    prima.forEach((u) => delta.set(u.farmacoId, (delta.get(u.farmacoId) ?? 0) - u.quantita))
+    dopo.forEach((u) => delta.set(u.farmacoId, (delta.get(u.farmacoId) ?? 0) + u.quantita))
+    for (const [id, d] of delta) {
+      const f = farmacoDi(id)
+      if (f && d !== 0) aggiorna('farmaci', { ...f, giacenza: Math.round((f.giacenza - d) * 1000) / 1000 })
+    }
   }
 
   const elenco = (patologia ? dati.casi.filter((c) => c.patologia === patologia) : dati.casi)
@@ -85,7 +110,8 @@ export default function SalutePage() {
         <StatTile etichetta="Casi in corso" valore={fmt0(attivi.length)} unita="vacche" />
         <StatTile etichetta="Casi ultimi 30 giorni" valore={fmt0(dati.casi.filter((c) => c.dataInizio >= da30).length)} unita="casi" />
         <StatTile etichetta="Latte perso (30 giorni e in corso)" valore={fmt0(perditaRecente)} unita="kg" nota={`≈ ${fmtEur(euroDaKg(perditaRecente, prezzo))} · calo + latte separato`} />
-        <StatTile etichetta="Vacche coinvolte" valore={fmt0(new Set(casiRecenti.map((c) => c.vacca)).size)} unita="vacche" />
+        <StatTile etichetta="Costo totale (30 giorni e in corso)" valore={fmtEur(casiRecenti.reduce((s, c) => s + costoCaso(c), 0))}
+          nota={`farmaci ${fmtEur(casiRecenti.reduce((s, c) => s + costoFarmaci(c), 0))} · ${new Set(casiRecenti.map((c) => c.vacca)).size} vacche`} />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-600">
@@ -117,7 +143,7 @@ export default function SalutePage() {
               </div>
               <div className="mt-2 font-semibold">{p.nome}</div>
               <div className={`text-xs ${sel ? 'text-brand-100' : 'text-stone-500'}`}>{p.descrizione}</div>
-              <div className={`mt-2 text-xs ${sel ? 'text-brand-100' : 'text-stone-600'}`}>{casi.length} casi{perso > 0 && ` · ${fmt0(perso)} kg · ${fmtEur(euroDaKg(perso, prezzo))}`}</div>
+              <div className={`mt-2 text-xs ${sel ? 'text-brand-100' : 'text-stone-600'}`}>{casi.length} casi{casi.length > 0 && ` · ${fmtEur(casi.reduce((t, c) => t + costoCaso(c), 0))}`}{perso > 0 && ` · ${fmt0(perso)} kg`}</div>
             </button>
           )
         })}
@@ -137,7 +163,7 @@ export default function SalutePage() {
             <thead>
               <tr>
                 <th>Vacca</th>{!patologia && <th>Patologia</th>}<th>Periodo</th><th>Severità</th><th>Trattamento</th>
-                <th className="num">Atteso</th><th className="num">Durante</th><th className="num">Calo</th><th className="num">Separato</th><th className="num">Totale perso</th><th className="num">Danno</th><th></th>
+                <th className="num">Atteso</th><th className="num">Durante</th><th className="num">Calo</th><th className="num">Separato</th><th className="num">Latte perso</th><th className="num">Farmaci</th><th className="num">Costo totale</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -154,16 +180,19 @@ export default function SalutePage() {
                       {s && <span className="block text-xs text-stone-500">{s.giorni} giorni con dati</span>}
                     </td>
                     <td><BadgeSev s={c.severita} /></td>
-                    <td className="max-w-[16rem] text-sm">{c.trattamento || '—'}{c.patologia === 'mastite' && patologia && c.quarti?.length ? <span className="block text-xs text-stone-500">Quarti: {c.quarti.join(', ')}</span> : null}</td>
+                    <td className="max-w-[16rem] text-sm">{c.trattamento || (c.farmaci?.length ? '' : '—')}
+                      {c.farmaci?.map((u, i) => { const f = farmacoDi(u.farmacoId); return <span key={i} className="block text-xs text-stone-600"><Pill className="mr-1 inline h-3 w-3" />{f?.nome ?? 'farmaco eliminato'} · {u.quantita} {f?.unita ?? ''}</span> })}
+                      {sospensione(c) > 0 && <span className="block text-xs font-medium text-amber-700">Sospensione latte {sospensione(c)} giorni</span>}{c.patologia === 'mastite' && patologia && c.quarti?.length ? <span className="block text-xs text-stone-500">Quarti: {c.quarti.join(', ')}</span> : null}</td>
                     <td className="num">{s?.media != null ? <>{fmt1(s.media)}<span className="block text-[11px] text-stone-400">{s.fonte === 'simili' ? `${s.nSimili} vacche simili` : 'sua media'}</span></> : <span className="text-xs text-stone-400">{s && s.giorni ? 'storico insufficiente' : 'nessun dato'}</span>}</td>
                     <td className="num">{s?.mediaDurante != null ? fmt1(s.mediaDurante) : '—'}</td>
                     <td className="num">{s?.fonte ? `${fmt0(s.calo)} kg` : '—'}</td>
                     <td className="num">{s && s.separato > 0 ? `${fmt0(s.separato)} kg` : '—'}</td>
-                    <td className="num font-semibold">{s && (s.fonte || s.separato > 0) ? `${fmt0(s.calo + s.separato)} kg` : '—'}</td>
-                    <td className="num">{s && (s.fonte || s.separato > 0) ? fmtEur(euroDaKg(s.calo + s.separato, prezzo)) : '—'}</td>
+                    <td className="num">{s && (s.fonte || s.separato > 0) ? <>{fmt0(s.calo + s.separato)} kg<span className="block text-[11px] text-stone-400">{fmtEur(euroDaKg(s.calo + s.separato, prezzo))}</span></> : '—'}</td>
+                    <td className="num">{c.farmaci?.length ? fmtEur(costoFarmaci(c)) : '—'}{c.costoAltro ? <span className="block text-[11px] text-stone-400">+ {fmtEur(c.costoAltro)} altri</span> : null}</td>
+                    <td className="num font-semibold">{fmtEur(costoCaso(c))}</td>
                     <td className="whitespace-nowrap text-right">
                       {daEliminare === c.id ? (
-                        <span className="text-sm">Eliminare? <button className="btn-danger-link mx-1" onClick={() => { elimina('casi', c.id); setDaEliminare(null) }}>Sì</button><button className="btn-link" onClick={() => setDaEliminare(null)}>No</button></span>
+                        <span className="text-sm">Eliminare? <button className="btn-danger-link mx-1" onClick={() => { aggiornaGiacenze(c.farmaci ?? [], []); elimina('casi', c.id); setDaEliminare(null) }}>Sì</button><button className="btn-link" onClick={() => setDaEliminare(null)}>No</button></span>
                       ) : (
                         <>
                           {!c.dataFine && <button className="btn-link mr-3" onClick={() => aggiorna('casi', { ...c, dataFine: oggi })}>Guarita oggi</button>}
@@ -231,6 +260,32 @@ export default function SalutePage() {
                 <input className="input" list="trattamenti" placeholder="es. antibiotico intramammario, antinfiammatorio…" value={modifica.trattamento} onChange={(e) => setModifica({ ...modifica, trattamento: e.target.value })} />
                 <datalist id="trattamenti">{trattamentiUsati.map((t) => <option key={t} value={t} />)}</datalist>
               </Campo>
+              <div className="sm:col-span-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="label mb-0">Farmaci usati</span>
+                  {dati.farmaci.length > 0
+                    ? <button type="button" className="btn-link" onClick={() => setModifica({ ...modifica, farmaci: [...(modifica.farmaci ?? []), { farmacoId: '', quantita: 0, costoUnitario: 0 }] })}>+ Aggiungi farmaco</button>
+                    : <Link to="/area-riservata/farmaci" className="btn-link">Aggiungi i farmaci al magazzino</Link>}
+                </div>
+                {(modifica.farmaci ?? []).map((u, i) => {
+                  const f = farmacoDi(u.farmacoId)
+                  const cambia = (n: Partial<typeof u>) => setModifica({ ...modifica, farmaci: modifica.farmaci!.map((x, j) => (j === i ? { ...x, ...n } : x)) })
+                  return (
+                    <div key={i} className="mb-2 flex flex-wrap items-center gap-2">
+                      <select className="input min-w-0 flex-1" value={u.farmacoId} onChange={(e) => { const nf = farmacoDi(e.target.value); cambia({ farmacoId: e.target.value, costoUnitario: nf ? costoUnitario(nf) : 0 }) }}>
+                        <option value="">— scegli —</option>
+                        {dati.farmaci.map((x) => <option key={x.id} value={x.id}>{x.nome} ({fmtEur(costoUnitario(x))}/{x.unita}, in magazzino {x.giacenza} {x.unita})</option>)}
+                      </select>
+                      <input className="input w-24 text-right" inputMode="decimal" placeholder="qtà" value={u.quantita || ''} onChange={(e) => cambia({ quantita: Number(e.target.value.replace(',', '.')) || 0 })} />
+                      <span className="w-16 text-sm text-stone-500">{f?.unita ?? ''}</span>
+                      <span className="w-20 text-right text-sm font-medium">{fmtEur(u.quantita * u.costoUnitario)}</span>
+                      <button type="button" className="text-stone-400 hover:text-red-700" onClick={() => setModifica({ ...modifica, farmaci: modifica.farmaci!.filter((_, j) => j !== i) })} aria-label="Togli"><X className="h-4 w-4" /></button>
+                    </div>
+                  )
+                })}
+              </div>
+              <Campo label="Altri costi (€) · veterinario, manodopera…"><input className="input" type="number" min={0} step="0.01" value={modifica.costoAltro ?? ''} onChange={(e) => setModifica({ ...modifica, costoAltro: e.target.value === '' ? undefined : Number(e.target.value) })} /></Campo>
+              <div className="self-end pb-2 text-sm text-stone-600">Costo farmaci: <b>{fmtEur(costoFarmaci(modifica))}</b>{sospensione(modifica) > 0 && <span className="block text-amber-700">Sospensione latte: {sospensione(modifica)} giorni dall'ultima somministrazione</span>}</div>
               <Campo label="Inizio *"><input className="input" type="date" required max={oggi} value={modifica.dataInizio} onChange={(e) => setModifica({ ...modifica, dataInizio: e.target.value })} /></Campo>
               <Campo label="Guarigione (vuoto = in corso)"><input className="input" type="date" min={modifica.dataInizio} max={oggi} value={modifica.dataFine ?? ''} onChange={(e) => setModifica({ ...modifica, dataFine: e.target.value })} /></Campo>
               <Campo label="Note" className="sm:col-span-2"><textarea className="input" value={modifica.note ?? ''} onChange={(e) => setModifica({ ...modifica, note: e.target.value })} /></Campo>
@@ -240,6 +295,7 @@ export default function SalutePage() {
                   {anteprima.fonte === 'simili' && ` (da ${anteprima.nSimili} vacche simili)`}, prodotto <b>{anteprima.mediaDurante != null ? fmt1(anteprima.mediaDurante) : '—'}</b> su {anteprima.giorni} giorni
                   → latte perso <b>{fmt0(anteprima.calo + anteprima.separato)} kg</b>{anteprima.separato > 0 && ` (di cui ${fmt0(anteprima.separato)} separati)`},
                   circa <b>{fmtEur(euroDaKg(anteprima.calo + anteprima.separato, prezzo))}</b>.
+                  Costo totale del caso: <b>{fmtEur(euroDaKg(anteprima.calo + anteprima.separato, prezzo) + costoFarmaci(modifica) + (modifica.costoAltro ?? 0))}</b>.
                 </p>
               )}
               <div className="flex justify-end gap-2 sm:col-span-2">

@@ -19,6 +19,15 @@ export const PREZZO_LATTE_PREDEFINITO = 0.55
 export const KG_PER_LITRO = 1.03
 export const euroDaKg = (kg: number, prezzoLitro: number) => (kg / KG_PER_LITRO) * prezzoLitro
 
+export const costoUnitario = (f: { prezzoConfezione: number; unitaPerConfezione: number }) =>
+  f.unitaPerConfezione > 0 ? f.prezzoConfezione / f.unitaPerConfezione : 0
+export const costoFarmaci = (c: { farmaci?: { quantita: number; costoUnitario: number }[] }) =>
+  (c.farmaci ?? []).reduce((s, u) => s + u.quantita * u.costoUnitario, 0)
+
+/** Farmaco in esaurimento: sotto la scorta minima o, se non impostata, sotto una confezione. */
+export const inEsaurimento = (f: { giacenza: number; scortaMinima?: number; unitaPerConfezione: number }) =>
+  f.scortaMinima !== undefined ? f.giacenza <= f.scortaMinima : f.giacenza < f.unitaPerConfezione
+
 export const nomePatologia = (id: string) => PATOLOGIE.find((p) => p.id === id)?.nome ?? id
 
 export interface StimaPerdita {

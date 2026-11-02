@@ -40,7 +40,12 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
     vacca, date, severità, trattamento, quarti (mastite) e note. Latte perso per caso dai dati dei robot:
     produzione attesa = media della vacca nei 7 giorni prima (o, senza storico, media delle vacche
     simili sullo stesso robot: stessa classe di lattazione, DIM ±20), calo giornaliero sommato + latte
-    separato (colostro dei primi 5 giorni escluso). Collegamento "Registra caso" dalle vacche da controllare
+    separato (colostro dei primi 5 giorni escluso), convertito in euro col prezzo del latte (0,55 €/l,
+    modificabile); costo totale del caso = latte perso + farmaci + altri costi. Collegamento "Registra caso" dalle vacche da controllare
+  - **Farmaci**: magazzino con prezzo della confezione, costo per unità, giacenza, scorta minima e
+    sospensione del latte; carico degli acquisti, utilizzi per farmaco, avviso nel cruscotto quando un
+    farmaco sta per finire (sotto la scorta minima o, se non impostata, sotto una confezione). Nei casi
+    della sezione Salute si indicano farmaci e quantità: costo calcolato e giacenza aggiornata da sola
   - **Qualità latte**: analisi (grasso, proteine, lattosio, cellule somatiche, carica batterica, inibenti) e verifica dei requisiti del Reg. (CE) 853/2004 (medie geometriche mobili: CBT ≤ 100.000/ml su 2 mesi, cellule somatiche ≤ 400.000/ml su 3 mesi)
   - **Caseificio**: lavorazioni di caciocavallo come lotti (codice CC-AAAAMMGG-n, litri di latte,
     forme, peso fresco, resa kg/100 l, stagionatura minima); magazzino con avanzamento della

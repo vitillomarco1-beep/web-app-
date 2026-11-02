@@ -182,6 +182,23 @@ export interface NomeGruppo { id: string; nome: string }
 /** Parametro dell'azienda (es. prezzo del latte). */
 export interface Parametro { id: string; valore: number }
 
+/** Farmaco in magazzino. Il costo per unità è prezzoConfezione / unitaPerConfezione. */
+export interface Farmaco {
+  id: string
+  nome: string
+  principioAttivo?: string
+  unita: string // ml, tubetto, dose, g, compressa, flacone…
+  unitaPerConfezione: number
+  prezzoConfezione: number // €
+  giacenza: number // in unità
+  scortaMinima?: number // in unità
+  sospensioneLatte?: number // giorni di sospensione del latte
+  note?: string
+}
+
+/** Farmaco usato in un caso, con il costo per unità al momento del trattamento. */
+export interface UsoFarmaco { farmacoId: string; quantita: number; costoUnitario: number }
+
 export type Severita = 'lieve' | 'moderata' | 'grave'
 
 /** Un caso di malattia registrato per una vacca. */
@@ -195,6 +212,8 @@ export interface CasoClinico {
   trattamento: string
   quarti?: string[] // mastite: AS, AD, PS, PD
   note?: string
+  farmaci?: UsoFarmaco[]
+  costoAltro?: number // veterinario, manodopera, altro (€)
 }
 
 export interface ImportRobot { id: string; fonte: string; nomeFile: string; importatoIl: string; dal: string; al: string }
@@ -214,6 +233,7 @@ export interface Dati {
   nomiGruppi: NomeGruppo[]
   casi: CasoClinico[]
   parametri: Parametro[]
+  farmaci: Farmaco[]
   robotGiorni: GiornoRobot[]
   robotVacche: GiornoVaccaRobot[]
   importRobot: ImportRobot[]

@@ -9,6 +9,7 @@ import { SOGLIA_FERMO_MIN, daControllare } from '../lib/robot'
 import { applicaGruppiRobot } from '../lib/gruppi'
 import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairycomp'
 import { giorniCaricati } from './CaricaSettimanaPage'
+import { inEsaurimento } from '../lib/salute'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
 
@@ -47,10 +48,15 @@ export default function DashboardPage() {
     ? perGruppo(gruppiDC.animali.filter(inLattazione)).map(([g, a]) => ({ g, r: riepilogo(a), stalla: dati.stalle.find((s) => s.gruppoDairyComp === g) }))
     : []
 
+  const farmaciInEsaurimento = dati.farmaci.filter(inEsaurimento)
   const cose: { testo: string; link: string; tipo: 'carica' | 'avviso' }[] = [
     ...(gruppiDaCaricare.length ? [{ testo: `Carica i file dei robot della settimana scorsa: mancano ${gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     ...(daSistemare.length ? [{ testo: `${daSistemare.length} vacche da sistemare in DairyComp (munte dal robot di un altro gruppo)`, link: '/area-riservata/latte', tipo: 'avviso' as const }] : []),
     ...(robotFermi.map((g) => ({ testo: `Robot ${g.robot} fermo ${Math.floor(g.pausaMaxMin / 60)} h ${String(g.pausaMaxMin % 60).padStart(2, '0')} dalle ${g.pausaDalle} del ${fmtData(g.data)}`, link: '/area-riservata/mungiture', tipo: 'avviso' as const }))),
+    ...farmaciInEsaurimento.map((f) => ({
+      testo: f.giacenza <= 0 ? `Farmaco finito: ${f.nome}` : `Farmaco in esaurimento: ${f.nome} (restano ${Math.round(f.giacenza * 10) / 10} ${f.unita})`,
+      link: '/area-riservata/farmaci', tipo: 'avviso' as const,
+    })),
     ...(scarichiDaVerificare ? [{ testo: 'Verifica gli scarichi di razione della settimana scorsa', link: '/area-riservata/alimentazione', tipo: 'avviso' as const }] : []),
   ]
 
