@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { HeartPulse, Pencil, Pill, Plus, Trash2, X } from 'lucide-react'
+import { CalendarDays, Euro, HeartPulse, Milk, Pencil, Pill, Plus, Trash2, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import type { CasoClinico, Severita } from '../lib/types'
@@ -107,10 +107,10 @@ export default function SalutePage() {
         azioni={<button className="btn-primary" onClick={() => setModifica(nuovo(patologia ?? 'mastite'))}><Plus className="h-4 w-4" />Registra un caso</button>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatTile etichetta="Casi in corso" valore={fmt0(attivi.length)} unita="vacche" />
-        <StatTile etichetta="Casi ultimi 30 giorni" valore={fmt0(dati.casi.filter((c) => c.dataInizio >= da30).length)} unita="casi" />
-        <StatTile etichetta="Latte perso (30 giorni e in corso)" valore={fmt0(perditaRecente)} unita="kg" nota={`≈ ${fmtEur(euroDaKg(perditaRecente, prezzo))} · calo + latte separato`} />
-        <StatTile etichetta="Costo totale (30 giorni e in corso)" valore={fmtEur(casiRecenti.reduce((s, c) => s + costoCaso(c), 0))}
+        <StatTile icona={HeartPulse} tono="rosso" etichetta="Casi in corso" valore={fmt0(attivi.length)} unita="vacche" />
+        <StatTile icona={CalendarDays} tono="brand" etichetta="Casi ultimi 30 giorni" valore={fmt0(dati.casi.filter((c) => c.dataInizio >= da30).length)} unita="casi" />
+        <StatTile icona={Milk} tono="arancio" etichetta="Latte perso (30 giorni e in corso)" valore={fmt0(perditaRecente)} unita="kg" nota={`≈ ${fmtEur(euroDaKg(perditaRecente, prezzo))} · calo + latte separato`} />
+        <StatTile icona={Euro} tono="verde" etichetta="Costo totale (30 giorni e in corso)" valore={fmtEur(casiRecenti.reduce((s, c) => s + costoCaso(c), 0))}
           nota={`farmaci ${fmtEur(casiRecenti.reduce((s, c) => s + costoFarmaci(c), 0))} · ${new Set(casiRecenti.map((c) => c.vacca)).size} vacche`} />
       </div>
 

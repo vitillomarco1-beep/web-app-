@@ -1,3 +1,4 @@
+import { Euro, Tag, Truck } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Consegna } from '../lib/types'
@@ -32,16 +33,16 @@ export default function ConsegnePage() {
 
   return (
     <>
-      <PageHeader titolo="Consegne latte" descrizione="Latte conferito a terzi (non trasformato in caseificio) e ricavi"
+      <PageHeader titolo="Consegne latte" icona={Truck} descrizione="Latte conferito a terzi (non trasformato in caseificio) e ricavi"
         azioni={<button className="btn-primary" onClick={() => setModifica(nuova())}>+ Nuova consegna</button>} />
 
       <div className="mb-4">
         <label className="text-sm">Mese <input className="input ml-2 inline-block w-auto" type="month" value={mese} onChange={(e) => setMese(e.target.value)} /></label>
       </div>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatTile etichetta="Litri consegnati" valore={fmt0(tot.litri)} unita="l" nota={`${delMese.length} consegne`} />
-        <StatTile etichetta="Ricavo lordo" valore={fmtEur(tot.importo)} />
-        <StatTile etichetta="Prezzo medio" valore={fmt2(tot.prezzoMedio)} unita="€/l" />
+        <StatTile icona={Truck} tono="brand" etichetta="Litri consegnati" valore={fmt0(tot.litri)} unita="l" nota={`${delMese.length} consegne`} />
+        <StatTile icona={Euro} tono="verde" etichetta="Ricavo lordo" valore={fmtEur(tot.importo)} />
+        <StatTile icona={Tag} tono="arancio" etichetta="Prezzo medio" valore={fmt2(tot.prezzoMedio)} unita="€/l" />
       </div>
 
       {perAcquirente.length > 1 && (

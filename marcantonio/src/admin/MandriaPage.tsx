@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Search, Upload, X, Tag } from 'lucide-react'
+import { Milk, Moon, Pencil, Search, Sprout, Tag, Upload, Users, X } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
@@ -91,11 +91,11 @@ export default function MandriaPage() {
         azioni={<button className="btn-primary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-        <StatTile etichetta="Animali presenti" valore={fmt0(animali.length)} unita="capi" nota={`${gruppi.length} gruppi`} />
-        <StatTile etichetta="In lattazione" valore={fmt0(perCategoria.get('In lattazione') ?? 0)} unita="vacche" />
-        <StatTile etichetta="Asciutte" valore={fmt0(perCategoria.get('Asciutte') ?? 0)} unita="vacche" />
-        <StatTile etichetta="Manze" valore={fmt0(manze)} unita="capi" nota={perCategoria.get('Manze in riproduzione') ? `${perCategoria.get('Manze in riproduzione')} fecondate o gravide` : undefined} />
-        <StatTile etichetta="Maschi" valore={fmt0(perCategoria.get('Maschi') ?? 0)} unita="capi" />
+        <StatTile icona={Tag} tono="brand" etichetta="Animali presenti" valore={fmt0(animali.length)} unita="capi" nota={`${gruppi.length} gruppi`} />
+        <StatTile icona={Milk} tono="verde" etichetta="In lattazione" valore={fmt0(perCategoria.get('In lattazione') ?? 0)} unita="vacche" />
+        <StatTile icona={Moon} tono="blu" etichetta="Asciutte" valore={fmt0(perCategoria.get('Asciutte') ?? 0)} unita="vacche" />
+        <StatTile icona={Sprout} tono="arancio" etichetta="Manze" valore={fmt0(manze)} unita="capi" nota={perCategoria.get('Manze in riproduzione') ? `${perCategoria.get('Manze in riproduzione')} fecondate o gravide` : undefined} />
+        <StatTile icona={Users} tono="viola" etichetta="Maschi" valore={fmt0(perCategoria.get('Maschi') ?? 0)} unita="capi" />
       </div>
 
       {/* Ricerca */}

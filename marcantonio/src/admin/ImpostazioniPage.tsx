@@ -1,3 +1,4 @@
+import { Settings } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { PageHeader, conferma } from '../components/ui'
@@ -56,7 +57,7 @@ export default function ImpostazioniPage() {
 
   return (
     <>
-      <PageHeader titolo="Dati e backup" />
+      <PageHeader titolo="Dati e backup" icona={Settings} />
       <div className="grid max-w-3xl gap-6">
         <section className="card">
           <h2 className="font-semibold">Dove sono salvati i dati</h2>

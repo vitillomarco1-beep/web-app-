@@ -1,3 +1,4 @@
+import { MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { PageHeader, Vuoto, conferma } from '../components/ui'
@@ -10,7 +11,7 @@ export default function MessaggiPage() {
 
   return (
     <>
-      <PageHeader titolo="Messaggi" descrizione="Richieste ricevute dal modulo contatti del sito" />
+      <PageHeader titolo="Messaggi" icona={MessageSquare} descrizione="Richieste ricevute dal modulo contatti del sito" />
       {elenco.length === 0 ? <Vuoto>Nessun messaggio.</Vuoto> : (
         <ul className="space-y-3">
           {elenco.map((m) => (

@@ -1,3 +1,4 @@
+import { Milk } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Turno } from '../lib/types'
@@ -35,7 +36,7 @@ export default function ProduzionePage() {
 
   return (
     <>
-      <PageHeader titolo="Produzione" descrizione="Registro delle mungiture giornaliere" />
+      <PageHeader titolo="Produzione" icona={Milk} descrizione="Registro delle mungiture giornaliere" />
 
       <form onSubmit={salva} className="card mb-6 grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Campo label="Data"><input className="input" type="date" required max={isoGiorno()} value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} /></Campo>

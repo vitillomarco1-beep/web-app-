@@ -1,3 +1,4 @@
+import { Euro, Factory, Hourglass, Milk, PackageCheck } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Lavorazione, TipoUscita, UscitaForme } from '../lib/types'
@@ -135,18 +136,18 @@ export default function CaseificioPage() {
 
   return (
     <>
-      <PageHeader titolo="Caseificio" descrizione="Lavorazioni di caciocavallo, stagionatura, magazzino e tracciabilità dei lotti"
+      <PageHeader titolo="Caseificio" icona={Factory} descrizione="Lavorazioni di caciocavallo, stagionatura, magazzino e tracciabilità dei lotti"
         azioni={<>
           <button className="btn-secondary" onClick={() => setUsc(nuovaUscita())} disabled={!conStato.some((x) => x.disp > 0)}>Registra uscita</button>
           <button className="btn-primary" onClick={() => setLav(nuovaLavorazione())}>+ Nuova lavorazione</button>
         </>} />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta="Forme pronte alla vendita" valore={fmt0(formePronte)} unita="forme" nota={`${pronti.length} lotti`} />
-        <StatTile etichetta="Forme in stagionatura" valore={fmt0(formeInStag)} unita="forme" nota={`${inStag.length} lotti`} />
-        <StatTile etichetta="Latte trasformato – 30 giorni" valore={fmt0(litri30)} unita="litri"
+        <StatTile icona={PackageCheck} tono="verde" etichetta="Forme pronte alla vendita" valore={fmt0(formePronte)} unita="forme" nota={`${pronti.length} lotti`} />
+        <StatTile icona={Hourglass} tono="arancio" etichetta="Forme in stagionatura" valore={fmt0(formeInStag)} unita="forme" nota={`${inStag.length} lotti`} />
+        <StatTile icona={Milk} tono="brand" etichetta="Latte trasformato – 30 giorni" valore={fmt0(litri30)} unita="litri"
           nota={litri30 > 0 ? `${fmt0(kg30)} kg prodotti · resa ${fmt1((kg30 / litri30) * 100)} kg/100 l` : '—'} />
-        <StatTile etichetta="Venduto – 30 giorni" valore={fmt0(kgVenduti30)} unita="kg"
+        <StatTile icona={Euro} tono="blu" etichetta="Venduto – 30 giorni" valore={fmt0(kgVenduti30)} unita="kg"
           nota={kgVenduti30 > 0 ? `${fmtEur(incasso30)} · media ${fmt2(incasso30 / kgVenduti30)} €/kg` : '—'} />
       </div>
 

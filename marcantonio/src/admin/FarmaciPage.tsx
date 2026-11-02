@@ -1,5 +1,5 @@
 import { Fragment, useState, type FormEvent } from 'react'
-import { AlertTriangle, PackagePlus, Pencil, Plus, Trash2, Pill } from 'lucide-react'
+import { AlertTriangle, Euro, PackagePlus, Pencil, Pill, Plus, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { Farmaco } from '../lib/types'
 import { Campo, Modale, PageHeader, StatTile, Vuoto } from '../components/ui'
@@ -48,9 +48,9 @@ export default function FarmaciPage() {
         azioni={<button className="btn-primary" onClick={() => setModifica(vuoto())}><Plus className="h-4 w-4" />Nuovo farmaco</button>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-        <StatTile etichetta="Farmaci in magazzino" valore={fmt0(farmaci.length)} unita="prodotti" />
-        <StatTile etichetta="Valore del magazzino" valore={fmtEur(valore)} />
-        <StatTile etichetta="In esaurimento" valore={fmt0(esaurimento.length)} unita="prodotti" nota={esaurimento.map((f) => f.nome).slice(0, 3).join(', ') || 'nessuno'} />
+        <StatTile icona={Pill} tono="brand" etichetta="Farmaci in magazzino" valore={fmt0(farmaci.length)} unita="prodotti" />
+        <StatTile icona={Euro} tono="verde" etichetta="Valore del magazzino" valore={fmtEur(valore)} />
+        <StatTile icona={AlertTriangle} tono="rosso" etichetta="In esaurimento" valore={fmt0(esaurimento.length)} unita="prodotti" nota={esaurimento.map((f) => f.nome).slice(0, 3).join(', ') || 'nessuno'} />
       </div>
 
       {farmaci.length === 0 ? (

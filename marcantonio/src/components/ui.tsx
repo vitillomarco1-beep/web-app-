@@ -111,7 +111,14 @@ export function Campo({ label, children, className = '' }: { label: string; chil
 }
 
 export function Vuoto({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-sm text-stone-500">{children}</div>
+  return (
+    <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-white/60 p-10 text-center text-sm text-stone-600">
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-500">
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden><path d="M3 7h18M5 7l1.5 12h11L19 7M9 11v4M15 11v4M9 7V4h6v3" /></svg>
+      </div>
+      {children}
+    </div>
+  )
 }
 
 export function conferma(msg: string) {

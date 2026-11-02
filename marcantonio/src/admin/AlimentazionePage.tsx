@@ -1,4 +1,4 @@
-import { Wheat } from 'lucide-react'
+import { Milk, Scale, Tag, Wheat } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Scarico, Stalla, Turno } from '../lib/types'
@@ -178,14 +178,14 @@ export default function AlimentazionePage() {
       <PageHeader titolo="Alimentazione" icona={Wheat} descrizione="Razione scaricata dal carro miscelatore (peso tal quale), mattina e sera, per stalla" />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta={ultimoCompleto ? `Razione scaricata il ${fmtData(ultimoCompleto)}` : 'Razione scaricata'}
+        <StatTile icona={Wheat} tono="brand" etichetta={ultimoCompleto ? `Razione scaricata il ${fmtData(ultimoCompleto)}` : 'Razione scaricata'}
           valore={fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto) : 0)} unita="kg"
           nota={stalle.map((s) => `St. ${s.numero}: ${fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto, s.numero) : 0)}`).join(' · ')} />
-        <StatTile etichetta="Kg per vacca al giorno" valore={capiTotali > 0 ? fmt1(mediaCapo) : '—'} unita="kg/capo"
+        <StatTile icona={Scale} tono="arancio" etichetta="Kg per vacca al giorno" valore={capiTotali > 0 ? fmt1(mediaCapo) : '—'} unita="kg/capo"
           nota={capiTotali > 0 ? `Media 7 giorni · ${stalle.map((s) => `St. ${s.numero}: ${s.capi ? fmt1(mediaCapoStalla(s)) : '—'}`).join(' · ')}` : 'Inserisci i capi presenti in ogni stalla'} />
-        <StatTile etichetta="Latte per kg di razione" valore={razione7 > 0 ? fmt2(litri7 / razione7) : '—'} unita="l/kg"
+        <StatTile icona={Milk} tono="blu" etichetta="Latte per kg di razione" valore={razione7 > 0 ? fmt2(litri7 / razione7) : '—'} unita="l/kg"
           nota="Tutte le stalle, ultimi 7 giorni (razione tal quale)" />
-        <StatTile etichetta="Vacche alimentate" valore={fmt0(capiTotali)} unita="capi"
+        <StatTile icona={Tag} tono="verde" etichetta="Vacche alimentate" valore={fmt0(capiTotali)} unita="capi"
           nota={ultimaMungitura ? <>Munte il {fmtData(ultimaMungitura.data)}: {ultimaMungitura.capi}{Math.abs(ultimaMungitura.capi - capiTotali) > capiTotali * 0.1 && <span className="font-medium text-amber-700"> · aggiorna i capi per stalla</span>}</> : 'Somma dei capi nelle stalle'} />
       </div>
 

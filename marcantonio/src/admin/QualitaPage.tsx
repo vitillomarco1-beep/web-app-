@@ -1,3 +1,4 @@
+import { Activity, Droplet, FlaskConical, Microscope } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Analisi } from '../lib/types'
@@ -28,16 +29,16 @@ export default function QualitaPage() {
 
   return (
     <>
-      <PageHeader titolo="Qualità del latte" descrizione="Analisi di laboratorio e conformità ai requisiti del Reg. (CE) 853/2004"
+      <PageHeader titolo="Qualità del latte" icona={FlaskConical} descrizione="Analisi di laboratorio e conformità ai requisiti del Reg. (CE) 853/2004"
         azioni={<button className="btn-primary" onClick={() => setModifica(vuota())}>+ Nuova analisi</button>} />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta="Carica batterica – media geom. 2 mesi" valore={cbt.valore ? fmt0(cbt.valore * 1000) : '—'} unita="UFC/ml"
+        <StatTile icona={Microscope} tono="brand" etichetta="Carica batterica – media geom. 2 mesi" valore={cbt.valore ? fmt0(cbt.valore * 1000) : '—'} unita="UFC/ml"
           nota={<span className="flex items-center gap-2"><BadgeEsito esito={esito(cbt.valore, LIMITE_CBT)} /> limite {fmt0(LIMITE_CBT * 1000)} · {cbt.campioni} campioni</span>} />
-        <StatTile etichetta="Cellule somatiche – media geom. 3 mesi" valore={scc.valore ? fmt0(scc.valore * 1000) : '—'} unita="/ml"
+        <StatTile icona={Activity} tono="rosso" etichetta="Cellule somatiche – media geom. 3 mesi" valore={scc.valore ? fmt0(scc.valore * 1000) : '—'} unita="/ml"
           nota={<span className="flex items-center gap-2"><BadgeEsito esito={esito(scc.valore, LIMITE_SCC)} /> limite {fmt0(LIMITE_SCC * 1000)} · {scc.campioni} campioni</span>} />
-        <StatTile etichetta="Grasso – media ultime 4" valore={recenti.length ? fmt2(mediaDi('grasso')) : '—'} unita="%" />
-        <StatTile etichetta="Proteine – media ultime 4" valore={recenti.length ? fmt2(mediaDi('proteine')) : '—'} unita="%" />
+        <StatTile icona={Droplet} tono="arancio" etichetta="Grasso – media ultime 4" valore={recenti.length ? fmt2(mediaDi('grasso')) : '—'} unita="%" />
+        <StatTile icona={FlaskConical} tono="blu" etichetta="Proteine – media ultime 4" valore={recenti.length ? fmt2(mediaDi('proteine')) : '—'} unita="%" />
       </div>
       <p className="mb-4 text-xs text-stone-500">
         Il Regolamento richiede almeno 2 prelievi al mese per la carica batterica e almeno 1 al mese per le cellule somatiche.
