@@ -14,6 +14,11 @@ export const PATOLOGIE: { id: string; nome: string; descrizione: string; quarti?
   { id: 'digestiva', nome: 'Problemi digestivi', descrizione: 'Diarrea, acidosi ruminale' },
   { id: 'altro', nome: 'Altro', descrizione: 'Altre patologie' },
 ]
+/** Prezzo del latte predefinito (€/litro) e densità per passare dai kg dei robot ai litri. */
+export const PREZZO_LATTE_PREDEFINITO = 0.55
+export const KG_PER_LITRO = 1.03
+export const euroDaKg = (kg: number, prezzoLitro: number) => (kg / KG_PER_LITRO) * prezzoLitro
+
 export const nomePatologia = (id: string) => PATOLOGIE.find((p) => p.id === id)?.nome ?? id
 
 export interface StimaPerdita {

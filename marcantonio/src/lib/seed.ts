@@ -192,7 +192,7 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 
   return {
-    robotGiorni: [], robotVacche: [], importRobot: [], mandriaDC: [], nomiGruppi: [], casi: [],
+    robotGiorni: [], robotVacche: [], importRobot: [], mandriaDC: [], nomiGruppi: [], casi: [], parametri: [],
     importDC,
     stalle,
     scarichi,
@@ -217,4 +217,4 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 }
 
-export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], mandriaDC: [], nomiGruppi: [], casi: [], robotGiorni: [], robotVacche: [], importRobot: [], messaggi: [] }
+export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], mandriaDC: [], nomiGruppi: [], casi: [], parametri: [], robotGiorni: [], robotVacche: [], importRobot: [], messaggi: [] }

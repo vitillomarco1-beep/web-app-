@@ -179,6 +179,9 @@ export interface GiornoVaccaRobot {
 /** Nome dato a un gruppo DairyComp (id = numero del gruppo). */
 export interface NomeGruppo { id: string; nome: string }
 
+/** Parametro dell'azienda (es. prezzo del latte). */
+export interface Parametro { id: string; valore: number }
+
 export type Severita = 'lieve' | 'moderata' | 'grave'
 
 /** Un caso di malattia registrato per una vacca. */
@@ -210,6 +213,7 @@ export interface Dati {
   mandriaDC: ImportDC[] // ultima lista completa di DairyComp (tutti i gruppi) per la sezione Mandria
   nomiGruppi: NomeGruppo[]
   casi: CasoClinico[]
+  parametri: Parametro[]
   robotGiorni: GiornoRobot[]
   robotVacche: GiornoVaccaRobot[]
   importRobot: ImportRobot[]

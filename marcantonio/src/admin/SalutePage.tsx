@@ -4,9 +4,9 @@ import { HeartPulse, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { CasoClinico, Severita } from '../lib/types'
 import { Campo, Modale, PageHeader, StatTile } from '../components/ui'
-import { PATOLOGIE, nomePatologia, stimaPerdita, type StimaPerdita } from '../lib/salute'
+import { PATOLOGIE, PREZZO_LATTE_PREDEFINITO, euroDaKg, nomePatologia, stimaPerdita, type StimaPerdita } from '../lib/salute'
 import { ultimoImport } from '../lib/dairycomp'
-import { aggiungiGiorni, fmt0, fmt1, fmtData, isoGiorno, nuovoId } from '../lib/format'
+import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno, nuovoId } from '../lib/format'
 
 const SEVERITA: { v: Severita; label: string; cls: string }[] = [
   { v: 'lieve', label: 'Lieve', cls: 'bg-green-50 text-green-800 ring-green-200' },
@@ -20,7 +20,14 @@ const BadgeSev = ({ s }: { s: Severita }) => {
 }
 
 export default function SalutePage() {
-  const { dati, aggiungi, aggiorna, elimina } = useStore()
+  const { dati, aggiungi, aggiorna, elimina, imposta } = useStore()
+  const prezzo = dati.parametri.find((x) => x.id === 'prezzoLatte')?.valore ?? PREZZO_LATTE_PREDEFINITO
+  const [modPrezzo, setModPrezzo] = useState<string | null>(null)
+  const salvaPrezzo = () => {
+    const v = Number((modPrezzo ?? '').replace(',', '.'))
+    if (Number.isFinite(v) && v > 0) imposta('parametri', [...dati.parametri.filter((x) => x.id !== 'prezzoLatte'), { id: 'prezzoLatte', valore: v }])
+    setModPrezzo(null)
+  }
   const location = useLocation()
   const navigate = useNavigate()
   const oggi = isoGiorno()
@@ -77,8 +84,21 @@ export default function SalutePage() {
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatTile etichetta="Casi in corso" valore={fmt0(attivi.length)} unita="vacche" />
         <StatTile etichetta="Casi ultimi 30 giorni" valore={fmt0(dati.casi.filter((c) => c.dataInizio >= da30).length)} unita="casi" />
-        <StatTile etichetta="Latte perso (30 giorni e in corso)" valore={fmt0(perditaRecente)} unita="kg" nota="calo di produzione + latte separato" />
+        <StatTile etichetta="Latte perso (30 giorni e in corso)" valore={fmt0(perditaRecente)} unita="kg" nota={`≈ ${fmtEur(euroDaKg(perditaRecente, prezzo))} · calo + latte separato`} />
         <StatTile etichetta="Vacche coinvolte" valore={fmt0(new Set(casiRecenti.map((c) => c.vacca)).size)} unita="vacche" />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-600">
+        Prezzo del latte:
+        {modPrezzo === null ? (
+          <><b>{fmt2(prezzo)} €/litro</b><button className="btn-link" onClick={() => setModPrezzo(String(prezzo).replace('.', ','))}>modifica</button></>
+        ) : (
+          <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); salvaPrezzo() }}>
+            <input className="input w-24 py-1" inputMode="decimal" autoFocus value={modPrezzo} onChange={(e) => setModPrezzo(e.target.value)} /> €/litro
+            <button className="btn-primary px-3 py-1.5">Salva</button><button type="button" className="btn-link" onClick={() => setModPrezzo(null)}>Annulla</button>
+          </form>
+        )}
+        <span className="text-xs text-stone-400">(i robot misurano in kg: 1 litro ≈ 1,03 kg)</span>
       </div>
 
       {/* Pulsanti delle patologie */}
@@ -97,7 +117,7 @@ export default function SalutePage() {
               </div>
               <div className="mt-2 font-semibold">{p.nome}</div>
               <div className={`text-xs ${sel ? 'text-brand-100' : 'text-stone-500'}`}>{p.descrizione}</div>
-              <div className={`mt-2 text-xs ${sel ? 'text-brand-100' : 'text-stone-600'}`}>{casi.length} casi{perso > 0 && ` · ${fmt0(perso)} kg persi`}</div>
+              <div className={`mt-2 text-xs ${sel ? 'text-brand-100' : 'text-stone-600'}`}>{casi.length} casi{perso > 0 && ` · ${fmt0(perso)} kg · ${fmtEur(euroDaKg(perso, prezzo))}`}</div>
             </button>
           )
         })}
@@ -117,7 +137,7 @@ export default function SalutePage() {
             <thead>
               <tr>
                 <th>Vacca</th>{!patologia && <th>Patologia</th>}<th>Periodo</th><th>Severità</th><th>Trattamento</th>
-                <th className="num">Atteso</th><th className="num">Durante</th><th className="num">Calo</th><th className="num">Separato</th><th className="num">Totale perso</th><th></th>
+                <th className="num">Atteso</th><th className="num">Durante</th><th className="num">Calo</th><th className="num">Separato</th><th className="num">Totale perso</th><th className="num">Danno</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -140,6 +160,7 @@ export default function SalutePage() {
                     <td className="num">{s?.fonte ? `${fmt0(s.calo)} kg` : '—'}</td>
                     <td className="num">{s && s.separato > 0 ? `${fmt0(s.separato)} kg` : '—'}</td>
                     <td className="num font-semibold">{s && (s.fonte || s.separato > 0) ? `${fmt0(s.calo + s.separato)} kg` : '—'}</td>
+                    <td className="num">{s && (s.fonte || s.separato > 0) ? fmtEur(euroDaKg(s.calo + s.separato, prezzo)) : '—'}</td>
                     <td className="whitespace-nowrap text-right">
                       {daEliminare === c.id ? (
                         <span className="text-sm">Eliminare? <button className="btn-danger-link mx-1" onClick={() => { elimina('casi', c.id); setDaEliminare(null) }}>Sì</button><button className="btn-link" onClick={() => setDaEliminare(null)}>No</button></span>
@@ -217,7 +238,8 @@ export default function SalutePage() {
                 <p className="rounded-xl bg-stone-50 p-3 text-sm text-stone-700 sm:col-span-2">
                   Con i dati caricati: atteso <b>{anteprima.media != null ? `${fmt1(anteprima.media)} kg/giorno` : '—'}</b>
                   {anteprima.fonte === 'simili' && ` (da ${anteprima.nSimili} vacche simili)`}, prodotto <b>{anteprima.mediaDurante != null ? fmt1(anteprima.mediaDurante) : '—'}</b> su {anteprima.giorni} giorni
-                  → latte perso <b>{fmt0(anteprima.calo + anteprima.separato)} kg</b>{anteprima.separato > 0 && ` (di cui ${fmt0(anteprima.separato)} separati)`}.
+                  → latte perso <b>{fmt0(anteprima.calo + anteprima.separato)} kg</b>{anteprima.separato > 0 && ` (di cui ${fmt0(anteprima.separato)} separati)`},
+                  circa <b>{fmtEur(euroDaKg(anteprima.calo + anteprima.separato, prezzo))}</b>.
                 </p>
               )}
               <div className="flex justify-end gap-2 sm:col-span-2">
