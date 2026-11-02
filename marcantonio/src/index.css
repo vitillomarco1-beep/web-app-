@@ -4,6 +4,7 @@
 
 html { scroll-behavior: smooth; }
 body { @apply bg-stone-50 text-stone-800 antialiased; }
+.sfondo-app { background: radial-gradient(1200px 600px at 100% -10%, rgba(247,148,29,0.07), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(97,56,70,0.06), transparent 60%), #fffdf8; }
 
 .input {
   @apply w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 export interface Punto { etichetta: string; valore: number; dettaglio?: string }
 
@@ -14,6 +14,7 @@ export default function BarChart({ dati, unita, altezza = 220, formatta = (n: nu
   formatta?: (n: number) => string
 }) {
   const [attivo, setAttivo] = useState<number | null>(null)
+  const idGrad = useId().replace(/:/g, '')
   if (dati.length === 0) return <div className="py-10 text-center text-sm text-stone-400">Nessun dato</div>
 
   const W = 720, H = altezza, mL = 48, mR = 8, mT = 12, mB = 28
@@ -30,9 +31,13 @@ export default function BarChart({ dati, unita, altezza = 220, formatta = (n: nu
   return (
     <div className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`Istogramma, ${dati.length} valori in ${unita}`}>
+        <defs>
+          <linearGradient id={`b${idGrad}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#946073" /><stop offset="100%" stopColor="#613846" /></linearGradient>
+          <linearGradient id={`u${idGrad}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f9a23d" /><stop offset="100%" stopColor="#db7a0c" /></linearGradient>
+        </defs>
         {tacche.map((t) => (
           <g key={t}>
-            <line x1={mL} x2={W - mR} y1={y(t)} y2={y(t)} className="stroke-stone-200" strokeWidth={1} />
+            <line x1={mL} x2={W - mR} y1={y(t)} y2={y(t)} className="stroke-stone-100" strokeWidth={1} strokeDasharray="3 4" />
             <text x={mL - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-stone-500 text-[11px]">{formatta(t)}</text>
           </g>
         ))}
@@ -44,7 +49,7 @@ export default function BarChart({ dati, unita, altezza = 220, formatta = (n: nu
             <g key={i}>
               <path
                 d={`M${x},${y(0)} V${y(0) - h + r} Q${x},${y(0) - h} ${x + r},${y(0) - h} H${x + bw - r} Q${x + bw},${y(0) - h} ${x + bw},${y(0) - h + r} V${y(0)} Z`}
-                className={attivo === null || attivo === i ? 'fill-brand-500' : 'fill-brand-200'}
+                fill={attivo === null || attivo === i ? `url(#${i === dati.length - 1 ? 'u' : 'b'}${idGrad})` : '#e6d0d8'}
               />
               {i % ogniN === 0 && (
                 <text x={x + bw / 2} y={H - 8} textAnchor="middle" className="fill-stone-500 text-[11px]">{d.etichetta}</text>

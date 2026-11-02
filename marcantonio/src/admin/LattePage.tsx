@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { applicaGruppiRobot } from '../lib/gruppi'
 import { Link } from 'react-router-dom'
-import { Upload } from 'lucide-react'
+import { BarChart3, CalendarDays, Gauge, Milk, Tag, Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto, conferma } from '../components/ui'
@@ -40,7 +40,7 @@ export default function LattePage() {
   if (!corrente) {
     return (
       <>
-        <PageHeader titolo="Latte" descrizione="Gruppi e intera mandria, dai dati di DairyComp" />
+        <PageHeader titolo="Latte" icona={BarChart3} descrizione="Gruppi e intera mandria, dai dati di DairyComp" />
         <Vuoto>
           <p>Non ci sono ancora dati di DairyComp.</p>
           <button className="btn-primary mt-4" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>
@@ -124,7 +124,7 @@ export default function LattePage() {
 
   return (
     <>
-      <PageHeader titolo="Latte" descrizione="Gruppi e intera mandria, dai dati di DairyComp"
+      <PageHeader titolo="Latte" icona={BarChart3} descrizione="Gruppi e intera mandria, dai dati di DairyComp"
         azioni={<button className="btn-primary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>} />
 
       {/* Dati di riferimento */}
@@ -140,11 +140,11 @@ export default function LattePage() {
 
       {/* Intera mandria */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={[asciutte ? `${asciutte} asciutte` : '', mandria.lattazioneMedia !== null ? `${fmt0(mandria.primipare)} primipare` : ''].filter(Boolean).join(' · ') || 'nel file importato'} />
-        <StatTile etichetta="DIM medio" valore={n0(mandria.dimMedio)} unita="giorni" nota={<Variazione ora={mandria.dimMedio} prima={mandriaPrima?.dimMedio} unita=" gg" decimali={0} />} />
-        <StatTile etichetta="Latte medio per capo" valore={n1(mandria.latteMedio)} unita="kg/giorno"
+        <StatTile icona={Tag} etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={[asciutte ? `${asciutte} asciutte` : '', mandria.lattazioneMedia !== null ? `${fmt0(mandria.primipare)} primipare` : ''].filter(Boolean).join(' · ') || 'nel file importato'} />
+        <StatTile icona={CalendarDays} tono="arancio" etichetta="DIM medio" valore={n0(mandria.dimMedio)} unita="giorni" nota={<Variazione ora={mandria.dimMedio} prima={mandriaPrima?.dimMedio} unita=" gg" decimali={0} />} />
+        <StatTile icona={Gauge} tono="blu" etichetta="Latte medio per capo" valore={n1(mandria.latteMedio)} unita="kg/giorno"
           nota={latteDaiRobot ? `dai robot, media dal ${fmtData(giorniRobot[0])} al ${fmtData(giorniRobot[giorniRobot.length - 1])}` : <Variazione ora={mandria.latteMedio} prima={mandriaPrima?.latteMedio} unita=" kg" />} />
-        <StatTile etichetta="Latte della mandria" valore={fmt0(mandria.latteTotale)} unita="kg/giorno"
+        <StatTile icona={Milk} tono="verde" etichetta="Latte della mandria" valore={fmt0(mandria.latteTotale)} unita="kg/giorno"
           nota={haGrasso || haProt ? `Grasso ${n2(mandria.grasso)}% · Proteine ${n2(mandria.proteine)}%` : undefined} />
       </div>
 

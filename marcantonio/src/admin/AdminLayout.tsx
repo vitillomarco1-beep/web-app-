@@ -56,7 +56,7 @@ export default function AdminLayout() {
 
   const voceCls = ({ isActive }: { isActive: boolean }) =>
     `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-      isActive ? 'bg-brand-50 text-brand-800 shadow-[inset_3px_0_0] shadow-arancio-500' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'}`
+      isActive ? 'bg-gradient-to-r from-brand-700 to-brand-600 text-white shadow-md shadow-brand-900/15' : 'text-stone-600 hover:bg-brand-50 hover:text-brand-900'}`
 
   const elenco = (chiudi?: () => void) => (
     <nav className="space-y-5">
@@ -68,7 +68,7 @@ export default function AdminLayout() {
               <NavLink key={v.to} to={v.to} end={v.end} className={voceCls} onClick={chiudi}>
                 <v.icona className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
                 <span className="flex-1">{v.label}</span>
-                {!!v.badge && <span className="rounded-full bg-arancio-500 px-2 py-0.5 text-[11px] font-semibold text-brand-900">{v.badge}</span>}
+                {!!v.badge && <span className="rounded-full bg-arancio-400 px-2 py-0.5 text-[11px] font-semibold text-brand-900">{v.badge}</span>}
               </NavLink>
             ))}
           </div>
@@ -87,9 +87,9 @@ export default function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-crema-50 lg:flex">
+    <div className="sfondo-app min-h-screen lg:flex">
       {/* Barra laterale (computer) */}
-      <aside className="hidden border-r border-stone-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col lg:p-4">
+      <aside className="hidden border-r border-stone-200/70 bg-white/80 backdrop-blur lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col lg:p-4">
         <Link to={collaboratore ? `${R}/pesata` : R} className="mb-6 block px-2"><Logo altezza="h-16" /></Link>
         <div className="flex-1 overflow-y-auto">{elenco()}</div>
         {piede}

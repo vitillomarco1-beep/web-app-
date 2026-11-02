@@ -1,29 +1,72 @@
 import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import type { EsitoQualita } from '../lib/qualita'
 
-export function PageHeader({ titolo, descrizione, azioni }: { titolo: string; descrizione?: string; azioni?: ReactNode }) {
+export type Tono = 'brand' | 'arancio' | 'verde' | 'blu' | 'rosso' | 'viola'
+type Icona = LucideIcon
+
+const TONI: Record<Tono, string> = {
+  brand: 'bg-brand-100 text-brand-700',
+  arancio: 'bg-arancio-100 text-arancio-700',
+  verde: 'bg-emerald-100 text-emerald-700',
+  blu: 'bg-sky-100 text-sky-700',
+  rosso: 'bg-rose-100 text-rose-700',
+  viola: 'bg-violet-100 text-violet-700',
+}
+
+export function PageHeader({ titolo, descrizione, azioni, icona: I }: { titolo: string; descrizione?: string; azioni?: ReactNode; icona?: Icona }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-serif text-2xl font-bold text-brand-900 sm:text-3xl">{titolo}</h1>
-        {descrizione && <p className="mt-1 text-sm text-stone-500">{descrizione}</p>}
+      <div className="flex items-center gap-3">
+        {I && <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-md shadow-brand-900/20 sm:flex"><I className="h-6 w-6" strokeWidth={1.8} /></span>}
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-brand-900 sm:text-3xl">{titolo}</h1>
+          {descrizione && <p className="mt-0.5 text-sm text-stone-500">{descrizione}</p>}
+        </div>
       </div>
-      {azioni && <div className="flex gap-2">{azioni}</div>}
+      {azioni && <div className="flex flex-wrap gap-2">{azioni}</div>}
     </div>
   )
 }
 
-export function StatTile({ etichetta, valore, unita, nota }: { etichetta: string; valore: string; unita?: string; nota?: ReactNode }) {
+/** Pastiglia di variazione: verde se sale, rossa se scende (con freccia e testo, mai solo colore). */
+export function Variazione({ valore, suffisso = '%', testo }: { valore: number; suffisso?: string; testo?: string }) {
+  const su = valore >= 0
   return (
-    <div className="card">
-      <div className="text-xs font-semibold uppercase tracking-wide text-stone-500">{etichetta}</div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-3xl font-bold tabular-nums text-stone-900">{valore}</span>
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${su ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+        {su ? '▲' : '▼'} {Math.abs(valore).toLocaleString('it-IT', { maximumFractionDigits: 1 })}{suffisso}
+      </span>
+      {testo && <span>{testo}</span>}
+    </span>
+  )
+}
+
+export function StatTile({ etichetta, valore, unita, nota, icona: I, tono = 'brand' }: { etichetta: string; valore: string; unita?: string; nota?: ReactNode; icona?: Icona; tono?: Tono }) {
+  return (
+    <div className="card relative overflow-hidden">
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-stone-500">{etichetta}</div>
+        {I && <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${TONI[tono]}`}><I className="h-[18px] w-[18px]" strokeWidth={2} /></span>}
+      </div>
+      <div className="mt-1 flex items-baseline gap-1">
+        <span className="font-serif text-3xl font-bold tabular-nums text-stone-900">{valore}</span>
         {unita && <span className="text-sm text-stone-500">{unita}</span>}
       </div>
-      {nota && <div className="mt-1 text-xs text-stone-500">{nota}</div>}
+      {nota && <div className="mt-1.5 text-xs text-stone-500">{nota}</div>}
     </div>
   )
+}
+
+/** Etichetta colorata per un motivo di segnalazione di una vacca. */
+export function MotivoChip({ testo }: { testo: string }) {
+  const t = testo.toLowerCase()
+  const cls = t.startsWith('allarme') ? 'bg-rose-50 text-rose-800 ring-rose-200'
+    : t.startsWith('latte in calo') ? 'bg-arancio-50 text-arancio-800 ring-arancio-200'
+      : t.startsWith('latte separato') ? 'bg-sky-50 text-sky-800 ring-sky-200'
+        : t.startsWith('solo') ? 'bg-violet-50 text-violet-800 ring-violet-200'
+          : 'bg-stone-100 text-stone-700 ring-stone-200'
+  return <span className={`inline-block rounded-lg px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cls}`}>{testo}</span>
 }
 
 const STILE_ESITO: Record<EsitoQualita, { cls: string; icona: string }> = {

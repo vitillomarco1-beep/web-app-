@@ -1,5 +1,5 @@
 import { Fragment, useState, type FormEvent } from 'react'
-import { AlertTriangle, PackagePlus, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, PackagePlus, Pencil, Plus, Trash2, Pill } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { Farmaco } from '../lib/types'
 import { Campo, Modale, PageHeader, StatTile, Vuoto } from '../components/ui'
@@ -44,7 +44,7 @@ export default function FarmaciPage() {
 
   return (
     <>
-      <PageHeader titolo="Farmaci" descrizione="Magazzino dei farmaci: costi, giacenze e utilizzi nei trattamenti"
+      <PageHeader titolo="Farmaci" icona={Pill} descrizione="Magazzino dei farmaci: costi, giacenze e utilizzi nei trattamenti"
         azioni={<button className="btn-primary" onClick={() => setModifica(vuoto())}><Plus className="h-4 w-4" />Nuovo farmaco</button>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">

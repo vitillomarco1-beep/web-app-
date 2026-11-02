@@ -1,25 +1,30 @@
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, ChevronRight, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronRight, Gauge, Milk, Pill, RotateCw, Tag, Upload, type LucideIcon } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { useAuth } from '../lib/auth'
-import { StatTile } from '../components/ui'
+import { MotivoChip } from '../components/ui'
 import BarChart from '../components/BarChart'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, isoGiorno, lunediDi } from '../lib/format'
 import { SOGLIA_FERMO_MIN, daControllare } from '../lib/robot'
 import { applicaGruppiRobot } from '../lib/gruppi'
 import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairycomp'
-import { giorniCaricati } from './CaricaSettimanaPage'
 import { inEsaurimento } from '../lib/salute'
+import { giorniCaricati } from './CaricaSettimanaPage'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
 
-/** Cruscotto "Oggi": solo dati veri (robot, DairyComp, scarichi) e le cose da fare. */
+type Cosa = { testo: string; link: string; tipo: 'carica' | 'avviso' | 'farmaco' }
+const STILE_COSA: Record<Cosa['tipo'], { barra: string; icona: string; I: LucideIcon }> = {
+  carica: { barra: 'bg-brand-600', icona: 'bg-brand-100 text-brand-700', I: Upload },
+  avviso: { barra: 'bg-arancio-500', icona: 'bg-arancio-100 text-arancio-700', I: AlertTriangle },
+  farmaco: { barra: 'bg-rose-500', icona: 'bg-rose-100 text-rose-700', I: Pill },
+}
+
+/** Cruscotto "Oggi": solo dati veri (robot, DairyComp, scarichi, farmaci) e le cose da fare. */
 export default function DashboardPage() {
   const { dati } = useStore()
-  const { sessione } = useAuth()
   const oggi = isoGiorno()
   const lunScorso = aggiungiGiorni(lunediDi(oggi), -7)
-  const dataLunga = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+  const dataLunga = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
   // ---- Cose da fare
   const gruppiDaCaricare = dati.stalle.filter((s) => s.robot).sort((a, b) => a.numero - b.numero).filter((s) => giorniCaricati(dati.robotGiorni, s, lunScorso) < 7)
@@ -47,42 +52,83 @@ export default function DashboardPage() {
   const gruppi = gruppiDC
     ? perGruppo(gruppiDC.animali.filter(inLattazione)).map(([g, a]) => ({ g, r: riepilogo(a), stalla: dati.stalle.find((s) => s.gruppoDairyComp === g) }))
     : []
+  const maxLatte = Math.max(1, ...gruppi.map((x) => x.r.latteMedio ?? 0))
 
-  const farmaciInEsaurimento = dati.farmaci.filter(inEsaurimento)
-  const cose: { testo: string; link: string; tipo: 'carica' | 'avviso' }[] = [
+  const cose: Cosa[] = [
     ...(gruppiDaCaricare.length ? [{ testo: `Carica i file dei robot della settimana scorsa: mancano ${gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     ...(daSistemare.length ? [{ testo: `${daSistemare.length} vacche da sistemare in DairyComp (munte dal robot di un altro gruppo)`, link: '/area-riservata/latte', tipo: 'avviso' as const }] : []),
-    ...(robotFermi.map((g) => ({ testo: `Robot ${g.robot} fermo ${Math.floor(g.pausaMaxMin / 60)} h ${String(g.pausaMaxMin % 60).padStart(2, '0')} dalle ${g.pausaDalle} del ${fmtData(g.data)}`, link: '/area-riservata/mungiture', tipo: 'avviso' as const }))),
-    ...farmaciInEsaurimento.map((f) => ({
-      testo: f.giacenza <= 0 ? `Farmaco finito: ${f.nome}` : `Farmaco in esaurimento: ${f.nome} (restano ${Math.round(f.giacenza * 10) / 10} ${f.unita})`,
-      link: '/area-riservata/farmaci', tipo: 'avviso' as const,
-    })),
+    ...robotFermi.map((g) => ({ testo: `Robot ${g.robot} fermo ${Math.floor(g.pausaMaxMin / 60)} h ${String(g.pausaMaxMin % 60).padStart(2, '0')} dalle ${g.pausaDalle} del ${fmtData(g.data)}`, link: '/area-riservata/mungiture', tipo: 'avviso' as const })),
+    ...dati.farmaci.filter(inEsaurimento).map((f) => ({ testo: f.giacenza <= 0 ? `Farmaco finito: ${f.nome}` : `Farmaco in esaurimento: ${f.nome} (restano ${Math.round(f.giacenza * 10) / 10} ${f.unita})`, link: '/area-riservata/farmaci', tipo: 'farmaco' as const })),
     ...(scarichiDaVerificare ? [{ testo: 'Verifica gli scarichi di razione della settimana scorsa', link: '/area-riservata/alimentazione', tipo: 'avviso' as const }] : []),
   ]
 
+  const variazione = media ? (kg / media - 1) * 100 : null
+  const kpi = giorno ? [
+    { etichetta: 'Latte munto', valore: fmt0(kg), unita: 'kg', I: Milk, extra: variazione !== null ? `${variazione >= 0 ? '▲' : '▼'} ${fmt1(Math.abs(variazione))}% sulla media` : '' },
+    { etichetta: 'Vacche munte', valore: fmt0(vacche), unita: 'capi', I: Tag, extra: `${delGiorno.length} robot` },
+    { etichetta: 'Latte per vacca', valore: vacche ? fmt1(kg / vacche) : '—', unita: 'kg', I: Gauge, extra: mungiture ? `${fmt1(kg / mungiture)} kg a mungitura` : '' },
+    { etichetta: 'Mungiture per vacca', valore: vacche ? fmt2(mungiture / vacche) : '—', unita: 'al giorno', I: RotateCw, extra: `${fmt0(mungiture)} mungiture` },
+  ] : []
+
   return (
     <>
-      <div className="mb-6">
-        <p className="text-sm capitalize text-stone-500">{dataLunga}</p>
-        <h1 className="font-serif text-3xl font-bold text-brand-900">{saluto()}{sessione?.utente ? '' : ''}</h1>
-      </div>
+      {/* Benvenuto */}
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-800 via-brand-700 to-brand-900 p-6 text-white shadow-xl shadow-brand-900/20 sm:p-8">
+        <svg className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 opacity-[0.08]" viewBox="0 0 200 200" aria-hidden>
+          <circle cx="100" cy="100" r="98" fill="none" stroke="white" strokeWidth="2" />
+          <circle cx="100" cy="100" r="70" fill="none" stroke="white" strokeWidth="2" />
+          <circle cx="100" cy="100" r="42" fill="none" stroke="white" strokeWidth="2" />
+        </svg>
+        <svg className="pointer-events-none absolute inset-x-0 bottom-0 w-full text-white/[0.06]" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden>
+          <path fill="currentColor" d="M0 80c240 40 480 40 720 0s480-40 720 0v40H0z" />
+        </svg>
+        <div className="relative">
+          <p className="text-sm capitalize text-brand-200">{dataLunga}</p>
+          <h1 className="mt-1 font-serif text-3xl font-bold sm:text-4xl">{saluto()}</h1>
+          <p className="mt-1 text-brand-100">
+            {giorno ? <>Ecco la situazione delle mungiture del <b className="text-white">{fmtData(giorno)}</b>.</> : 'Carica i file dei robot per vedere la situazione della stalla.'}
+            {cose.length > 0 && <> Hai <b className="text-arancio-300">{cose.length} {cose.length === 1 ? 'cosa' : 'cose'} da fare</b>.</>}
+          </p>
+          {kpi.length > 0 && (
+            <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {kpi.map((k) => (
+                <div key={k.etichetta} className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-100">{k.etichetta}</span>
+                    <k.I className="h-4 w-4 shrink-0 text-arancio-300" />
+                  </div>
+                  <div className="mt-1.5 flex items-baseline gap-1">
+                    <span className="font-serif text-3xl font-bold tabular-nums">{k.valore}</span>
+                    <span className="text-sm text-brand-100">{k.unita}</span>
+                  </div>
+                  {k.extra && <div className="mt-0.5 text-xs text-brand-200">{k.extra}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Cose da fare */}
-      <section className="card mb-6">
-        <h2 className="font-semibold">Da fare</h2>
+      <section className="mb-6">
+        <h2 className="mb-3 font-serif text-xl font-bold text-brand-900">Da fare</h2>
         {cose.length === 0 ? (
-          <p className="mt-3 flex items-center gap-2 text-sm text-green-800"><CheckCircle2 className="h-5 w-5" />Tutto in ordine: nessuna attività in sospeso.</p>
+          <div className="card flex items-center gap-3 text-emerald-800"><CheckCircle2 className="h-6 w-6" />Tutto in ordine: nessuna attività in sospeso.</div>
         ) : (
-          <ul className="mt-2 divide-y divide-stone-100">
-            {cose.map((c) => (
-              <li key={c.testo}>
-                <Link to={c.link} className="flex items-center gap-3 py-3 text-sm hover:text-brand-800">
-                  {c.tipo === 'carica' ? <Upload className="h-5 w-5 shrink-0 text-brand-600" /> : <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />}
-                  <span className="flex-1">{c.testo}</span>
-                  <ChevronRight className="h-4 w-4 text-stone-400" />
-                </Link>
-              </li>
-            ))}
+          <ul className="grid gap-3 lg:grid-cols-2">
+            {cose.map((c) => {
+              const st = STILE_COSA[c.tipo]
+              return (
+                <li key={c.testo}>
+                  <Link to={c.link} className="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-white p-4 pl-5 text-sm shadow-sm ring-1 ring-stone-200 transition hover:shadow-md hover:ring-brand-200">
+                    <span className={`absolute inset-y-0 left-0 w-1.5 ${st.barra}`} />
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${st.icona}`}><st.I className="h-[18px] w-[18px]" /></span>
+                    <span className="flex-1 font-medium text-stone-800">{c.testo}</span>
+                    <ChevronRight className="h-4 w-4 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600" />
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
@@ -93,69 +139,79 @@ export default function DashboardPage() {
           <Link to="/area-riservata/carica" className="btn-primary mt-4"><Upload className="h-4 w-4" />Carica la settimana</Link>
         </section>
       ) : (
-        <>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone-500">Mungiture del {fmtData(giorno)}</h2>
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <StatTile etichetta="Latte munto" valore={fmt0(kg)} unita="kg"
-              nota={media ? `${kg >= media ? '▲' : '▼'} ${fmt1(Math.abs((kg / media - 1) * 100))}% sulla media di ${precedenti.length} giorni` : undefined} />
-            <StatTile etichetta="Vacche munte" valore={fmt0(vacche)} unita="capi" nota={`${delGiorno.length} robot`} />
-            <StatTile etichetta="Latte per vacca" valore={vacche ? fmt1(kg / vacche) : '—'} unita="kg" />
-            <StatTile etichetta="Mungiture per vacca" valore={vacche ? fmt2(mungiture / vacche) : '—'} unita="al giorno" />
-          </div>
-
-          <div className="mt-6 grid gap-6 xl:grid-cols-5">
-            <section className="card xl:col-span-2">
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 text-amber-600" />Vacche da controllare</h2>
-                <Link to="/area-riservata/mungiture" className="btn-link">Tutte</Link>
-              </div>
-              {segnalazioni.length === 0 ? (
-                <p className="mt-4 flex items-center gap-2 text-sm text-green-800"><CheckCircle2 className="h-5 w-5" />Nessuna vacca da segnalare</p>
-              ) : (
-                <ul className="mt-2 divide-y divide-stone-100 text-sm">
-                  {segnalazioni.slice(0, 6).map((s) => (
-                    <li key={s.vacca} className="py-2">
-                      <div className="flex justify-between"><b>Vacca {s.vacca}</b><span className="text-xs text-stone-500">{s.robot}</span></div>
-                      <div className="text-stone-600">{s.motivi.join(' · ')}</div>
-                    </li>
-                  ))}
-                  {segnalazioni.length > 6 && <li className="pt-2 text-xs text-stone-500">e altre {segnalazioni.length - 6}…</li>}
-                </ul>
-              )}
-            </section>
-            <section className="card xl:col-span-3">
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold">Latte munto al giorno</h2>
-                <Link to="/area-riservata/mungiture" className="btn-link">Dettagli</Link>
-              </div>
-              <div className="mt-4"><BarChart unita="kg" formatta={fmt0} dati={serie} /></div>
-            </section>
-          </div>
-        </>
+        <div className="grid gap-6 xl:grid-cols-5">
+          <section className="card xl:col-span-2">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-700"><AlertTriangle className="h-4 w-4" /></span>
+                Vacche da controllare
+                {segnalazioni.length > 0 && <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white">{segnalazioni.length}</span>}
+              </h2>
+              <Link to="/area-riservata/mungiture" className="btn-link">Tutte</Link>
+            </div>
+            {segnalazioni.length === 0 ? (
+              <p className="mt-4 flex items-center gap-2 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5" />Nessuna vacca da segnalare</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {segnalazioni.slice(0, 6).map((s) => (
+                  <li key={s.vacca} className="flex gap-3 rounded-xl bg-stone-50 p-3">
+                    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-white font-serif font-bold leading-none text-brand-800 ring-1 ring-stone-200">
+                      <span className="font-sans text-[9px] font-medium uppercase text-stone-400">vacca</span>{s.vacca}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap gap-1">{s.motivi.map((m) => <MotivoChip key={m} testo={m} />)}</div>
+                      <div className="mt-1 text-[11px] text-stone-400">robot {s.robot}</div>
+                    </div>
+                  </li>
+                ))}
+                {segnalazioni.length > 6 && <li className="pt-1 text-center text-xs text-stone-500">e altre {segnalazioni.length - 6}…</li>}
+              </ul>
+            )}
+          </section>
+          <section className="card xl:col-span-3">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-700"><Milk className="h-4 w-4" /></span>
+                Latte munto al giorno
+              </h2>
+              <Link to="/area-riservata/mungiture" className="btn-link">Dettagli</Link>
+            </div>
+            <div className="mt-4"><BarChart unita="kg" formatta={fmt0} dati={serie} altezza={240} /></div>
+            <p className="mt-1 text-xs text-stone-400">In arancio l'ultimo giorno completo.</p>
+          </section>
+        </div>
       )}
 
       {/* Gruppi */}
       {gruppi.length > 0 && (
-        <section className="card mt-6 overflow-x-auto p-0">
-          <div className="flex items-center justify-between p-5 pb-2">
-            <h2 className="font-semibold">Gruppi in lattazione</h2>
+        <section className="mt-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-serif text-xl font-bold text-brand-900">Gruppi in lattazione</h2>
             <Link to="/area-riservata/latte" className="btn-link">Gruppi e mandria</Link>
           </div>
-          <table className="table">
-            <thead><tr><th>Gruppo</th><th className="num">Vacche</th><th className="num">DIM medio</th><th className="num">Latte/vacca</th><th className="num">Primipare</th></tr></thead>
-            <tbody>
-              {gruppi.map(({ g, r, stalla }) => (
-                <tr key={String(g)}>
-                  <td><b>Gruppo {g ?? '—'}</b>{stalla?.robot && <span className="ml-2 text-xs text-stone-500">{stalla.robot.numero} × {stalla.robot.marca}</span>}</td>
-                  <td className="num">{r.capi}</td>
-                  <td className="num">{r.dimMedio !== null ? fmt0(r.dimMedio) : '—'}</td>
-                  <td className="num">{r.latteMedio !== null ? `${fmt1(r.latteMedio)} kg` : '—'}</td>
-                  <td className="num">{r.lattazioneMedia !== null ? `${fmt0((r.primipare / r.capi) * 100)}%` : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="px-5 pb-4 pt-2 text-xs text-stone-500">Lista DairyComp del {fmtData(listaReale!.data)}; latte medio dai robot.</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {gruppi.map(({ g, r, stalla }) => (
+              <Link key={String(g)} to="/area-riservata/latte" className="card block transition hover:shadow-md">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-serif text-lg font-bold text-brand-900">Gruppo {g ?? '—'}</span>
+                  {stalla?.robot && <span className="rounded-full bg-arancio-100 px-2 py-0.5 text-[11px] font-semibold text-arancio-800">{stalla.robot.numero} × {stalla.robot.marca}</span>}
+                </div>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="font-serif text-3xl font-bold tabular-nums text-stone-900">{r.latteMedio !== null ? fmt1(r.latteMedio) : '—'}</span>
+                  <span className="text-sm text-stone-500">kg/vacca</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-100">
+                  <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700" style={{ width: `${((r.latteMedio ?? 0) / maxLatte) * 100}%` }} />
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div><div className="font-semibold text-stone-800">{r.capi}</div><div className="text-stone-500">vacche</div></div>
+                  <div><div className="font-semibold text-stone-800">{r.dimMedio !== null ? fmt0(r.dimMedio) : '—'}</div><div className="text-stone-500">DIM medio</div></div>
+                  <div><div className="font-semibold text-stone-800">{r.lattazioneMedia !== null ? `${fmt0((r.primipare / r.capi) * 100)}%` : '—'}</div><div className="text-stone-500">primipare</div></div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-stone-500">Lista DairyComp del {fmtData(listaReale!.data)}; latte medio dai robot.</p>
         </section>
       )}
     </>

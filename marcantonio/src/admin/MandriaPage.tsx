@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Search, Upload, X } from 'lucide-react'
+import { Pencil, Search, Upload, X, Tag } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
@@ -27,7 +27,7 @@ export default function MandriaPage() {
   if (!lista) {
     return (
       <>
-        <PageHeader titolo="Mandria" descrizione="Tutti gli animali presenti, divisi per gruppo" />
+        <PageHeader titolo="Mandria" icona={Tag} descrizione="Tutti gli animali presenti, divisi per gruppo" />
         <Vuoto>
           <p>Carica la lista completa di DairyComp (tutti i gruppi) per vedere la mandria.</p>
           <button className="btn-primary mt-4" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>
@@ -87,7 +87,7 @@ export default function MandriaPage() {
 
   return (
     <>
-      <PageHeader titolo="Mandria" descrizione={`Tutti gli animali presenti · lista DairyComp del ${fmtData(lista.data)}`}
+      <PageHeader titolo="Mandria" icona={Tag} descrizione={`Tutti gli animali presenti · lista DairyComp del ${fmtData(lista.data)}`}
         azioni={<button className="btn-primary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">

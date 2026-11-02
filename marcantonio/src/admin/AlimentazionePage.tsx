@@ -1,3 +1,4 @@
+import { Wheat } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Scarico, Stalla, Turno } from '../lib/types'
@@ -155,7 +156,7 @@ export default function AlimentazionePage() {
   if (stalle.length === 0) {
     return (
       <>
-        <PageHeader titolo="Alimentazione" descrizione="Razione scaricata dal carro miscelatore, mattina e sera, per stalla" />
+        <PageHeader titolo="Alimentazione" icona={Wheat} descrizione="Razione scaricata dal carro miscelatore, mattina e sera, per stalla" />
         <Vuoto>
           <p>Non ci sono ancora stalle configurate.</p>
           <button className="btn-primary mt-4" onClick={creaTreStalle}>Crea le stalle 1, 2 e 3</button>
@@ -174,7 +175,7 @@ export default function AlimentazionePage() {
 
   return (
     <>
-      <PageHeader titolo="Alimentazione" descrizione="Razione scaricata dal carro miscelatore (peso tal quale), mattina e sera, per stalla" />
+      <PageHeader titolo="Alimentazione" icona={Wheat} descrizione="Razione scaricata dal carro miscelatore (peso tal quale), mattina e sera, per stalla" />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile etichetta={ultimoCompleto ? `Razione scaricata il ${fmtData(ultimoCompleto)}` : 'Razione scaricata'}

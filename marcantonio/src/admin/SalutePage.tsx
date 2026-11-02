@@ -103,7 +103,7 @@ export default function SalutePage() {
 
   return (
     <>
-      <PageHeader titolo="Salute" descrizione="Patologie, trattamenti e latte perso per ogni vacca"
+      <PageHeader titolo="Salute" icona={HeartPulse} descrizione="Patologie, trattamenti e latte perso per ogni vacca"
         azioni={<button className="btn-primary" onClick={() => setModifica(nuovo(patologia ?? 'mastite'))}><Plus className="h-4 w-4" />Registra un caso</button>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

@@ -78,7 +78,7 @@ export default function CaricaSettimanaPage() {
 
   return (
     <>
-      <PageHeader titolo="Carica la settimana" descrizione="Ogni lunedì: i file dei robot con le mungiture della settimana precedente" />
+      <PageHeader titolo="Carica la settimana" icona={FileUp} descrizione="Ogni lunedì: i file dei robot con le mungiture della settimana precedente" />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <button className="btn-secondary px-3" onClick={() => { setLunedi(aggiungiGiorni(lunedi, -7)); setScelti({}) }} aria-label="Settimana precedente">‹</button>

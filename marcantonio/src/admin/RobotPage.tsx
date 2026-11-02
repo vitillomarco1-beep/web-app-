@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, Eye, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Eye, Gauge, Milk, RotateCw, Tag, Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { PageHeader, StatTile, Vuoto } from '../components/ui'
+import { MotivoChip, PageHeader, StatTile, Vuoto } from '../components/ui'
 import BarChart from '../components/BarChart'
 import ImportRobot from '../components/ImportRobot'
 import { SOGLIA_FERMO_MIN, daControllare } from '../lib/robot'
@@ -34,7 +34,7 @@ export default function RobotPage() {
   if (!giorno) {
     return (
       <>
-        <PageHeader titolo="Mungiture robot" descrizione="Dati dei robot di mungitura" />
+        <PageHeader titolo="Mungiture robot" icona={Milk} descrizione="Dati dei robot di mungitura" />
         <Vuoto>
           <p>Non ci sono ancora dati dei robot.</p>
           <button className="btn-primary mt-4" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DeLaval</button>
@@ -79,7 +79,7 @@ export default function RobotPage() {
 
   return (
     <>
-      <PageHeader titolo="Mungiture robot" descrizione="Dati dei robot di mungitura, giorno per giorno"
+      <PageHeader titolo="Mungiture robot" icona={Milk} descrizione="Dati dei robot di mungitura, giorno per giorno"
         azioni={<>
           <button className="btn-secondary" onClick={() => setImporta(true)}>Importa un file</button>
           <Link to="/area-riservata/carica" className="btn-primary"><Upload className="h-4 w-4" />Carica la settimana</Link>
@@ -117,11 +117,11 @@ export default function RobotPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta={`Latte del ${fmtData(giorno)}`} valore={fmt0(kg)} unita="kg"
+        <StatTile icona={Milk} etichetta={`Latte del ${fmtData(giorno)}`} valore={fmt0(kg)} unita="kg"
           nota={completo && mediaKg ? `${kg >= mediaKg ? '▲' : '▼'} ${fmt1(Math.abs((kg / mediaKg - 1) * 100))}% sulla media di ${precedenti.length} giorni` : completo ? '—' : `fino alle ${oraFine}`} />
-        <StatTile etichetta="Vacche munte" valore={fmt0(nVacche)} unita="capi" nota={`${fmt0(mungiture)} mungiture`} />
-        <StatTile etichetta="Mungiture per vacca" valore={nVacche ? fmt2(mungiture / nVacche) : '—'} unita="al giorno" nota={completo ? undefined : 'giorno in corso'} />
-        <StatTile etichetta="Latte per vacca" valore={nVacche ? fmt1(kg / nVacche) : '—'} unita="kg" nota={nVacche ? `${fmt1(kg / Math.max(1, mungiture))} kg per mungitura` : undefined} />
+        <StatTile icona={Tag} tono="arancio" etichetta="Vacche munte" valore={fmt0(nVacche)} unita="capi" nota={`${fmt0(mungiture)} mungiture`} />
+        <StatTile icona={RotateCw} tono="verde" etichetta="Mungiture per vacca" valore={nVacche ? fmt2(mungiture / nVacche) : '—'} unita="al giorno" nota={completo ? undefined : 'giorno in corso'} />
+        <StatTile icona={Gauge} tono="blu" etichetta="Latte per vacca" valore={nVacche ? fmt1(kg / nVacche) : '—'} unita="kg" nota={nVacche ? `${fmt1(kg / Math.max(1, mungiture))} kg per mungitura` : undefined} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-5">
@@ -140,7 +140,7 @@ export default function RobotPage() {
                     <span className="text-xs text-stone-500">{s.robot} · <Link to="/area-riservata/salute" state={{ vacca: s.vacca }} className="font-medium text-brand-700 hover:underline">Registra caso</Link></span>
                   </div>
                   <ul className="mt-1 space-y-0.5 text-sm text-stone-700">
-                    {s.motivi.map((m) => <li key={m} className="flex gap-1.5"><span className="text-amber-600">•</span>{m}</li>)}
+                    <li className="flex flex-wrap gap-1">{s.motivi.map((m) => <MotivoChip key={m} testo={m} />)}</li>
                   </ul>
                 </li>
               ))}
