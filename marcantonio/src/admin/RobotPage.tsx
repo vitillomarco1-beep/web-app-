@@ -24,7 +24,11 @@ export default function RobotPage() {
   const giorni = useMemo(() => [...new Set(robotGiorni.map((g) => g.data))].sort(), [robotGiorni])
   const ultimoCompleto = [...giorni].reverse().find((d) => robotGiorni.some((g) => g.data === d && g.completo))
   const giorno = scelto && giorni.includes(scelto) ? scelto : ultimoCompleto ?? giorni[giorni.length - 1]
-  const robots = [...new Set(robotGiorni.map((g) => g.robot))].sort()
+  const [filtroStalla, setFiltroStalla] = useState<string>('tutte')
+  const stalleRobot = dati.stalle.filter((s) => s.robot?.nomi?.length).sort((a, b) => a.numero - b.numero)
+  const stallaFiltro = stalleRobot.find((s) => s.id === filtroStalla)
+  const inFiltro = (robot: string) => !stallaFiltro || !!stallaFiltro.robot?.nomi?.includes(robot)
+  const robots = [...new Set(robotGiorni.map((g) => g.robot))].filter(inFiltro).sort()
   const stallaDi = (robot: string) => dati.stalle.find((s) => s.robot?.nomi?.includes(robot))
 
   if (!giorno) {
@@ -40,31 +44,31 @@ export default function RobotPage() {
     )
   }
 
-  const delGiorno = robotGiorni.filter((g) => g.data === giorno).sort((a, b) => a.robot.localeCompare(b.robot))
+  const delGiorno = robotGiorni.filter((g) => g.data === giorno && inFiltro(g.robot)).sort((a, b) => a.robot.localeCompare(b.robot))
   const completo = delGiorno.every((g) => g.completo)
   const oraFine = delGiorno.reduce((m, g) => (g.oraUltima > m ? g.oraUltima : m), '')
-  const vaccheGiorno = robotVacche.filter((v) => v.data === giorno && v.mungiture > 0)
+  const vaccheGiorno = robotVacche.filter((v) => v.data === giorno && v.mungiture > 0 && inFiltro(v.robot))
   const kg = delGiorno.reduce((s, g) => s + g.kg, 0)
   const mungiture = delGiorno.reduce((s, g) => s + g.mungiture, 0)
   const nVacche = vaccheGiorno.length
 
   // media dei 7 giorni completi precedenti
   const precedenti = giorni.filter((d) => d < giorno && robotGiorni.some((g) => g.data === d && g.completo)).slice(-7)
-  const kgGiorno = (d: string) => robotGiorni.filter((g) => g.data === d).reduce((s, g) => s + g.kg, 0)
+  const kgGiorno = (d: string) => robotGiorni.filter((g) => g.data === d && inFiltro(g.robot)).reduce((s, g) => s + g.kg, 0)
   const mediaKg = precedenti.length ? precedenti.reduce((s, d) => s + kgGiorno(d), 0) / precedenti.length : null
   const mediaVacca = (vacca: string) => {
     const v = robotVacche.filter((x) => x.vacca === vacca && precedenti.includes(x.data))
     return v.length ? v.reduce((s, x) => s + x.kg, 0) / v.length : null
   }
 
-  const segnalazioni = daControllare(robotVacche, robotGiorni, giorno)
+  const segnalazioni = daControllare(robotVacche.filter((v) => inFiltro(v.robot)), robotGiorni.filter((g) => inFiltro(g.robot)), giorno)
   const urgenti = segnalazioni.filter((s) => s.gravita >= 2)
   const occhio = segnalazioni.filter((s) => s.gravita < 2)
 
   // grafico
   const ultimi = giorni.slice(-14)
   const serie = ultimi.map((d) => {
-    const gg = robotGiorni.filter((g) => g.data === d && (robotGrafico === 'tutti' || g.robot === robotGrafico))
+    const gg = robotGiorni.filter((g) => g.data === d && inFiltro(g.robot) && (robotGrafico === 'tutti' || g.robot === robotGrafico))
     return { d, kg: gg.reduce((s, g) => s + g.kg, 0), completo: gg.every((g) => g.completo) }
   })
 
@@ -97,6 +101,18 @@ export default function RobotPage() {
         <p className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-200">
           ! I dati di questo giorno arrivano fino alle {oraFine}: i totali sono parziali.
         </p>
+      )}
+
+      {stalleRobot.length > 1 && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-stone-500">Gruppo:</span>
+          {[{ id: 'tutte', label: 'Tutti' }, ...stalleRobot.map((s) => ({ id: s.id, label: `Gruppo ${s.gruppoDairyComp ?? s.numero}` }))].map((x) => (
+            <button key={x.id} onClick={() => { setFiltroStalla(x.id); setRobotGrafico('tutti') }}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${filtroStalla === x.id ? 'bg-brand-700 text-white' : 'bg-white ring-1 ring-stone-200 hover:bg-stone-50'}`}>
+              {x.label}
+            </button>
+          ))}
+        </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -202,6 +218,42 @@ export default function RobotPage() {
           </section>
         </div>
       </div>
+
+      {/* Confronto tra gruppi */}
+      {!stallaFiltro && stalleRobot.length > 1 && (
+        <section className="card mt-6 overflow-x-auto p-0">
+          <h2 className="p-5 pb-2 font-semibold">Confronto tra gruppi · {fmtData(giorno)}</h2>
+          <table className="table">
+            <thead>
+              <tr><th>Gruppo</th><th>Robot</th><th className="num">Vacche</th><th className="num">Mungiture/vacca</th><th className="num">Latte (kg)</th><th className="num">kg/vacca</th><th className="num">kg/robot</th><th className="num">Da controllare</th></tr>
+            </thead>
+            <tbody>
+              {stalleRobot.map((s) => {
+                const nomi = s.robot!.nomi!
+                const gg = robotGiorni.filter((g) => g.data === giorno && nomi.includes(g.robot))
+                const vv = robotVacche.filter((v) => v.data === giorno && v.mungiture > 0 && nomi.includes(v.robot))
+                const kgS = gg.reduce((t, g) => t + g.kg, 0), mS = gg.reduce((t, g) => t + g.mungiture, 0)
+                const daC = daControllare(robotVacche.filter((v) => nomi.includes(v.robot)), robotGiorni.filter((g) => nomi.includes(g.robot)), giorno).filter((x) => x.gravita >= 2).length
+                return (
+                  <tr key={s.id} className="cursor-pointer" onClick={() => setFiltroStalla(s.id)}>
+                    <td className="whitespace-nowrap"><b>Gruppo {s.gruppoDairyComp ?? '—'}</b> <span className="text-xs text-stone-500">stalla {s.numero}</span></td>
+                    <td className="text-stone-600">{nomi.join(', ')}</td>
+                    <td className="num">{vv.length || '—'}</td>
+                    <td className="num">{vv.length ? fmt2(mS / vv.length) : '—'}</td>
+                    <td className="num font-semibold">{kgS ? fmt0(kgS) : '—'}</td>
+                    <td className="num">{vv.length ? fmt1(kgS / vv.length) : '—'}</td>
+                    <td className="num">{kgS ? fmt0(kgS / nomi.length) : '—'}</td>
+                    <td className={`num ${daC ? 'font-semibold text-amber-700' : 'text-stone-400'}`}>{gg.length ? daC : '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {stalleRobot.length < dati.stalle.filter((s) => s.robot).length && (
+            <p className="px-5 pb-4 pt-2 text-xs text-stone-500">I gruppi compaiono qui dopo la prima importazione dei loro file.</p>
+          )}
+        </section>
+      )}
 
       {/* Vacche del giorno */}
       <section className="card mt-6 overflow-x-auto p-0">
