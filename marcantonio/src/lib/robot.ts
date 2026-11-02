@@ -19,9 +19,10 @@ export interface Mungitura {
   allarmeAmd: boolean
   separato: boolean
   sangueMax: number | null
+  dim?: number | null // giorni di lattazione, se il file li riporta (Lely)
 }
 
-export interface FileRobot { fonte: 'DeLaval'; mungiture: Mungitura[]; scartate: number }
+export interface FileRobot { fonte: 'DeLaval' | 'Lely'; mungiture: Mungitura[]; scartate: number }
 
 const num = (s: string | undefined) => {
   const t = (s ?? '').trim()
@@ -104,6 +105,58 @@ function pausaPiuLunga(ore: string[], giornoCompleto: boolean) {
   return { pausaMaxMin: max, pausaDalle: hhmm(dalle) }
 }
 
+/** Riconosce il formato (DeLaval DelPro o Lely Horizon) e legge il file. */
+export function leggiFileRobot(testo: string): FileRobot {
+  const inizio = testo.replace(/^\uFEFF/, '').slice(0, 3000).toLowerCase()
+  if (inizio.includes('numero vacca') && inizio.includes('resa di mungitura')) return leggiLely(testo)
+  return leggiDeLaval(testo)
+}
+
+/** Export Lely Horizon, rapporto "Visite di mungitura" (modello Visita vacca – storico). */
+export function leggiLely(testo: string): FileRobot {
+  const linee = testo.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n')
+  const iNomi = linee.findIndex((l) => /numero vacca/i.test(l) && /resa di mungitura/i.test(l))
+  if (iNomi < 0) throw new Error('Non sembra un export delle visite di mungitura Lely (manca "Numero vacca").')
+  const sep = linee[iNomi].includes(';') ? ';' : ','
+  const nomi = separaCsv(linee[iNomi], sep).map((x) => x.toLowerCase().trim())
+  const col = (...alias: string[]) => nomi.findIndex((n) => alias.some((a) => n.startsWith(a)))
+  const c = {
+    vacca: col('numero vacca'), robot: col('robot'), ora: col('data e ora'), kg: col('resa di mungitura'),
+    esito: col('risultato'), dim: col('giorni latt'), destinazione: col('destinazione del latte'),
+  }
+  // tempi di mungitura per quarto: le quattro colonne AS, AD, PS, PD (i quarti si mungono in parallelo)
+  const quarti = ['as', 'ad', 'ps', 'pd'].map((q) => nomi.indexOf(q)).filter((i) => i >= 0)
+  const mmss = (s: string | undefined) => { const p = (s ?? '').split(':').map(Number); return p.length === 2 && p.every(Number.isFinite) ? p[0] * 60 + p[1] : 0 }
+  const mungiture: Mungitura[] = []
+  let scartate = 0
+  for (const l of linee.slice(iNomi + 1)) {
+    if (!l.trim()) continue
+    const r = separaCsv(l, sep)
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/.exec(r[c.ora] ?? '') ?? /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/.exec(r[c.ora] ?? '')
+    if (!m || !r[c.vacca]) { scartate++; continue }
+    const iso = m[1].length === 4 ? `${m[1]}-${m[2]}-${m[3]}` : `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+    const kg = Number((r[c.kg] ?? '').replace(',', '.')) || 0
+    const esito = (r[c.esito] ?? '').toLowerCase()
+    const destinazione = (r[c.destinazione] ?? '').toLowerCase()
+    mungiture.push({
+      data: iso, ora: `${m[4].padStart(2, '0')}:${m[5]}`,
+      vacca: r[c.vacca].trim(), gruppo: '', robot: r[c.robot] || '—',
+      azione: kg > 0 ? 'Mungitura' : esito.startsWith('avvenuto') ? 'Mungitura' : 'Non riuscita',
+      durataSec: Math.max(0, ...quarti.map((i) => mmss(r[i]))),
+      kg,
+      kickOff: false, // non presente nell'export Lely
+      incompleta: esito.includes('tempi morti'),
+      capezzoliNonTrovati: esito.includes('tentativi di collegamento'),
+      allarmeAmd: false, // l'indice mastiti di Lely (MDi) non è nell'export
+      separato: !!destinazione && !destinazione.startsWith('linea latte'),
+      sangueMax: null,
+      dim: c.dim >= 0 && r[c.dim] !== '' ? Number(r[c.dim]) : null,
+    })
+  }
+  if (!mungiture.length) throw new Error('Nessuna visita trovata nel file.')
+  return { fonte: 'Lely', mungiture, scartate }
+}
+
 const munta = (m: Mungitura) => /^mungitura/i.test(m.azione) && m.kg > 0
 
 /** Riepiloghi giornalieri per robot e per vacca. Un giorno è completo se il file prosegue oltre o arriva alle 23:30. */
@@ -157,6 +210,7 @@ export function riepiloga(mungiture: Mungitura[]): { giorni: GiornoRobot[]; vacc
       incomplete: ok.filter((x) => x.incompleta).length,
       sangueMax: sangue.length ? Math.max(...sangue) : null,
       oraUltima: ok.reduce((m, x) => (x.ora > m ? x.ora : m), ''),
+      dim: ms.map((x) => x.dim).filter((x): x is number => typeof x === 'number').pop() ?? null,
     }
   })
   return { giorni, vacche }
@@ -175,7 +229,8 @@ export function daControllare(vacche: GiornoVaccaRobot[], giorni: GiornoRobot[],
     // un singolo allarme AMD è frequente: si segnala da 2 in su, o insieme ad altri motivi
     const amd = v.allarmiAmd ? `allarme mastite (AMD) in ${v.allarmiAmd} mungitur${v.allarmiAmd === 1 ? 'a' : 'e'}` : ''
     if (v.allarmiAmd >= 2) { motivi.push(amd); gravita += 3 }
-    if (v.kgSeparato > 0) { motivi.push(`latte separato: ${v.kgSeparato.toFixed(1).replace('.', ',')} kg`); gravita += 2 }
+    // nei primi giorni dopo il parto il latte (colostro) è separato di routine
+    if (v.kgSeparato > 0 && !(typeof v.dim === 'number' && v.dim <= 5)) { motivi.push(`latte separato: ${v.kgSeparato.toFixed(1).replace('.', ',')} kg`); gravita += 2 }
     if (giornoCompleto) {
       // Con i robot il latte di un singolo giorno dipende da quante mungiture cadono prima della
       // mezzanotte: si confronta la media di oggi e ieri con i 7 giorni completi precedenti.

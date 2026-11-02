@@ -27,8 +27,8 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
   - **Carica la settimana** (ogni lunedì): una casella per gruppo (1, 21, 4) per caricare gli
     export dei robot della settimana precedente, con stato "x/7 giorni", controllo dei periodi e
     blocco dei file di un altro gruppo; promemoria nel cruscotto finché la settimana non è completa
-  - **Mungiture robot** (DeLaval DelPro): importazione dell'export "Mungiture" (una riga per
-    mungitura); si conservano i riepiloghi per robot e per vacca di ogni giorno. Latte, vacche,
+  - **Mungiture robot** (DeLaval DelPro e Lely Horizon, formato riconosciuto da solo): export
+    "Mungiture" di DelPro o rapporto "Visite di mungitura" di Horizon (una riga per mungitura); si conservano i riepiloghi per robot e per vacca di ogni giorno. Latte, vacche,
     mungiture per vacca, tabella per robot (durata media, occupazione, distacchi, incomplete,
     rifiuti, fermi del robot oltre 2 ore), andamento giornaliero, vacche da controllare (allarmi
     AMD ripetuti, latte separato, calo di produzione su due giorni, meno di 2 mungiture) e

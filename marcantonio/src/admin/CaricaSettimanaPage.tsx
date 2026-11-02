@@ -4,7 +4,7 @@ import { CheckCircle2, CircleDashed, FileUp, Upload, X } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { Stalla } from '../lib/types'
 import { PageHeader } from '../components/ui'
-import { leggiDeLaval, riepiloga, type FileRobot } from '../lib/robot'
+import { leggiFileRobot, riepiloga, type FileRobot } from '../lib/robot'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, lunediDi, nuovoId } from '../lib/format'
 
 interface FileScelto { nome: string; letto?: FileRobot; errore?: string; avvisi: string[] }
@@ -29,14 +29,9 @@ export default function CaricaSettimanaPage() {
     setSalvato(null)
     const voce: FileScelto = { nome: f.name, avvisi: [] }
     try {
-      if (stalla.robot?.marca === 'Lely') {
-        // il formato di Lely Horizon non è ancora gestito: si prova comunque, per sicurezza
-        try { voce.letto = leggiDeLaval(await f.text()) } catch {
-          throw new Error("L'importazione dei file Lely Horizon non è ancora disponibile: manda un file di esempio per attivarla.")
-        }
-      } else {
-        voce.letto = leggiDeLaval(await f.text())
-      }
+      voce.letto = leggiFileRobot(await f.text())
+      const marca = stalla.robot?.marca
+      if (marca && marca !== 'Altro' && voce.letto.fonte !== marca) voce.avvisi.push(`Il file è un export ${voce.letto.fonte}, ma la stalla ha robot ${marca}.`)
       const m = voce.letto.mungiture
       const robot = [...new Set(m.map((x) => x.robot))]
       // robot che appartengono già a un'altra stalla: probabilmente è il file di un altro gruppo
@@ -113,7 +108,7 @@ export default function CaricaSettimanaPage() {
                   <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/40 p-5 text-center hover:bg-brand-50">
                     <FileUp className="h-6 w-6 text-brand-600" />
                     <span className="text-sm font-semibold text-brand-800">{completa ? 'Ricarica il file' : 'Scegli il file'}</span>
-                    <span className="text-xs text-stone-500">{s.robot!.marca === 'Lely' ? 'export di Lely Horizon' : 'export "Mungiture" di DelPro (.csv)'}</span>
+                    <span className="text-xs text-stone-500">{s.robot!.marca === 'Lely' ? 'rapporto "Visite di mungitura" di Horizon (.csv)' : 'export "Mungiture" di DelPro (.csv)'}</span>
                     <input type="file" accept=".csv,.txt,text/csv,text/plain" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) scegli(s, f); e.target.value = '' }} />
                   </label>
                 ) : (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { Modale } from './ui'
-import { leggiDeLaval, riepiloga, type FileRobot } from '../lib/robot'
+import { leggiFileRobot, riepiloga, type FileRobot } from '../lib/robot'
 import { fmt0, fmtData, nuovoId } from '../lib/format'
 
 /** Importazione dell'export "Mungiture" dei robot DeLaval. */
@@ -18,7 +18,7 @@ export default function ImportRobot({ onChiudi, onImportato }: { onChiudi: () =>
   const carica = async (f: File) => {
     setErrore('')
     try {
-      const letto = leggiDeLaval(await f.text())
+      const letto = leggiFileRobot(await f.text())
       setFile(letto)
       setNomeFile(f.name)
       // proposta di abbinamento robot → stalla: nomi già salvati, altrimenti la prima stalla DeLaval
@@ -26,8 +26,9 @@ export default function ImportRobot({ onChiudi, onImportato }: { onChiudi: () =>
       const robots = [...new Set(letto.mungiture.map((m) => m.robot))]
       for (const r of robots) {
         const nota = dati.stalle.find((s) => s.robot?.nomi?.includes(r))
-        const delaval = dati.stalle.find((s) => s.robot?.marca === 'DeLaval' && (s.robot.numero ?? 1) >= robots.length) ?? dati.stalle.find((s) => s.robot?.marca === 'DeLaval')
-        proposta[r] = (nota ?? delaval)?.id ?? ''
+        const marca = letto.fonte
+        const stessaMarca = dati.stalle.find((s) => s.robot?.marca === marca && (s.robot.numero ?? 1) >= robots.length) ?? dati.stalle.find((s) => s.robot?.marca === marca)
+        proposta[r] = (nota ?? stessaMarca)?.id ?? ''
       }
       setAssegna(proposta)
     } catch (e) {
@@ -58,7 +59,8 @@ export default function ImportRobot({ onChiudi, onImportato }: { onChiudi: () =>
       {!file ? (
         <div className="space-y-4 text-sm">
           <p className="text-stone-600">
-            In DeLaval DelPro esporta l'elenco delle <b>mungiture</b> (una riga per mungitura) come file CSV e caricalo qui.
+            Carica l'export delle mungiture: da DeLaval DelPro l'elenco <b>Mungiture</b>, da Lely Horizon il rapporto
+            <b>Visite di mungitura</b> (una riga per mungitura, in CSV). Il formato viene riconosciuto da solo.
             Puoi importare più giorni insieme: i giorni già presenti vengono aggiornati.
           </p>
           <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/50 p-6 text-center hover:bg-brand-50">
@@ -67,7 +69,6 @@ export default function ImportRobot({ onChiudi, onImportato }: { onChiudi: () =>
             <input type="file" accept=".csv,.txt,text/csv,text/plain" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) carica(f); e.target.value = '' }} />
           </label>
-          <p className="text-xs text-stone-500">Per il robot Lely (gruppo 4) l'importazione da Horizon arriverà appena avremo un file di esempio.</p>
           {errore && <p className="text-red-700">✕ {errore}</p>}
         </div>
       ) : (

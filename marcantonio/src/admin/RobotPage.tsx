@@ -72,6 +72,7 @@ export default function RobotPage() {
     return { d, kg: gg.reduce((s, g) => s + g.kg, 0), completo: gg.every((g) => g.completo) }
   })
 
+  const haDim = vaccheGiorno.some((v) => typeof v.dim === 'number')
   const elenco = vaccheGiorno
     .filter((v) => v.vacca.includes(cerca.trim()))
     .sort((a, b) => b.kg - a.kg)
@@ -168,7 +169,7 @@ export default function RobotPage() {
                 <tr>
                   <th>Robot</th><th className="num">Vacche</th><th className="num">Mungiture</th><th className="num">Latte (kg)</th>
                   <th className="num">kg/mungitura</th><th className="num">Durata media</th><th className="num">Occupazione</th>
-                  <th className="num">Distacchi</th><th className="num">Incomplete</th><th className="num">Rifiuti</th>
+                  <th className="num">Distacchi</th><th className="num">Incomplete</th><th className="num">Non riuscite</th><th className="num">Rifiuti</th>
                 </tr>
               </thead>
               <tbody>
@@ -189,6 +190,7 @@ export default function RobotPage() {
                       <td className="num">{minutiGiorno ? `${fmt0((g.durataSec / 60 / minutiGiorno) * 100)}%` : '—'}</td>
                       <td className="num">{g.mungiture ? `${fmt0((g.kickOff / g.mungiture) * 100)}%` : '—'}</td>
                       <td className="num">{g.mungiture ? `${fmt0((g.incomplete / g.mungiture) * 100)}%` : '—'}</td>
+                      <td className={`num ${g.nonMunte ? 'text-amber-700' : ''}`}>{g.nonMunte}</td>
                       <td className="num">{g.rifiutate}</td>
                     </tr>
                   )
@@ -248,6 +250,26 @@ export default function RobotPage() {
                 )
               })}
             </tbody>
+            {(() => {
+              const nomi = stalleRobot.flatMap((s) => s.robot!.nomi!)
+              const gg = robotGiorni.filter((g) => g.data === giorno && nomi.includes(g.robot))
+              const vv = robotVacche.filter((v) => v.data === giorno && v.mungiture > 0 && nomi.includes(v.robot))
+              const kgT = gg.reduce((t, g) => t + g.kg, 0), mT = gg.reduce((t, g) => t + g.mungiture, 0)
+              return (
+                <tfoot>
+                  <tr className="bg-stone-50 font-semibold">
+                    <td className="px-3 py-2">Intera mandria</td>
+                    <td className="px-3 py-2 font-normal text-stone-600">{nomi.length} robot</td>
+                    <td className="num px-3 py-2">{vv.length}</td>
+                    <td className="num px-3 py-2">{vv.length ? fmt2(mT / vv.length) : '—'}</td>
+                    <td className="num px-3 py-2">{fmt0(kgT)}</td>
+                    <td className="num px-3 py-2">{vv.length ? fmt1(kgT / vv.length) : '—'}</td>
+                    <td className="num px-3 py-2">{nomi.length ? fmt0(kgT / nomi.length) : '—'}</td>
+                    <td className="px-3 py-2" />
+                  </tr>
+                </tfoot>
+              )
+            })()}
           </table>
           {stalleRobot.length < dati.stalle.filter((s) => s.robot).length && (
             <p className="px-5 pb-4 pt-2 text-xs text-stone-500">I gruppi compaiono qui dopo la prima importazione dei loro file.</p>
@@ -264,7 +286,7 @@ export default function RobotPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Vacca</th><th>Robot</th><th className="num">Mungiture</th><th className="num">Latte (kg)</th><th className="num">Media 7 gg</th><th className="num">Differenza</th>
+              <th>Vacca</th><th>Robot</th>{haDim && <th className="num">DIM</th>}<th className="num">Mungiture</th><th className="num">Latte (kg)</th><th className="num">Media 7 gg</th><th className="num">Differenza</th>
               <th className="num">Allarmi AMD</th><th className="num">Separato (kg)</th><th className="num">Sangue max (ppm)</th><th className="num">Ultima</th>
             </tr>
           </thead>
@@ -276,6 +298,7 @@ export default function RobotPage() {
                 <tr key={v.vacca}>
                   <td className="font-medium">{v.vacca}</td>
                   <td className="text-stone-600">{v.robot}</td>
+                  {haDim && <td className="num">{v.dim ?? '—'}</td>}
                   <td className="num">{v.mungiture}</td>
                   <td className="num font-semibold">{fmt1(v.kg)}</td>
                   <td className="num text-stone-500">{m ? fmt1(m) : '—'}</td>

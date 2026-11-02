@@ -173,6 +173,7 @@ export interface GiornoVaccaRobot {
   incomplete: number
   sangueMax: number | null // ppm, massimo tra i quarti
   oraUltima: string // HH:MM dell'ultima mungitura
+  dim?: number | null // giorni di lattazione (se il file li riporta)
 }
 
 export interface ImportRobot { id: string; fonte: string; nomeFile: string; importatoIl: string; dal: string; al: string }
