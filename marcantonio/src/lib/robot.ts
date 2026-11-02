@@ -157,6 +157,9 @@ export function leggiLely(testo: string): FileRobot {
   return { fonte: 'Lely', mungiture, scartate }
 }
 
+/** Pausa senza mungiture oltre la quale un robot viene segnalato come fermo (minuti). */
+export const SOGLIA_FERMO_MIN = 150
+
 const munta = (m: Mungitura) => /^mungitura/i.test(m.azione) && m.kg > 0
 
 /** Riepiloghi giornalieri per robot e per vacca. Un giorno è completo se il file prosegue oltre o arriva alle 23:30. */

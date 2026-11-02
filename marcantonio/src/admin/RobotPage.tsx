@@ -5,7 +5,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import BarChart from '../components/BarChart'
 import ImportRobot from '../components/ImportRobot'
-import { daControllare } from '../lib/robot'
+import { SOGLIA_FERMO_MIN, daControllare } from '../lib/robot'
 import { fmt0, fmt1, fmt2, fmtData } from '../lib/format'
 
 const GIORNI_SETT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']
@@ -180,7 +180,7 @@ export default function RobotPage() {
                     <tr key={g.robot}>
                       <td className="whitespace-nowrap">
                         <b>{g.robot}</b>{st && <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span>}
-                        {g.pausaMaxMin >= 120 && <span className="mt-0.5 block text-xs font-medium text-amber-700">! fermo {durata(g.pausaMaxMin)} dalle {g.pausaDalle}</span>}
+                        {g.pausaMaxMin >= SOGLIA_FERMO_MIN && <span className="mt-0.5 block text-xs font-medium text-amber-700">! fermo {durata(g.pausaMaxMin)} dalle {g.pausaDalle}</span>}
                       </td>
                       <td className="num">{g.vacche}</td>
                       <td className="num">{g.mungiture}</td>
