@@ -6,7 +6,7 @@ import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto, conferma } from '../components/ui'
 import BarChart from '../components/BarChart'
 import ImportDairyComp from '../components/ImportDairyComp'
-import { FASI, faseDi, perGruppo, riepilogo, type Riepilogo } from '../lib/dairycomp'
+import { FASI, etichettaColonna, faseDi, inLattazione as lattante, perGruppo, riepilogo, type Riepilogo } from '../lib/dairycomp'
 import { fmt0, fmt1, fmt2, fmtData } from '../lib/format'
 
 type Ordine = { col: string; giu: boolean }
@@ -49,12 +49,16 @@ export default function LattePage() {
     )
   }
 
-  const inLattazione = (a: AnimaleDC[]) => a.filter((x) => x.dim !== null)
+  const inLattazione = (a: AnimaleDC[]) => a.filter(lattante)
+  const haDim = corrente.animali.some((a) => a.dim !== null)
+  const statiRipro = [...new Set(corrente.animali.map((a) => a.codiceRiproduttivo).filter((x): x is string => !!x))].sort()
   const mandria = riepilogo(inLattazione(corrente.animali))
   const mandriaPrima = precedente ? riepilogo(inLattazione(precedente.animali)) : undefined
   const asciutte = corrente.animali.length - mandria.capi
   const gruppi = perGruppo(corrente.animali).map(([g, a]) => ({ g, r: riepilogo(a), animali: a }))
-  const robotTotali = dati.stalle.reduce((s, x) => s + (x.robot?.numero ?? 0), 0)
+  // robot dei soli gruppi presenti nel file (con vacche in lattazione)
+  const gruppiNelFile = new Set(inLattazione(corrente.animali).map((a) => a.gruppo))
+  const robotTotali = dati.stalle.filter((x) => x.gruppoDairyComp !== undefined && gruppiNelFile.has(x.gruppoDairyComp)).reduce((s, x) => s + (x.robot?.numero ?? 0), 0)
   const maxLatte = Math.max(1, ...gruppi.map((x) => x.r.latteMedio ?? 0))
   const extraChiavi = Object.keys(mandria.extra)
   const haGrasso = mandria.grasso !== null, haProt = mandria.proteine !== null, haCell = mandria.cellule !== null
@@ -101,7 +105,7 @@ export default function LattePage() {
         </div>
       </td>
       <td className="num">{r.latteTotale ? fmt0(r.latteTotale) : '—'}</td>
-      <td className="num">{r.capi ? `${fmt0((r.primipare / r.capi) * 100)}%` : '—'}</td>
+      <td className="num">{r.capi && r.lattazioneMedia !== null ? `${fmt0((r.primipare / r.capi) * 100)}%` : '—'}</td>
       {haGrasso && <td className="num">{n2(r.grasso)}</td>}
       {haProt && <td className="num">{n2(r.proteine)}</td>}
       {haCell && <td className="num">{n0(r.cellule)}</td>}
@@ -127,7 +131,7 @@ export default function LattePage() {
 
       {/* Intera mandria */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={`${asciutte} asciutte · ${fmt0(mandria.primipare)} primipare`} />
+        <StatTile etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={mandria.lattazioneMedia !== null ? `${asciutte} asciutte · ${fmt0(mandria.primipare)} primipare` : asciutte ? `${asciutte} asciutte` : 'nel file importato'} />
         <StatTile etichetta="DIM medio" valore={n0(mandria.dimMedio)} unita="giorni" nota={<Variazione ora={mandria.dimMedio} prima={mandriaPrima?.dimMedio} unita=" gg" decimali={0} />} />
         <StatTile etichetta="Latte medio per capo" valore={n1(mandria.latteMedio)} unita="kg/giorno" nota={<Variazione ora={mandria.latteMedio} prima={mandriaPrima?.latteMedio} unita=" kg" />} />
         <StatTile etichetta="Latte della mandria" valore={fmt0(mandria.latteTotale)} unita="kg/giorno"
@@ -146,7 +150,7 @@ export default function LattePage() {
               <th>Gruppo</th><th>Robot</th><th className="num">Vacche/robot</th><th className="num">Latte/robot (kg)</th><th className="num">Capi</th><th className="num">DIM medio</th><th className="num">Latte medio (kg/capo)</th>
               <th className="num">Latte totale (kg)</th><th className="num">Primipare</th>
               {haGrasso && <th className="num">Grasso %</th>}{haProt && <th className="num">Proteine %</th>}{haCell && <th className="num">Cellule (×1000)</th>}
-              {extraChiavi.map((k) => <th key={k} className="num">{k}</th>)}
+              {extraChiavi.map((k) => <th key={k} className="num">{etichettaColonna(k)}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -154,7 +158,7 @@ export default function LattePage() {
               const st = stallaDi(g)
               return (
                 <tr key={String(g)} className={`cursor-pointer ${gruppoFiltro === g ? 'bg-brand-50' : ''}`} onClick={() => setGruppoFiltro(gruppoFiltro === g ? 'tutti' : g)}>
-                  <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : r.dimMedio === null ? <span className="ml-2 text-xs text-stone-400">asciutte</span> : null}</td>
+                  <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : r.latteMedio === null && r.dimMedio === null ? <span className="ml-2 text-xs text-stone-400">asciutte</span> : null}</td>
                   <td className="whitespace-nowrap text-stone-600">{st?.robot ? `${st.robot.numero} × ${st.robot.marca}` : '—'}</td>
                   <td className="num">{st?.robot ? fmt0(r.capi / st.robot.numero) : '—'}</td>
                   <td className="num">{st?.robot && r.latteTotale ? fmt0(r.latteTotale / st.robot.numero) : '—'}</td>
@@ -176,9 +180,13 @@ export default function LattePage() {
       </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-5">
+        <div className="space-y-6 xl:col-span-2">
         {/* Fasi di lattazione */}
-        <section className="card xl:col-span-2">
+        <section className="card">
           <h2 className="font-semibold">Fasi di lattazione</h2>
+          {!haDim ? (
+            <p className="mt-2 text-sm text-stone-500">Il file non contiene i giorni di lattazione (DIM): aggiungi la colonna DIM alla lista di DairyComp per vedere le fasi.</p>
+          ) : (<>
           <p className="mt-1 text-xs text-stone-500">Numero di vacche per giorni di lattazione (DIM)</p>
           <table className="table mt-3">
             <thead><tr><th>Gruppo</th>{FASI.map((f) => <th key={f.nome} className="num">{f.nome}<span className="block font-normal normal-case text-stone-400">{f.a === Infinity ? `> ${f.da - 1}` : `${f.da}–${f.a}`} gg</span></th>)}</tr></thead>
@@ -199,14 +207,40 @@ export default function LattePage() {
               </tr>
             </tbody>
           </table>
+          </>)}
         </section>
+
+        {/* Stato riproduttivo */}
+        {statiRipro.length > 0 && (
+          <section className="card overflow-x-auto">
+            <h2 className="font-semibold">Stato riproduttivo</h2>
+            <p className="mt-1 text-xs text-stone-500">Numero di vacche e latte medio per stato, come riportato da DairyComp</p>
+            <table className="table mt-3">
+              <thead><tr><th>Stato</th>{gruppi.filter((x) => x.r.latteMedio !== null).map((x) => <th key={String(x.g)} className="num">Gr. {x.g ?? '—'}</th>)}<th className="num">Mandria</th><th className="num">kg/capo</th></tr></thead>
+              <tbody>
+                {statiRipro.map((st) => {
+                  const tutte = corrente.animali.filter((a) => a.codiceRiproduttivo === st)
+                  return (
+                    <tr key={st}>
+                      <td className="whitespace-nowrap font-medium">{st}</td>
+                      {gruppi.filter((x) => x.r.latteMedio !== null).map((x) => <td key={String(x.g)} className="num">{x.animali.filter((a) => a.codiceRiproduttivo === st).length || '·'}</td>)}
+                      <td className="num font-semibold">{tutte.length} <span className="font-normal text-stone-400">({fmt0((tutte.length / corrente.animali.length) * 100)}%)</span></td>
+                      <td className="num">{n1(riepilogo(tutte).latteMedio)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </section>
+        )}
+        </div>
 
         {/* Andamento */}
         <section className="card xl:col-span-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold">Latte medio per capo nel tempo</h2>
             <div className="flex flex-wrap gap-1">
-              {(['mandria', ...gruppi.filter((x) => x.r.dimMedio !== null).map((x) => x.g)] as (number | 'mandria' | null)[]).filter((x) => x !== null).map((x) => (
+              {(['mandria', ...gruppi.filter((x) => x.r.latteMedio !== null).map((x) => x.g)] as (number | 'mandria' | null)[]).filter((x) => x !== null).map((x) => (
                 <button key={String(x)} onClick={() => setGruppoTrend(x as number | 'mandria')}
                   className={`rounded-full px-3 py-1 text-sm ${gruppoTrend === x ? 'bg-brand-700 text-white' : 'bg-white ring-1 ring-stone-200'}`}>
                   {x === 'mandria' ? 'Mandria' : `Gr. ${x}`}
@@ -235,8 +269,8 @@ export default function LattePage() {
             <tr>
               {intest('id', 'Vacca', false)}{intest('gruppo', 'Gruppo')}{intest('lattazione', 'Latt.')}{intest('dim', 'DIM')}<th>Fase</th>{intest('latte', 'Latte kg')}
               {haGrasso && intest('grasso', 'Grasso %')}{haProt && intest('proteine', 'Prot. %')}{haCell && intest('cellule', 'Cellule')}
-              {intest('codiceRiproduttivo', 'RC')}{intest('giorniGravidanza', 'DCC')}
-              {extraChiavi.map((k) => <th key={k} className="num">{k}</th>)}
+              {intest('codiceRiproduttivo', 'Stato rip.', false)}{intest('giorniGravidanza', 'DCC')}
+              {extraChiavi.map((k) => <th key={k} className="num">{etichettaColonna(k)}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -246,12 +280,12 @@ export default function LattePage() {
                 <td className="num">{a.gruppo ?? '—'}</td>
                 <td className="num">{a.lattazione ?? '—'}</td>
                 <td className="num">{a.dim ?? '—'}</td>
-                <td className="text-xs text-stone-500">{faseDi(a.dim) ?? 'asciutta'}</td>
+                <td className="text-xs text-stone-500">{faseDi(a.dim) ?? (lattante(a) ? '—' : 'asciutta')}</td>
                 <td className="num font-semibold">{n1(a.latte)}</td>
                 {haGrasso && <td className="num">{n2(a.grasso)}</td>}
                 {haProt && <td className="num">{n2(a.proteine)}</td>}
                 {haCell && <td className="num">{n0(a.cellule)}</td>}
-                <td className="num">{a.codiceRiproduttivo ?? '—'}</td>
+                <td className="whitespace-nowrap text-xs">{a.codiceRiproduttivo ?? '—'}</td>
                 <td className="num">{a.giorniGravidanza || '—'}</td>
                 {extraChiavi.map((k) => <td key={k} className="num">{a.extra?.[k] ?? '—'}</td>)}
               </tr>

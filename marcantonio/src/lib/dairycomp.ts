@@ -8,15 +8,15 @@ export type Campo = 'id' | 'gruppo' | 'lattazione' | 'dim' | 'latte' | 'grasso' 
 
 export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'id', etichetta: 'Numero vacca (ID)', alias: ['ID', 'COW', 'VACCA', 'MATRICOLA', 'MATR', 'BARN', 'NUMERO', 'ANIMALE'] },
-  { campo: 'gruppo', etichetta: 'Gruppo (PEN)', alias: ['PEN', 'GRUPPO', 'GRP', 'GROUP', 'BOX'] },
+  { campo: 'gruppo', etichetta: 'Gruppo (PEN)', alias: ['PEN', 'GR', 'GRUPPO', 'GRP', 'GROUP', 'BOX'] },
   { campo: 'lattazione', etichetta: 'Lattazione (LACT)', alias: ['LACT', 'LAT', 'LATT', 'LATTAZIONE', 'PARITY', 'NLAT', 'PARTI'] },
   { campo: 'dim', etichetta: 'Giorni di lattazione (DIM)', alias: ['DIM', 'GGL', 'GIORNILATTAZIONE', 'DAYSINMILK', 'GGLATT'] },
-  { campo: 'latte', etichetta: 'Latte kg/giorno (MILK)', alias: ['MILK', 'LATTE', 'MLK', 'KGLATTE', 'KG', 'PRODUZIONE', 'PROD'] },
+  { campo: 'latte', etichetta: 'Latte kg/giorno (MEDSE / MILK)', alias: ['MEDSE', 'MILK', 'LATTE', 'MLK', 'KGLATTE', 'KG', 'PRODUZIONE', 'PROD'] },
   { campo: 'grasso', etichetta: 'Grasso %', alias: ['PCTF', 'FAT', 'GRASSO', 'PCTFAT', 'GRAS', 'FATPCT'] },
   { campo: 'proteine', etichetta: 'Proteine %', alias: ['PCTP', 'PROT', 'PROTEINE', 'PCTPROT', 'PROTPCT'] },
   { campo: 'cellule', etichetta: 'Cellule somatiche (×1000/ml)', alias: ['SCC', 'CELLULE', 'CS', 'CCS'] },
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
-  { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RC)', alias: ['RC', 'RPRO', 'STATO', 'REPRO'] },
+  { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
   { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA'] },
 ]
 
@@ -80,11 +80,13 @@ export function leggiFile(testo: string): FileLetto {
 /** Abbinamento automatico colonna → campo. */
 export function abbinaColonne(intestazioni: string[]): Partial<Record<Campo, number>> {
   const m: Partial<Record<Campo, number>> = {}
-  intestazioni.forEach((h, i) => {
-    const n = norm(h)
-    const c = CAMPI.find((x) => x.alias.includes(n))
-    if (c && m[c.campo] === undefined) m[c.campo] = i
-  })
+  const norme = intestazioni.map(norm)
+  for (const c of CAMPI) {
+    for (const a of c.alias) {
+      const i = norme.indexOf(a)
+      if (i >= 0) { m[c.campo] = i; break }
+    }
+  }
   return m
 }
 
@@ -185,6 +187,18 @@ export function riepilogo(animali: AnimaleDC[]): Riepilogo {
     extra,
   }
 }
+
+/** Nomi leggibili delle colonne DairyComp più comuni (le altre restano con la sigla). */
+const ETICHETTE: Record<string, string> = {
+  MEDSE: 'Media settimanale (kg)',
+  SOML2: 'Somma L1P–L3P (kg)',
+  L1P: 'L1P (kg)', L2P: 'L2P (kg)', L3P: 'L3P (kg)',
+  AGE: 'Età (anni)',
+}
+export const etichettaColonna = (k: string) => ETICHETTE[norm(k)] ?? k
+
+/** In lattazione: ha i giorni di lattazione o produce latte (alcune liste non hanno i DIM). */
+export const inLattazione = (a: AnimaleDC) => a.dim !== null || (a.latte ?? 0) > 0
 
 export const FASI = [
   { nome: 'Fresche', da: 0, a: 30 },

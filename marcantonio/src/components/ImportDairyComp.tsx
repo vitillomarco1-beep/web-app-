@@ -36,13 +36,16 @@ export default function ImportDairyComp({ onChiudi, onImportato }: { onChiudi: (
     if (abbinamento.id === undefined) { setErrore('Indica quale colonna contiene il numero della vacca.'); return }
     if (!animali.length) { setErrore('Nessuna vacca trovata nel file.'); return }
     if (esistente) elimina('importDC', esistente.id)
+    // al primo file vero, i dati di esempio non servono più
+    const esempi = dati.importDC.filter((i) => i.nomeFile.endsWith('(esempio)') && i.id !== esistente?.id)
+    esempi.forEach((i) => elimina('importDC', i.id))
     const id = nuovoId()
     aggiungi('importDC', { id, data, importatoIl: new Date().toISOString(), nomeFile, animali })
     // conserva solo le fotografie più recenti
-    const vecchie = [...dati.importDC].filter((i) => i.id !== esistente?.id).sort((a, b) => b.data.localeCompare(a.data)).slice(MAX_IMPORT - 1)
+    const vecchie = [...dati.importDC].filter((i) => i.id !== esistente?.id && !esempi.includes(i)).sort((a, b) => b.data.localeCompare(a.data)).slice(MAX_IMPORT - 1)
     vecchie.forEach((i) => elimina('importDC', i.id))
     // capi per stalla dal gruppo corrispondente (solo se è il dato più recente)
-    const piuRecente = !dati.importDC.some((i) => i.data > data)
+    const piuRecente = !dati.importDC.some((i) => i.data > data && !esempi.includes(i))
     if (aggiornaStalle && piuRecente) {
       for (const s of dati.stalle) {
         if (s.gruppoDairyComp === undefined) continue
