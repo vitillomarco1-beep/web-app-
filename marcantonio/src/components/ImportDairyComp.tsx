@@ -115,7 +115,7 @@ export default function ImportDairyComp({ onChiudi, onImportato, destinazione = 
         </div>
       ) : (
         <div className="space-y-4 text-sm">
-          <p className="text-stone-600"><b>{nomeFile}</b>: {file.righe.length} righe, {animali.length} vacche, {gruppi.length} gruppi.</p>
+          <p className="text-stone-600"><b className="break-all">{nomeFile}</b>: {file.righe.length} righe, {animali.length} vacche, {gruppi.length} gruppi.</p>
 
           <div>
             <h3 className="mb-2 font-semibold">Colonne riconosciute</h3>

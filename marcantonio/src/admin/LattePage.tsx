@@ -134,7 +134,7 @@ export default function LattePage() {
             {imports.map((i) => <option key={i.id} value={i.id}>{fmtData(i.data)}</option>)}
           </select>
         </label>
-        <span className="text-stone-500">{corrente.nomeFile}</span>
+        <span className="min-w-0 break-all text-stone-500">{corrente.nomeFile}</span>
         <button className="btn-danger-link ml-auto" onClick={() => { if (conferma(`Eliminare i dati DairyComp del ${fmtData(corrente.data)}?`)) { elimina('importDC', corrente.id); setSelezionato(null) } }}>Elimina questi dati</button>
       </div>
 

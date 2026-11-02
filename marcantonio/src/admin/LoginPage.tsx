@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
-import { paginaIniziale, useAuth } from '../lib/auth'
+import { destinazioneDopoAccesso, useAuth } from '../lib/auth'
 
 export default function LoginPage() {
   const { sessione, accedi } = useAuth()
@@ -12,12 +12,12 @@ export default function LoginPage() {
   const [errore, setErrore] = useState('')
   const richiesta = (location.state as { da?: string } | null)?.da
 
-  if (sessione) return <Navigate to={richiesta ?? paginaIniziale(sessione.ruolo)} replace />
+  if (sessione) return <Navigate to={destinazioneDopoAccesso(sessione.ruolo, richiesta)} replace />
 
   const invia = (e: FormEvent) => {
     e.preventDefault()
     const s = accedi(utente, password)
-    if (s) navigate(richiesta ?? paginaIniziale(s.ruolo), { replace: true })
+    if (s) navigate(destinazioneDopoAccesso(s.ruolo, richiesta), { replace: true })
     else setErrore('Credenziali non valide')
   }
 

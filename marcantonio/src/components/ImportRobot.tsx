@@ -74,7 +74,7 @@ export default function ImportRobot({ onChiudi, onImportato }: { onChiudi: () =>
       ) : (
         <div className="space-y-4 text-sm">
           <p className="text-stone-600">
-            <b>{nomeFile}</b>: {fmt0(file.mungiture.length)} mungiture dal {fmtData(date[0])} al {fmtData(date[date.length - 1])},
+            <b className="break-all">{nomeFile}</b>: {fmt0(file.mungiture.length)} mungiture dal {fmtData(date[0])} al {fmtData(date[date.length - 1])},
             {' '}{new Set(file.mungiture.map((m) => m.vacca)).size} vacche.
             {file.scartate > 0 && <> {file.scartate} righe non riconosciute sono state ignorate.</>}
           </p>

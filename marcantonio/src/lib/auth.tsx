@@ -52,6 +52,16 @@ export function useAuth(): AuthApi {
 
 export const paginaIniziale = (ruolo: Ruolo) => (ruolo === 'collaboratore' ? '/area-riservata/pesata' : '/area-riservata')
 
+/**
+ * Pagina dove andare dopo l'accesso: quella richiesta prima del login, se adatta al ruolo.
+ * La pagina Pesata viene ignorata per il titolare: di solito è rimasta da una sessione del collaboratore.
+ */
+export function destinazioneDopoAccesso(ruolo: Ruolo, richiesta?: string) {
+  if (!richiesta || !richiesta.startsWith('/area-riservata') || richiesta.startsWith('/area-riservata/login')) return paginaIniziale(ruolo)
+  if (ruolo === 'collaboratore') return richiesta.startsWith('/area-riservata/pesata') ? richiesta : paginaIniziale(ruolo)
+  return richiesta.startsWith('/area-riservata/pesata') ? paginaIniziale(ruolo) : richiesta
+}
+
 /** Protegge una pagina: richiede l'accesso e, se indicato, uno dei ruoli ammessi. */
 export function RichiedeAccesso({ children, ruoli }: { children: ReactNode; ruoli?: Ruolo[] }) {
   const { sessione } = useAuth()
