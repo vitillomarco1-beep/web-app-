@@ -54,8 +54,11 @@ export default function LattePage() {
   const statiRipro = [...new Set(corrente.animali.map((a) => a.codiceRiproduttivo).filter((x): x is string => !!x))].sort()
   const mandria = riepilogo(inLattazione(corrente.animali))
   const mandriaPrima = precedente ? riepilogo(inLattazione(precedente.animali)) : undefined
-  const asciutte = corrente.animali.length - mandria.capi
-  const gruppi = perGruppo(corrente.animali).map(([g, a]) => ({ g, r: riepilogo(a), animali: a }))
+  const asciutte = corrente.animali.filter((a) => !lattante(a)).length
+  const gruppi = perGruppo(corrente.animali).map(([g, a]) => {
+    const latt = a.filter(lattante)
+    return { g, r: riepilogo(latt.length ? latt : a), animali: latt, soloAsciutte: latt.length === 0, totale: a.length }
+  })
   // robot dei soli gruppi presenti nel file (con vacche in lattazione)
   const gruppiNelFile = new Set(inLattazione(corrente.animali).map((a) => a.gruppo))
   const robotTotali = dati.stalle.filter((x) => x.gruppoDairyComp !== undefined && gruppiNelFile.has(x.gruppoDairyComp)).reduce((s, x) => s + (x.robot?.numero ?? 0), 0)
@@ -154,11 +157,11 @@ export default function LattePage() {
             </tr>
           </thead>
           <tbody>
-            {gruppi.map(({ g, r }) => {
+            {gruppi.map(({ g, r, soloAsciutte, totale }) => {
               const st = stallaDi(g)
               return (
                 <tr key={String(g)} className={`cursor-pointer ${gruppoFiltro === g ? 'bg-brand-50' : ''}`} onClick={() => setGruppoFiltro(gruppoFiltro === g ? 'tutti' : g)}>
-                  <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : r.latteMedio === null && r.dimMedio === null ? <span className="ml-2 text-xs text-stone-400">asciutte</span> : null}</td>
+                  <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : soloAsciutte ? <span className="ml-2 text-xs text-stone-400">asciutte ({totale})</span> : totale > r.capi ? <span className="ml-2 text-xs text-stone-400">+{totale - r.capi} asciutte</span> : null}</td>
                   <td className="whitespace-nowrap text-stone-600">{st?.robot ? `${st.robot.numero} × ${st.robot.marca}` : '—'}</td>
                   <td className="num">{st?.robot ? fmt0(r.capi / st.robot.numero) : '—'}</td>
                   <td className="num">{st?.robot && r.latteTotale ? fmt0(r.latteTotale / st.robot.numero) : '—'}</td>
@@ -191,7 +194,7 @@ export default function LattePage() {
           <table className="table mt-3">
             <thead><tr><th>Gruppo</th>{FASI.map((f) => <th key={f.nome} className="num">{f.nome}<span className="block font-normal normal-case text-stone-400">{f.a === Infinity ? `> ${f.da - 1}` : `${f.da}–${f.a}`} gg</span></th>)}</tr></thead>
             <tbody>
-              {gruppi.filter((x) => x.r.dimMedio !== null).map(({ g, animali }) => (
+              {gruppi.filter((x) => !x.soloAsciutte && x.r.dimMedio !== null).map(({ g, animali }) => (
                 <tr key={String(g)}>
                   <td>Gruppo {g ?? '—'}</td>
                   {FASI.map((f) => <td key={f.nome} className="num">{animali.filter((a) => faseDi(a.dim) === f.nome).length || '·'}</td>)}
@@ -199,11 +202,11 @@ export default function LattePage() {
               ))}
               <tr className="font-semibold">
                 <td>Mandria</td>
-                {FASI.map((f) => <td key={f.nome} className="num">{corrente.animali.filter((a) => faseDi(a.dim) === f.nome).length}</td>)}
+                {FASI.map((f) => <td key={f.nome} className="num">{inLattazione(corrente.animali).filter((a) => faseDi(a.dim) === f.nome).length}</td>)}
               </tr>
               <tr className="text-xs text-stone-500">
                 <td>kg/capo</td>
-                {FASI.map((f) => <td key={f.nome} className="num">{n1(riepilogo(corrente.animali.filter((a) => faseDi(a.dim) === f.nome)).latteMedio)}</td>)}
+                {FASI.map((f) => <td key={f.nome} className="num">{n1(riepilogo(inLattazione(corrente.animali).filter((a) => faseDi(a.dim) === f.nome)).latteMedio)}</td>)}
               </tr>
             </tbody>
           </table>
@@ -216,14 +219,14 @@ export default function LattePage() {
             <h2 className="font-semibold">Stato riproduttivo</h2>
             <p className="mt-1 text-xs text-stone-500">Numero di vacche e latte medio per stato, come riportato da DairyComp</p>
             <table className="table mt-3">
-              <thead><tr><th>Stato</th>{gruppi.filter((x) => x.r.latteMedio !== null).map((x) => <th key={String(x.g)} className="num">Gr. {x.g ?? '—'}</th>)}<th className="num">Mandria</th><th className="num">kg/capo</th></tr></thead>
+              <thead><tr><th>Stato</th>{gruppi.filter((x) => !x.soloAsciutte).map((x) => <th key={String(x.g)} className="num">Gr. {x.g ?? '—'}</th>)}<th className="num">Mandria</th><th className="num">kg/capo</th></tr></thead>
               <tbody>
                 {statiRipro.map((st) => {
                   const tutte = corrente.animali.filter((a) => a.codiceRiproduttivo === st)
                   return (
                     <tr key={st}>
                       <td className="whitespace-nowrap font-medium">{st}</td>
-                      {gruppi.filter((x) => x.r.latteMedio !== null).map((x) => <td key={String(x.g)} className="num">{x.animali.filter((a) => a.codiceRiproduttivo === st).length || '·'}</td>)}
+                      {gruppi.filter((x) => !x.soloAsciutte).map((x) => <td key={String(x.g)} className="num">{x.animali.filter((a) => a.codiceRiproduttivo === st).length || '·'}</td>)}
                       <td className="num font-semibold">{tutte.length} <span className="font-normal text-stone-400">({fmt0((tutte.length / corrente.animali.length) * 100)}%)</span></td>
                       <td className="num">{n1(riepilogo(tutte).latteMedio)}</td>
                     </tr>
@@ -240,7 +243,7 @@ export default function LattePage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold">Latte medio per capo nel tempo</h2>
             <div className="flex flex-wrap gap-1">
-              {(['mandria', ...gruppi.filter((x) => x.r.latteMedio !== null).map((x) => x.g)] as (number | 'mandria' | null)[]).filter((x) => x !== null).map((x) => (
+              {(['mandria', ...gruppi.filter((x) => !x.soloAsciutte).map((x) => x.g)] as (number | 'mandria' | null)[]).filter((x) => x !== null).map((x) => (
                 <button key={String(x)} onClick={() => setGruppoTrend(x as number | 'mandria')}
                   className={`rounded-full px-3 py-1 text-sm ${gruppoTrend === x ? 'bg-brand-700 text-white' : 'bg-white ring-1 ring-stone-200'}`}>
                   {x === 'mandria' ? 'Mandria' : `Gr. ${x}`}
@@ -280,7 +283,7 @@ export default function LattePage() {
                 <td className="num">{a.gruppo ?? '—'}</td>
                 <td className="num">{a.lattazione ?? '—'}</td>
                 <td className="num">{a.dim ?? '—'}</td>
-                <td className="text-xs text-stone-500">{faseDi(a.dim) ?? (lattante(a) ? '—' : 'asciutta')}</td>
+                <td className="text-xs text-stone-500">{!lattante(a) ? 'asciutta' : faseDi(a.dim) ?? '—'}</td>
                 <td className="num font-semibold">{n1(a.latte)}</td>
                 {haGrasso && <td className="num">{n2(a.grasso)}</td>}
                 {haProt && <td className="num">{n2(a.proteine)}</td>}

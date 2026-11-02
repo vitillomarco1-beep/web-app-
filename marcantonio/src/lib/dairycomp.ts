@@ -17,7 +17,7 @@ export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'cellule', etichetta: 'Cellule somatiche (×1000/ml)', alias: ['SCC', 'CELLULE', 'CS', 'CCS'] },
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
   { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
-  { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA'] },
+  { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGR', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA'] },
 ]
 
 const norm = (s: string) => s.toUpperCase().normalize('NFD').replace(/[^A-Z0-9]/g, '')
@@ -191,6 +191,7 @@ export function riepilogo(animali: AnimaleDC[]): Riepilogo {
 /** Nomi leggibili delle colonne DairyComp più comuni (le altre restano con la sigla). */
 const ETICHETTE: Record<string, string> = {
   MEDSE: 'Media settimanale (kg)',
+  NF: 'Fecondazioni (NF)', GUCA: 'GUCA (giorni)', UTOR: 'Ultimo toro',
   MATR: 'Matricola', ETA: 'Età (anni-mesi)', PPR: 'Parto previsto', DASPR: 'Asciutta prevista',
   SOML2: 'Somma L1P–L3P (kg)',
   L1P: 'L1P (kg)', L2P: 'L2P (kg)', L3P: 'L3P (kg)',
@@ -199,7 +200,8 @@ const ETICHETTE: Record<string, string> = {
 export const etichettaColonna = (k: string) => ETICHETTE[norm(k)] ?? k
 
 /** In lattazione: ha i giorni di lattazione o produce latte (alcune liste non hanno i DIM). */
-export const inLattazione = (a: AnimaleDC) => a.dim !== null || (a.latte ?? 0) > 0
+export const inLattazione = (a: AnimaleDC) =>
+  !/^ASC/i.test(a.codiceRiproduttivo ?? '') && (a.dim !== null || (a.latte ?? 0) > 0)
 
 export const FASI = [
   { nome: 'Fresche', da: 0, a: 30 },
