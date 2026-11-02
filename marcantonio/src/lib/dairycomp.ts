@@ -106,7 +106,7 @@ export function costruisciAnimali(f: FileLetto, m: Partial<Record<Campo, number>
     .map((r) => {
       const extra: Record<string, number | string> = {}
       f.intestazioni.forEach((h, i) => {
-        if (usate.has(i) || !h) return
+        if (usate.has(i) || !h || f.intestazioni.findIndex((x) => norm(x) === norm(h)) !== i) return
         const n = numero(r[i])
         if (n !== null) extra[h] = n
         else if (r[i]?.trim()) extra[h] = r[i].trim()
@@ -191,7 +191,7 @@ export function riepilogo(animali: AnimaleDC[]): Riepilogo {
 /** Nomi leggibili delle colonne DairyComp più comuni (le altre restano con la sigla). */
 const ETICHETTE: Record<string, string> = {
   MEDSE: 'Media settimanale (kg)',
-  NF: 'Fecondazioni (NF)', GUCA: 'GUCA (giorni)', UTOR: 'Ultimo toro',
+  NF: 'Fecondazioni (NF)', NFEC: 'Fecondazioni (NFEC)', GUCA: 'GUCA (giorni)', UTOR: 'Ultimo toro',
   MATR: 'Matricola', ETA: 'Età (anni-mesi)', PPR: 'Parto previsto', DASPR: 'Asciutta prevista',
   SOML2: 'Somma L1P–L3P (kg)',
   L1P: 'L1P (kg)', L2P: 'L2P (kg)', L3P: 'L3P (kg)',
@@ -201,7 +201,9 @@ export const etichettaColonna = (k: string) => ETICHETTE[norm(k)] ?? k
 
 /** In lattazione: ha i giorni di lattazione o produce latte (alcune liste non hanno i DIM). */
 export const inLattazione = (a: AnimaleDC) =>
-  !/^ASC/i.test(a.codiceRiproduttivo ?? '') && (a.dim !== null || (a.latte ?? 0) > 0)
+  !/^(ASC|MANZA|MASCHIO|TORO|VITELL)/i.test(a.codiceRiproduttivo ?? '') &&
+  a.lattazione !== 0 &&
+  ((a.dim !== null && a.dim > 0) || (a.latte ?? 0) > 0)
 
 export const FASI = [
   { nome: 'Fresche', da: 0, a: 30 },

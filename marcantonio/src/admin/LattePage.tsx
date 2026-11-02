@@ -49,18 +49,42 @@ export default function LattePage() {
     )
   }
 
+  // Latte dai robot: se la lista DairyComp non ha il latte, si usa la media per vacca dei giorni
+  // completi dei robot (fino a 7) che arrivano alla data della lista.
+  const giorniRobot = [...new Set(dati.robotGiorni.filter((g) => g.completo && g.data <= corrente.data).map((g) => g.data))].sort().slice(-7)
+  const robotDiVacca = new Map<string, { kg: number; n: number; robot: string }>()
+  for (const v of dati.robotVacche) {
+    if (!giorniRobot.includes(v.data) || v.mungiture === 0) continue
+    const x = robotDiVacca.get(v.vacca) ?? { kg: 0, n: 0, robot: v.robot }
+    x.kg += v.kg; x.n++; x.robot = v.robot
+    robotDiVacca.set(v.vacca, x)
+  }
+  const latteDaiRobot = robotDiVacca.size > 0 && corrente.animali.some((a) => a.latte === null && lattante(a))
+  const animaliTutti: AnimaleDC[] = corrente.animali.map((a) => {
+    const r = robotDiVacca.get(a.id)
+    return a.latte === null && r && lattante(a) ? { ...a, latte: Math.round((r.kg / r.n) * 10) / 10 } : a
+  })
+  // Vacche munte dal robot di una stalla ma registrate in DairyComp in un altro gruppo
+  const gruppoDelRobot = (robot: string) => dati.stalle.find((st) => st.robot?.nomi?.includes(robot))?.gruppoDairyComp
+  const incoerenze = corrente.animali
+    .filter(lattante)
+    .map((a) => ({ a, gRobot: robotDiVacca.has(a.id) ? gruppoDelRobot(robotDiVacca.get(a.id)!.robot) : undefined, robot: robotDiVacca.get(a.id)?.robot }))
+    .filter((x) => x.gRobot !== undefined && x.gRobot !== x.a.gruppo)
+  const nonInLattazione = corrente.animali.filter((a) => !lattante(a))
+  const perStato = [...nonInLattazione.reduce((m, a) => m.set(a.codiceRiproduttivo ?? '—', (m.get(a.codiceRiproduttivo ?? '—') ?? 0) + 1), new Map<string, number>())]
+
   const inLattazione = (a: AnimaleDC[]) => a.filter(lattante)
-  const haDim = corrente.animali.some((a) => a.dim !== null)
-  const statiRipro = [...new Set(corrente.animali.map((a) => a.codiceRiproduttivo).filter((x): x is string => !!x))].sort()
-  const mandria = riepilogo(inLattazione(corrente.animali))
+  const haDim = animaliTutti.some((a) => a.dim !== null)
+  const statiRipro = [...new Set(animaliTutti.map((a) => a.codiceRiproduttivo).filter((x): x is string => !!x))].sort()
+  const mandria = riepilogo(inLattazione(animaliTutti))
   const mandriaPrima = precedente ? riepilogo(inLattazione(precedente.animali)) : undefined
-  const asciutte = corrente.animali.filter((a) => !lattante(a)).length
-  const gruppi = perGruppo(corrente.animali).map(([g, a]) => {
+  const asciutte = animaliTutti.filter((a) => /^ASC/i.test(a.codiceRiproduttivo ?? '')).length
+  const gruppi = perGruppo(animaliTutti).map(([g, a]) => {
     const latt = a.filter(lattante)
     return { g, r: riepilogo(latt.length ? latt : a), animali: latt, soloAsciutte: latt.length === 0, totale: a.length }
   })
   // robot dei soli gruppi presenti nel file (con vacche in lattazione)
-  const gruppiNelFile = new Set(inLattazione(corrente.animali).map((a) => a.gruppo))
+  const gruppiNelFile = new Set(inLattazione(animaliTutti).map((a) => a.gruppo))
   const robotTotali = dati.stalle.filter((x) => x.gruppoDairyComp !== undefined && gruppiNelFile.has(x.gruppoDairyComp)).reduce((s, x) => s + (x.robot?.numero ?? 0), 0)
   const maxLatte = Math.max(1, ...gruppi.map((x) => x.r.latteMedio ?? 0))
   const extraChiavi = Object.keys(mandria.extra)
@@ -77,7 +101,7 @@ export default function LattePage() {
     if (col in a) return (a as unknown as Record<string, number | string | null>)[col] ?? null
     return a.extra?.[col] ?? null
   }
-  const elenco = corrente.animali
+  const elenco = animaliTutti
     .filter((a) => gruppoFiltro === 'tutti' || a.gruppo === gruppoFiltro)
     .filter((a) => a.id.toLowerCase().includes(cerca.toLowerCase()))
     .sort((a, b) => {
@@ -136,7 +160,8 @@ export default function LattePage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile etichetta="Vacche in lattazione" valore={fmt0(mandria.capi)} unita="capi" nota={mandria.lattazioneMedia !== null ? `${asciutte} asciutte · ${fmt0(mandria.primipare)} primipare` : asciutte ? `${asciutte} asciutte` : 'nel file importato'} />
         <StatTile etichetta="DIM medio" valore={n0(mandria.dimMedio)} unita="giorni" nota={<Variazione ora={mandria.dimMedio} prima={mandriaPrima?.dimMedio} unita=" gg" decimali={0} />} />
-        <StatTile etichetta="Latte medio per capo" valore={n1(mandria.latteMedio)} unita="kg/giorno" nota={<Variazione ora={mandria.latteMedio} prima={mandriaPrima?.latteMedio} unita=" kg" />} />
+        <StatTile etichetta="Latte medio per capo" valore={n1(mandria.latteMedio)} unita="kg/giorno"
+          nota={latteDaiRobot ? `dai robot, media dal ${fmtData(giorniRobot[0])} al ${fmtData(giorniRobot[giorniRobot.length - 1])}` : <Variazione ora={mandria.latteMedio} prima={mandriaPrima?.latteMedio} unita=" kg" />} />
         <StatTile etichetta="Latte della mandria" valore={fmt0(mandria.latteTotale)} unita="kg/giorno"
           nota={haGrasso || haProt ? `Grasso ${n2(mandria.grasso)}% · Proteine ${n2(mandria.proteine)}%` : undefined} />
       </div>
@@ -157,11 +182,11 @@ export default function LattePage() {
             </tr>
           </thead>
           <tbody>
-            {gruppi.map(({ g, r, soloAsciutte, totale }) => {
+            {gruppi.filter((x) => !x.soloAsciutte).map(({ g, r, soloAsciutte, totale }) => {
               const st = stallaDi(g)
               return (
                 <tr key={String(g)} className={`cursor-pointer ${gruppoFiltro === g ? 'bg-brand-50' : ''}`} onClick={() => setGruppoFiltro(gruppoFiltro === g ? 'tutti' : g)}>
-                  <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : soloAsciutte ? <span className="ml-2 text-xs text-stone-400">asciutte ({totale})</span> : totale > r.capi ? <span className="ml-2 text-xs text-stone-400">+{totale - r.capi} asciutte</span> : null}</td>
+                  <td className="whitespace-nowrap"><b>Gruppo {g ?? '—'}</b>{st ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-xs text-arancio-800">Stalla {st.numero}</span> : soloAsciutte ? null : totale > r.capi ? <span className="ml-2 text-xs text-stone-400">+{totale - r.capi} non in lattazione</span> : null}</td>
                   <td className="whitespace-nowrap text-stone-600">{st?.robot ? `${st.robot.numero} × ${st.robot.marca}` : '—'}</td>
                   <td className="num">{st?.robot ? fmt0(r.capi / st.robot.numero) : '—'}</td>
                   <td className="num">{st?.robot && r.latteTotale ? fmt0(r.latteTotale / st.robot.numero) : '—'}</td>
@@ -181,6 +206,26 @@ export default function LattePage() {
           </tfoot>
         </table>
       </section>
+
+      {nonInLattazione.length > 0 && (
+        <p className="mt-2 text-xs text-stone-500">
+          Non in lattazione e non conteggiati: {perStato.map(([st, n]) => `${n} ${st.toLowerCase()}`).join(', ')}.
+        </p>
+      )}
+
+      {incoerenze.length > 0 && (
+        <section className="card mt-6 ring-1 ring-amber-200">
+          <h2 className="font-semibold text-amber-900">! {incoerenze.length} vacche con il gruppo da controllare</h2>
+          <p className="mt-1 text-sm text-stone-600">Sono munte dal robot di un gruppo ma in DairyComp risultano in un altro. Aggiorna il gruppo in DairyComp, oppure verifica la stalla.</p>
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+            {incoerenze.map(({ a, gRobot, robot }) => (
+              <li key={a.id} className="rounded-full bg-amber-50 px-3 py-1 text-amber-900 ring-1 ring-inset ring-amber-200">
+                <b>{a.id}</b>: DairyComp gruppo {a.gruppo ?? '—'} · robot {robot} (gruppo {gRobot})
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-5">
         <div className="space-y-6 xl:col-span-2">
@@ -202,11 +247,11 @@ export default function LattePage() {
               ))}
               <tr className="font-semibold">
                 <td>Mandria</td>
-                {FASI.map((f) => <td key={f.nome} className="num">{inLattazione(corrente.animali).filter((a) => faseDi(a.dim) === f.nome).length}</td>)}
+                {FASI.map((f) => <td key={f.nome} className="num">{inLattazione(animaliTutti).filter((a) => faseDi(a.dim) === f.nome).length}</td>)}
               </tr>
               <tr className="text-xs text-stone-500">
                 <td>kg/capo</td>
-                {FASI.map((f) => <td key={f.nome} className="num">{n1(riepilogo(inLattazione(corrente.animali).filter((a) => faseDi(a.dim) === f.nome)).latteMedio)}</td>)}
+                {FASI.map((f) => <td key={f.nome} className="num">{n1(riepilogo(inLattazione(animaliTutti).filter((a) => faseDi(a.dim) === f.nome)).latteMedio)}</td>)}
               </tr>
             </tbody>
           </table>
@@ -222,12 +267,12 @@ export default function LattePage() {
               <thead><tr><th>Stato</th>{gruppi.filter((x) => !x.soloAsciutte).map((x) => <th key={String(x.g)} className="num">Gr. {x.g ?? '—'}</th>)}<th className="num">Mandria</th><th className="num">kg/capo</th></tr></thead>
               <tbody>
                 {statiRipro.map((st) => {
-                  const tutte = corrente.animali.filter((a) => a.codiceRiproduttivo === st)
+                  const tutte = animaliTutti.filter((a) => a.codiceRiproduttivo === st)
                   return (
                     <tr key={st}>
                       <td className="whitespace-nowrap font-medium">{st}</td>
                       {gruppi.filter((x) => !x.soloAsciutte).map((x) => <td key={String(x.g)} className="num">{x.animali.filter((a) => a.codiceRiproduttivo === st).length || '·'}</td>)}
-                      <td className="num font-semibold">{tutte.length} <span className="font-normal text-stone-400">({fmt0((tutte.length / corrente.animali.length) * 100)}%)</span></td>
+                      <td className="num font-semibold">{tutte.length} <span className="font-normal text-stone-400">({fmt0((tutte.length / animaliTutti.length) * 100)}%)</span></td>
                       <td className="num">{n1(riepilogo(tutte).latteMedio)}</td>
                     </tr>
                   )
