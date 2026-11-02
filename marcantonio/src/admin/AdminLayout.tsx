@@ -32,7 +32,7 @@ export default function AdminLayout() {
         ] },
         { titolo: 'Latte', voci: [
           { to: `${R}/latte`, label: 'Gruppi e mandria', icona: BarChart3 },
-          { to: `${R}/produzione`, label: 'Mungiture', icona: Milk },
+          { to: `${R}/mungiture`, label: 'Mungiture robot', icona: Milk },
           { to: `${R}/qualita`, label: 'Qualità', icona: FlaskConical },
           { to: `${R}/consegne`, label: 'Consegne', icona: Truck },
         ] },

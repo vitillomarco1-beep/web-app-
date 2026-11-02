@@ -22,6 +22,8 @@ interface StoreApi {
   aggiorna: <K extends Collezione>(col: K, el: Elemento<K>) => void
   elimina: (col: Collezione, id: string) => void
   sostituisciTutto: (d: Dati) => void
+  /** Sostituisce in blocco il contenuto di una collezione (es. dopo un'importazione). */
+  imposta: <K extends Collezione>(col: K, valori: Dati[K]) => void
 }
 
 const StoreCtx = createContext<StoreApi | null>(null)
@@ -50,10 +52,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const sostituisciTutto = useCallback((nuovi: Dati) => setDati({ ...DATI_VUOTI, ...nuovi }), [])
+  const imposta = useCallback(<K extends Collezione>(col: K, valori: Dati[K]) => setDati((d) => ({ ...d, [col]: valori })), [])
 
   const api = useMemo(
-    () => ({ dati, aggiungi, aggiorna, elimina, sostituisciTutto }),
-    [dati, aggiungi, aggiorna, elimina, sostituisciTutto],
+    () => ({ dati, aggiungi, aggiorna, elimina, sostituisciTutto, imposta }),
+    [dati, aggiungi, aggiorna, elimina, sostituisciTutto, imposta],
   )
   return <StoreCtx.Provider value={api}>{children}</StoreCtx.Provider>
 }

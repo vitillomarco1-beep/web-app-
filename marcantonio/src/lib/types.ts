@@ -88,7 +88,7 @@ export interface Stalla {
   nome: string
   capi: number // capi presenti, per calcolare i kg per capo
   gruppoDairyComp?: number // gruppo (PEN) corrispondente in DairyComp, per importare i capi
-  robot?: { marca: string; numero: number } // robot di mungitura del gruppo
+  robot?: { marca: string; numero: number; nomi?: string[] } // robot di mungitura del gruppo (nomi come nel software, es. VMS1)
 }
 
 /** Razione scaricata dal carro miscelatore in una stalla (peso tal quale). */
@@ -136,6 +136,47 @@ export interface ImportDC {
   animali: AnimaleDC[]
 }
 
+/** Riepilogo giornaliero di un robot di mungitura (da export DeLaval/Lely). */
+export interface GiornoRobot {
+  id: string // `${data}|${robot}`
+  data: string
+  robot: string // nome nel software del robot, es. VMS1
+  completo: boolean // false se il file si ferma a metà giornata
+  oraUltima: string // HH:MM dell'ultimo evento del giorno
+  vacche: number
+  mungiture: number
+  rifiutate: number
+  nonMunte: number
+  kg: number
+  durataSec: number // tempo totale di mungitura
+  kickOff: number // mungiture con almeno un gruppo staccato
+  incomplete: number
+  capezzoliNonTrovati: number
+  allarmiAmd: number
+  kgSeparato: number // latte non mandato al tank
+  pausaMaxMin: number // intervallo più lungo senza mungiture (minuti), utile per vedere fermi del robot
+  pausaDalle: string // HH:MM di inizio della pausa più lunga
+}
+
+/** Riepilogo giornaliero di una vacca ai robot. */
+export interface GiornoVaccaRobot {
+  id: string // `${data}|${vacca}`
+  data: string
+  vacca: string
+  robot: string // robot più usato nel giorno
+  mungiture: number
+  rifiutate: number
+  kg: number
+  kgSeparato: number
+  allarmiAmd: number
+  kickOff: number
+  incomplete: number
+  sangueMax: number | null // ppm, massimo tra i quarti
+  oraUltima: string // HH:MM dell'ultima mungitura
+}
+
+export interface ImportRobot { id: string; fonte: string; nomeFile: string; importatoIl: string; dal: string; al: string }
+
 export interface Dati {
   capi: Capo[]
   mungiture: Mungitura[]
@@ -147,6 +188,9 @@ export interface Dati {
   scarichi: Scarico[]
   verifiche: VerificaSettimana[]
   importDC: ImportDC[]
+  robotGiorni: GiornoRobot[]
+  robotVacche: GiornoVaccaRobot[]
+  importRobot: ImportRobot[]
   messaggi: Messaggio[]
 }
 

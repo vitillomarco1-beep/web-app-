@@ -17,6 +17,7 @@ import MessaggiPage from './admin/MessaggiPage'
 import ImpostazioniPage from './admin/ImpostazioniPage'
 import PesataPage from './admin/PesataPage'
 import LattePage from './admin/LattePage'
+import RobotPage from './admin/RobotPage'
 import { RichiedeAccesso } from './lib/auth'
 import type { ReactNode } from 'react'
 
@@ -44,6 +45,7 @@ export default function App() {
         <Route index element={T(<DashboardPage />)} />
         <Route path="pesata" element={<PesataPage />} />
         <Route path="latte" element={T(<LattePage />)} />
+        <Route path="mungiture" element={T(<RobotPage />)} />
         <Route path="mandria" element={T(<MandriaPage />)} />
         <Route path="produzione" element={T(<ProduzionePage />)} />
         <Route path="qualita" element={T(<QualitaPage />)} />

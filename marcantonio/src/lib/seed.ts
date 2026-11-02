@@ -131,7 +131,7 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   // Alimentazione: 3 stalle, scarico del carro miscelatore mattina e sera
   const stalle: Stalla[] = [
     // tutte e tre le stalle ospitano vacche in lattazione
-    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18, gruppoDairyComp: 1, robot: { marca: 'DeLaval', numero: 2 } },
+    { id: nuovoId(), numero: 1, nome: 'Lattazione', capi: 18, gruppoDairyComp: 1, robot: { marca: 'DeLaval', numero: 2, nomi: ['VMS1', 'VMS2'] } },
     { id: nuovoId(), numero: 2, nome: 'Lattazione', capi: 16, gruppoDairyComp: 21, robot: { marca: 'DeLaval', numero: 1 } },
     { id: nuovoId(), numero: 3, nome: 'Primipare', capi: 14, gruppoDairyComp: 4, robot: { marca: 'Lely', numero: 1 } },
   ]
@@ -192,6 +192,7 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 
   return {
+    robotGiorni: [], robotVacche: [], importRobot: [],
     importDC,
     stalle,
     scarichi,
@@ -216,4 +217,4 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 }
 
-export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], messaggi: [] }
+export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], robotGiorni: [], robotVacche: [], importRobot: [], messaggi: [] }
