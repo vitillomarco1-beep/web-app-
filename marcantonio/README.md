@@ -5,7 +5,9 @@ Web app dei Fratelli Marcantonio (dal 1900 il caciocavallo di Castelfranco in Mi
 - **Sito pubblico**: Home, L'azienda (allevamento e qualità), Prodotti, Contatti (con modulo).
 - **Area riservata** (gestionale), su `#/area-riservata`:
   - **Cruscotto**: produzione dell'ultimo giorno, media 7 giorni, resa per capo, consegne, grafico degli ultimi 30 giorni, qualità del latte, parti previsti
-  - **Mandria**: anagrafica dei capi (matricola, razza, stato produttivo, parti, giorni di lattazione)
+  - **Mandria**: lista completa di DairyComp (tutti i gruppi) con un pulsante per gruppo (numero di
+    capi, nome automatico o personalizzato, stati riproduttivi); elenco degli animali del gruppo scelto,
+    ricerca su tutta la mandria, riepilogo per categoria (in lattazione, asciutte, manze, maschi)
   - **Produzione**: registro delle mungiture (mattina/sera), riepilogo mensile, export CSV
   - **Alimentazione**: 3 stalle (numero = quello scritto nei messaggi dei collaboratori), griglia
     giornaliera mattina e sera in cui si scrivono le 3 pesate fotografate sul display del carro

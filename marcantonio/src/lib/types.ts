@@ -176,6 +176,9 @@ export interface GiornoVaccaRobot {
   dim?: number | null // giorni di lattazione (se il file li riporta)
 }
 
+/** Nome dato a un gruppo DairyComp (id = numero del gruppo). */
+export interface NomeGruppo { id: string; nome: string }
+
 export interface ImportRobot { id: string; fonte: string; nomeFile: string; importatoIl: string; dal: string; al: string }
 
 export interface Dati {
@@ -189,6 +192,8 @@ export interface Dati {
   scarichi: Scarico[]
   verifiche: VerificaSettimana[]
   importDC: ImportDC[]
+  mandriaDC: ImportDC[] // ultima lista completa di DairyComp (tutti i gruppi) per la sezione Mandria
+  nomiGruppi: NomeGruppo[]
   robotGiorni: GiornoRobot[]
   robotVacche: GiornoVaccaRobot[]
   importRobot: ImportRobot[]

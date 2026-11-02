@@ -205,6 +205,28 @@ export const inLattazione = (a: AnimaleDC) =>
   a.lattazione !== 0 &&
   ((a.dim !== null && a.dim > 0) || (a.latte ?? 0) > 0)
 
+/** Categoria di un animale per raggruppare la mandria. */
+export function categoria(a: AnimaleDC): string {
+  const r = (a.codiceRiproduttivo ?? '').toUpperCase()
+  if (inLattazione(a)) return 'In lattazione'
+  if (r.startsWith('ASC')) return 'Asciutte'
+  if (r.startsWith('MASCHIO') || r.startsWith('TORO')) return 'Maschi'
+  if (r.startsWith('MANZA')) return 'Manze'
+  if (a.lattazione === 0) return 'Manze in riproduzione' // manze fecondate o gravide
+  return 'Altro'
+}
+
+/** Nome proposto per un gruppo in base agli animali che contiene. */
+export function nomeAutomaticoGruppo(animali: AnimaleDC[], stalla?: number): string {
+  const conta = new Map<string, number>()
+  animali.forEach((a) => conta.set(categoria(a), (conta.get(categoria(a)) ?? 0) + 1))
+  const [primo, secondo] = [...conta.entries()].sort((a, b) => b[1] - a[1])
+  if (!primo) return 'Gruppo vuoto'
+  let nome = primo[0] === 'In lattazione' ? (stalla ? `Lattazione · stalla ${stalla}` : 'Lattazione') : primo[0]
+  if (secondo && secondo[1] >= animali.length * 0.3) nome += ` e ${secondo[0].toLowerCase()}`
+  return nome
+}
+
 export const FASI = [
   { nome: 'Fresche', da: 0, a: 30 },
   { nome: 'Inizio', da: 31, a: 100 },
