@@ -1,12 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Milk, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp, Wheat, X } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { AnalisiMangime, CategoriaRazione, Ingrediente, Razione } from '../lib/types'
 import { MANGIMI_NOTI, SS_MANGIME_TIPICA } from '../lib/ingerito'
+import PrezziMercato, { NOMI_FONTE } from '../components/PrezziMercato'
 import { Campo, Modale, StatTile, Vuoto } from '../components/ui'
 import { CATEGORIE, calcolaMargine, costoRazione, nomeCategoria, settimaneConDati } from '../lib/margine'
 import { KG_PER_LITRO } from '../lib/salute'
-import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, nuovoId } from '../lib/format'
+import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno, nuovoId } from '../lib/format'
 import { GRUPPI_PREDEFINITI } from '../lib/dairycomp'
 
 type Vista = 'lattazione' | 'aziendale'
@@ -258,6 +259,7 @@ export function RazioniPrezzi() {
         </div>
       </div>
 
+      <div className="space-y-6">
       <div className="card">
         <h2>Alimenti e prezzi</h2>
         <p className="mt-0.5 text-sm text-stone-500">Prezzo al quintale tal quale. Cambiando un prezzo si aggiornano tutte le razioni.</p>
@@ -282,6 +284,8 @@ export function RazioniPrezzi() {
         <ul className="mt-3 divide-y divide-stone-100">
           {ingr.map((i) => <RigaIngrediente key={i.id} i={i} usato={usato(i.id)} />)}
         </ul>
+      </div>
+      <PrezziMercato />
       </div>
 
       {modifica && (
@@ -374,11 +378,21 @@ function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
     aggiorna('ingredienti', { ...i, analisi: vuota ? undefined : a })
     setAnalisi(null)
   }
-  const salva = () => { const p = num(prezzo); if (p !== i.prezzoQ) aggiorna('ingredienti', { ...i, prezzoQ: p }) }
+  const salva = () => { const p = num(prezzo); if (p !== i.prezzoQ) aggiorna('ingredienti', { ...i, prezzoQ: p, fonte: i.fonte === 'clal' || !i.fonte ? 'fornitore' : i.fonte, aggiornatoIl: isoGiorno() }) }
+  useEffect(() => { setPrezzo(String(i.prezzoQ || '').replace('.', ',')) }, [i.prezzoQ])
+  const usaClal = () => i.clal && aggiorna('ingredienti', { ...i, prezzoQ: i.clal.prezzoQ, fonte: 'clal', aggiornatoIl: i.clal.data })
   return (
     <li className="flex items-center gap-2 py-2">
       <span className="min-w-0 flex-1 text-sm font-medium">
         <span className="block truncate">{i.nome}</span>
+        {(i.fonte || i.aggiornatoIl) && <span className="block text-xs font-normal text-stone-500">{i.fonte ? NOMI_FONTE[i.fonte] : ''}{i.aggiornatoIl ? ` · ${fmtData(i.aggiornatoIl)}` : ''}</span>}
+        {i.clal && (
+          <span className="block text-xs font-normal text-stone-500">
+            CLAL {fmt2(i.clal.prezzoQ)} €/q del {fmtData(i.clal.data)}
+            {i.prezzoQ > 0 && i.fonte !== 'clal' && <span className={i.prezzoQ > i.clal.prezzoQ ? ' text-rose-700' : ' text-emerald-700'}> ({i.prezzoQ > i.clal.prezzoQ ? '+' : ''}{fmt0((i.prezzoQ / i.clal.prezzoQ - 1) * 100)}%)</span>}
+            {i.fonte !== 'clal' && <button className="ml-1 text-brand-700 hover:underline" onClick={usaClal}>usa</button>}
+          </span>
+        )}
         <button className="text-xs font-normal text-brand-700 hover:underline" onClick={apriAnalisi}>{i.analisi ? `Analisi: PG ${fmt1(i.analisi.pg ?? 0)}% · SS ${fmt1(i.analisi.ss ?? 0)}%${i.analisi.ssStimata ? ' (stimata)' : ''}` : '+ Analisi'}</button>
       </span>
       <input className="input !w-24 shrink-0 py-1.5 text-right" inputMode="decimal" value={prezzo} placeholder="€/q" aria-label={`Prezzo ${i.nome}`}

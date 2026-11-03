@@ -272,7 +272,16 @@ export interface AnalisiPmr {
 }
 
 /** Alimento della razione con il prezzo (tal quale). */
-export interface Ingrediente { id: string; nome: string; prezzoQ: number /* €/quintale */; note?: string; analisi?: AnalisiMangime }
+export interface Ingrediente {
+  id: string
+  nome: string
+  prezzoQ: number // €/quintale, il prezzo usato nei calcoli
+  note?: string
+  analisi?: AnalisiMangime
+  fonte?: 'fornitore' | 'aziendale' | 'clal' // da dove viene il prezzo usato
+  aggiornatoIl?: string // data dell'ultimo prezzo
+  clal?: { prezzoQ: number; data: string; voce: string } // ultima quotazione CLAL importata (riferimento di mercato)
+}
 
 /** Componenti analitici di un mangime come sul cartellino: % sul tal quale. */
 export interface AnalisiMangime {
