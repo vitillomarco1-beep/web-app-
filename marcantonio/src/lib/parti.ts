@@ -75,7 +75,24 @@ export function settimanaVaccinazioni(oggi = isoGiorno(), anticipo = SETTIMANE_A
 }
 
 export const nellaSettimana = (p: PartoPrevisto, s: { da: string; a: string }) => p.dataParto >= s.da && p.dataParto <= s.a
-export const idVaccinazione = (p: PartoPrevisto) => `${p.vacca}|${p.dataParto}`
+export const idVaccinazione = (p: PartoPrevisto, vaccino: string) => `${p.vacca}|${p.dataParto}|${vaccino}`
+
+/** Vaccini da fare insieme prima del parto (2 ml a capo ciascuno). */
+export const VACCINI_PREPARTO = [
+  { id: 'rotavec', nome: 'Bovilis Rotavec Corona', breve: 'Rotavec', cerca: 'rotavec', doseMl: 2, mlConf: 10, dosiConf: 5 },
+  { id: 'cryptium', nome: 'Bovilis Cryptium', breve: 'Cryptium', cerca: 'cryptium', doseMl: 2, mlConf: 40, dosiConf: 20 },
+] as const
+export type VaccinoPreparto = (typeof VACCINI_PREPARTO)[number]
+
+/** Farmaco del magazzino corrispondente al vaccino (cercato per nome). */
+export const farmacoDelVaccino = <F extends { nome: string }>(farmaci: F[], v: VaccinoPreparto) =>
+  farmaci.find((f) => f.nome.toLowerCase().includes(v.cerca))
+
+/** Quantità di una dose nell'unità del magazzino. */
+export const doseInUnita = (unita: string, v: VaccinoPreparto) => (unita === 'ml' ? v.doseMl : 1)
+
+/** Animale con tutti i vaccini fatti. */
+export const vaccinataTutto = (p: PartoPrevisto, fatte: Set<string>) => VACCINI_PREPARTO.every((v) => fatte.has(idVaccinazione(p, v.id)))
 
 export function categoriaParto(l: number | null) {
   if (l === null) return '—'

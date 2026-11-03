@@ -9,7 +9,7 @@ import { applicaGruppiRobot } from '../lib/gruppi'
 import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairycomp'
 import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
-import { SETTIMANE_ANTICIPO, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
+import { SETTIMANE_ANTICIPO, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
 
@@ -59,7 +59,7 @@ export default function DashboardPage() {
   // Vaccinazioni pre-parto della settimana (dalla lista parti di DairyComp)
   const settVacc = settimanaVaccinazioni(isoGiorno(), dati.parametri.find((p) => p.id === 'anticipoVaccini')?.valore ?? SETTIMANE_ANTICIPO)
   const fatteVacc = new Set(dati.vaccinazioni.map((v) => v.id))
-  const daVaccinare = partiPrevisti(dati.partiDC[0]).filter((p) => nellaSettimana(p, settVacc) && !fatteVacc.has(idVaccinazione(p)))
+  const daVaccinare = partiPrevisti(dati.partiDC[0]).filter((p) => nellaSettimana(p, settVacc) && !vaccinataTutto(p, fatteVacc))
 
   const cose: Cosa[] = [
     ...(daVaccinare.length ? [{ testo: `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}`, link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),

@@ -4,7 +4,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, leggiFile } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
-import { SETTIMANE_ANTICIPO, categoriaParto, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
+import { SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
 
 const giornoSett = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
@@ -17,7 +17,7 @@ const breve = (iso: string) => {
 
 /** Parti previsti da DairyComp e lista settimanale delle vacche da vaccinare prima del parto. */
 export default function PartiPage() {
-  const { dati, imposta, aggiungi, elimina } = useStore()
+  const { dati, imposta, aggiungi, aggiorna, elimina } = useStore()
   const oggi = isoGiorno()
   const lista = dati.partiDC[0]
   const anticipo = dati.parametri.find((p) => p.id === 'anticipoVaccini')?.valore ?? SETTIMANE_ANTICIPO
@@ -31,7 +31,13 @@ export default function PartiPage() {
   const sett = settimanaVaccinazioni(oggi, anticipo, spostamento)
   const daVaccinare = parti.filter((p) => nellaSettimana(p, sett))
   const fatte = new Set(dati.vaccinazioni.map((v) => v.id))
-  const mancano = daVaccinare.filter((p) => !fatte.has(idVaccinazione(p))).length
+  const mancano = daVaccinare.filter((p) => !vaccinataTutto(p, fatte)).length
+  const scorte = VACCINI_PREPARTO.map((v) => {
+    const f = farmacoDelVaccino(dati.farmaci, v)
+    const servono = daVaccinare.filter((p) => !fatte.has(idVaccinazione(p, v.id))).length
+    const dosiMagazzino = f ? Math.max(0, Math.floor(f.giacenza / doseInUnita(f.unita, v))) : null
+    return { v, f, servono, dosiMagazzino, confezioni: Math.ceil(servono / v.dosiConf) }
+  })
   const prossime = Array.from({ length: 8 }, (_, i) => {
     const s = settimanaVaccinazioni(oggi, 0, i)
     return { ...s, n: parti.filter((p) => nellaSettimana(p, s)).length }
@@ -51,11 +57,37 @@ export default function PartiPage() {
     setSpostamento(0)
   }
 
-  const segna = (p: (typeof parti)[number]) => {
-    const id = idVaccinazione(p)
-    if (fatte.has(id)) elimina('vaccinazioni', id)
-    else aggiungi('vaccinazioni', { id, vacca: p.vacca, dataParto: p.dataParto, fattaIl: oggi })
+  /** Segna o toglie un vaccino; se il vaccino è nel magazzino farmaci, la dose viene scaricata (o restituita). */
+  const segna = (p: PartoPrevisto, v: VaccinoPreparto) => {
+    const id = idVaccinazione(p, v.id)
+    const esistente = dati.vaccinazioni.find((x) => x.id === id)
+    if (esistente) {
+      elimina('vaccinazioni', id)
+      const f = esistente.scarico && dati.farmaci.find((x) => x.id === esistente.scarico!.farmacoId)
+      if (f) aggiorna('farmaci', { ...f, giacenza: f.giacenza + esistente.scarico!.quantita })
+      return
+    }
+    const f = farmacoDelVaccino(dati.farmaci, v)
+    const quantita = f ? doseInUnita(f.unita, v) : 0
+    aggiungi('vaccinazioni', { id, vacca: p.vacca, dataParto: p.dataParto, vaccino: v.id, fattaIl: oggi, ...(f ? { scarico: { farmacoId: f.id, quantita } } : {}) })
+    if (f) aggiorna('farmaci', { ...f, giacenza: Math.round((f.giacenza - quantita) * 100) / 100 })
   }
+  const aggiungiAlMagazzino = (v: VaccinoPreparto) =>
+    aggiungi('farmaci', { id: nuovoId(), nome: v.nome, unita: 'ml', unitaPerConfezione: v.mlConf, prezzoConfezione: 0, giacenza: 0, note: `Vaccino pre-parto, ${v.doseMl} ml a capo (${v.dosiConf} dosi a confezione)` })
+
+  const bottoni = (p: PartoPrevisto, grandi = false) => (
+    <div className="flex flex-wrap gap-2">
+      {VACCINI_PREPARTO.map((v) => {
+        const ok = fatte.has(idVaccinazione(p, v.id))
+        return (
+          <button key={v.id} type="button" onClick={() => segna(p, v)} aria-pressed={ok}
+            className={`inline-flex items-center gap-1.5 rounded-full border font-medium transition ${grandi ? 'px-3.5 py-2 text-sm' : 'px-3 py-1 text-xs'} ${ok ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-stone-300 bg-white text-stone-600 hover:border-brand-400'}`}>
+            {ok ? <Check className="h-3.5 w-3.5" /> : <Syringe className="h-3.5 w-3.5" />}{v.breve}
+          </button>
+        )
+      })}
+    </div>
+  )
 
   const cambiaAnticipo = (n: number) => {
     if (n < 1 || n > 12) return
@@ -64,7 +96,7 @@ export default function PartiPage() {
   }
 
   const testo = () =>
-    [`Vaccinazioni pre-parto – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
+    [`Vaccinazioni pre-parto (${VACCINI_PREPARTO.map((v) => v.breve).join(' + ')}) – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
       ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  gr. ${p.gruppo}` : ''}`)].join('\n')
   const copia = async () => {
     try { await navigator.clipboard.writeText(testo()); setCopiato(true); setTimeout(() => setCopiato(false), 2000) } catch { /* appunti non disponibili */ }
@@ -120,35 +152,35 @@ export default function PartiPage() {
               <>
               <ul className="mt-4 divide-y divide-stone-100 sm:hidden">
                 {daVaccinare.map((p) => {
-                  const ok = fatte.has(idVaccinazione(p))
+                  const ok = vaccinataTutto(p, fatte)
                   return (
-                    <li key={idVaccinazione(p)}>
-                      <label className={`flex items-center gap-3 rounded-lg px-2 py-3 ${ok ? 'bg-emerald-50/60' : ''}`}>
-                        <input type="checkbox" className="h-6 w-6 shrink-0 accent-emerald-600" checked={ok} onChange={() => segna(p)} />
+                    <li key={`${p.vacca}|${p.dataParto}`} className={`rounded-lg px-2 py-3 ${ok ? 'bg-emerald-50/60' : ''}`}>
+                      <div className="flex items-center gap-3">
                         <span className="w-14 text-lg font-bold text-brand-900">{p.vacca}</span>
                         <span className="min-w-0 flex-1 text-sm">
                           <span className="block font-medium">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400">(stimata)</span>}</span>
                           <span className="block text-xs text-stone-500">{categoriaParto(p.lattazione)}{p.gruppo !== null ? ` · gruppo ${p.gruppo}` : ''}{p.giorniGravidanzaOggi !== null ? ` · ${p.giorniGravidanzaOggi} gg grav.` : ''}</span>
                         </span>
-                      </label>
+                      </div>
+                      <div className="mt-2 pl-[4.25rem]">{bottoni(p, true)}</div>
                     </li>
                   )
                 })}
               </ul>
               <div className="mt-4 hidden overflow-x-auto sm:block">
                 <table className="table">
-                  <thead><tr><th className="w-10">Fatta</th><th>Vacca</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th className="text-right">Gg gravidanza oggi</th></tr></thead>
+                  <thead><tr><th>Vacca</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th className="text-right">Gg gravidanza oggi</th><th>Vaccini fatti</th></tr></thead>
                   <tbody>
                     {daVaccinare.map((p) => {
-                      const ok = fatte.has(idVaccinazione(p))
+                      const ok = vaccinataTutto(p, fatte)
                       return (
-                        <tr key={idVaccinazione(p)} className={ok ? 'bg-emerald-50/60' : ''}>
-                          <td><input type="checkbox" className="h-5 w-5 accent-emerald-600" checked={ok} onChange={() => segna(p)} aria-label={`Vaccinata ${p.vacca}`} /></td>
+                        <tr key={`${p.vacca}|${p.dataParto}`} className={ok ? 'bg-emerald-50/60' : ''}>
                           <td className="font-semibold">{p.vacca}</td>
                           <td className="whitespace-nowrap">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400" title="Calcolata dai giorni di gravidanza">(stimata)</span>}</td>
                           <td>{categoriaParto(p.lattazione)}</td>
                           <td>{p.gruppo ?? '—'}</td>
                           <td className="text-right tabular-nums">{p.giorniGravidanzaOggi ?? '—'}</td>
+                          <td>{bottoni(p)}</td>
                         </tr>
                       )
                     })}
@@ -158,6 +190,33 @@ export default function PartiPage() {
               </>
             )}
           </div>
+
+          {daVaccinare.length > 0 && (
+            <div className="card mt-6 print:hidden">
+              <h2>Dosi per questa settimana</h2>
+              <p className="mt-0.5 text-sm text-stone-500">I due vaccini si fanno insieme, {VACCINI_PREPARTO[0].doseMl} ml a capo ciascuno. Spuntando un vaccino la dose viene tolta dal magazzino Farmaci.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {scorte.map(({ v, f, servono, dosiMagazzino, confezioni }) => {
+                  const poche = dosiMagazzino !== null && dosiMagazzino < servono
+                  return (
+                    <div key={v.id} className={`rounded-xl border p-4 ${poche ? 'border-rose-200 bg-rose-50/60' : 'border-stone-200'}`}>
+                      <div className="font-semibold text-brand-900">{v.nome}</div>
+                      <div className="mt-1 text-sm text-stone-600">
+                        Da fare: <b>{servono}</b> {servono === 1 ? 'dose' : 'dosi'} · {servono * v.doseMl} ml · {confezioni} {confezioni === 1 ? 'flacone' : 'flaconi'} da {v.dosiConf} dosi
+                      </div>
+                      <div className="mt-1 text-sm">
+                        {f ? (
+                          <span className={poche ? 'font-semibold text-rose-700' : 'text-stone-600'}>In magazzino: {dosiMagazzino} {dosiMagazzino === 1 ? 'dose' : 'dosi'}{poche ? ' – non bastano' : ''}</span>
+                        ) : (
+                          <span className="text-stone-500">Non è nel magazzino Farmaci. <button className="btn-link" onClick={() => aggiungiAlMagazzino(v)}>Aggiungilo</button></span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2 print:hidden">
             <div className="card">

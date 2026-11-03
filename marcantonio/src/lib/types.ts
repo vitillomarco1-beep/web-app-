@@ -243,7 +243,14 @@ export interface Dati {
   vaccinazioni: Vaccinazione[]
 }
 
-/** Vaccinazione pre-parto segnata come fatta. id = `${vacca}|${dataParto}` */
-export interface Vaccinazione { id: string; vacca: string; dataParto: string; fattaIl: string }
+/** Vaccino pre-parto segnato come fatto. id = `${vacca}|${dataParto}|${vaccino}` */
+export interface Vaccinazione {
+  id: string
+  vacca: string
+  dataParto: string
+  vaccino?: string // id in VACCINI_PREPARTO
+  fattaIl: string
+  scarico?: { farmacoId: string; quantita: number } // dose tolta dal magazzino farmaci
+}
 
 export type Collezione = keyof Dati
