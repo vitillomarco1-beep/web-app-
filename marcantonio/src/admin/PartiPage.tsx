@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import { Baby, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, FileUp, Printer, Syringe } from 'lucide-react'
+import { Baby, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, FileDown, FileUp, Loader2, Syringe } from 'lucide-react'
+import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile } from '../lib/dairycomp'
@@ -25,6 +26,7 @@ export default function PartiPage() {
   const [dataLista, setDataLista] = useState(oggi)
   const [errore, setErrore] = useState('')
   const [copiato, setCopiato] = useState(false)
+  const [pdf, setPdf] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
   // Il gruppo, se manca nella lista parti, viene preso dall'ultima lista Mandria di DairyComp
@@ -108,6 +110,17 @@ export default function PartiPage() {
   const testo = () =>
     [`Vaccinazioni pre-parto (${VACCINI_PREPARTO.map((v) => v.breve).join(' + ')}) – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
       ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)].join('\n')
+  const scaricaPdf = async () => {
+    setPdf(true)
+    try {
+      const blob = await creaPdf('Vaccinazioni pre-parto', `Parti previsti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} · ${VACCINI_PREPARTO.map((v) => `${v.nome} ${v.doseMl} ml`).join(' + ')}`, [{
+        titolo: `Vacche da vaccinare (${daVaccinare.length})`,
+        colonne: ['Vacca', 'Parto previsto', 'Categoria', 'Gruppo', 'Gg gravid.', ...VACCINI_PREPARTO.map((v) => v.breve)],
+        righe: daVaccinare.map((p) => [p.vacca, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo === null ? '' : isCloseUp(p.gruppo) ? `${p.gruppo} close up` : p.gruppo, p.giorniGravidanzaOggi ?? '', ...VACCINI_PREPARTO.map((v) => (fatte.has(idVaccinazione(p, v.id)) ? 'fatto' : ''))]),
+      }])
+      await scarica(blob, `vaccinazioni-preparto-${sett.da}.pdf`)
+    } finally { setPdf(false) }
+  }
   const copia = async () => {
     try { await navigator.clipboard.writeText(testo()); setCopiato(true); setTimeout(() => setCopiato(false), 2000) } catch { /* appunti non disponibili */ }
   }
@@ -152,7 +165,7 @@ export default function PartiPage() {
                 <button className="btn-secondary px-3" aria-label="Settimana precedente" onClick={() => setSpostamento((s) => s - 1)}><ChevronLeft className="h-4 w-4" /></button>
                 <button className="btn-secondary px-3" aria-label="Settimana successiva" onClick={() => setSpostamento((s) => s + 1)}><ChevronRight className="h-4 w-4" /></button>
                 <button className="btn-secondary" onClick={copia} disabled={!daVaccinare.length}>{copiato ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copiato ? 'Copiata' : 'Copia lista'}</button>
-                <button className="btn-secondary" onClick={() => window.print()} disabled={!daVaccinare.length}><Printer className="h-4 w-4" />Stampa</button>
+                <button className="btn-primary" onClick={scaricaPdf} disabled={!daVaccinare.length || pdf}>{pdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
               </div>
             </div>
 

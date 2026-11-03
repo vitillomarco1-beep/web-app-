@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, FileUp, Printer, Syringe } from 'lucide-react'
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, FileDown, FileUp, Loader2, Syringe } from 'lucide-react'
+import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
 import type { Farmaco } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
@@ -21,6 +22,7 @@ export default function VitelliPage() {
   const [dataLista, setDataLista] = useState(oggi)
   const [errore, setErrore] = useState('')
   const [copiato, setCopiato] = useState(false)
+  const [pdf, setPdf] = useState<'' | 'in corso' | 'ok' | 'errore'>('')
   const input = useRef<HTMLInputElement>(null)
 
   const tutti = useMemo(() => vitelli(lista), [lista])
@@ -72,6 +74,25 @@ export default function VitelliPage() {
   const testo = () => [`Vaccinazioni vitelli – martedì ${fmtData(martedi)}`, ...sezioni.flatMap((s) => s.daFare.length || s.ritardo.length
     ? [``, `${s.v.nome} (${s.v.via}, ${s.v.doseMl} ml) – ${s.daFare.length + s.ritardo.length} vitelli`, ...[...s.daFare, ...s.ritardo].map((c) => `${c.id}  –  ${etaAl(c, martedi)} giorni${c.gruppo !== null ? `  –  gr. ${c.gruppo}` : ''}${s.ritardo.includes(c) ? '  (in ritardo)' : ''}`)]
     : [])].join('\n')
+  const scaricaPdf = async () => {
+    setPdf('in corso')
+    try {
+      const blob = await creaPdf('Vaccinazioni vitelli', `Martedì ${fmtData(martedi)} · età calcolata al martedì · lista DairyComp del ${fmtData(lista!.data)}`,
+        sezioni.map((x) => {
+          const tutti = [...x.daFare, ...x.ritardo]
+          return {
+            titolo: `${x.v.nome}  (${tutti.length})`,
+            sottotitolo: `${x.v.via} · ${x.v.doseMl} ml · vitelli di ${x.w.da}-${x.w.a} giorni (obiettivo ${x.v.obiettivo})`,
+            colonne: ['Vitello', 'Età (gg)', 'Nato il', 'Gruppo', 'Note', 'Fatto'],
+            righe: tutti.map((c) => [c.id, etaAl(c, martedi), fmtData(c.nascita), c.gruppo ?? '', x.ritardo.includes(c) ? 'in ritardo' : fatte.has(idVacVitello(c.id, x.v.id)) ? 'già segnato' : '', '']),
+            evidenzia: tutti.map((c) => x.ritardo.includes(c)),
+          }
+        }),
+        'Le righe in rosso sono vitelli in ritardo (finestra del vaccino già passata). Segnare i vaccini fatti anche nell’app, sezione Vitelli e vaccini.')
+      const esito = await scarica(blob, `vaccinazioni-vitelli-${martedi}.pdf`)
+      setPdf(esito === 'errore' ? 'errore' : esito === 'ok' ? 'ok' : '')
+    } catch { setPdf('errore') }
+  }
   const copia = async () => { try { await navigator.clipboard.writeText(testo()); setCopiato(true); setTimeout(() => setCopiato(false), 2000) } catch { /* appunti non disponibili */ } }
 
   const caricatore = (
@@ -125,6 +146,7 @@ export default function VitelliPage() {
             </div>
           )}
 
+          {pdf === 'errore' && <p className="mt-4 text-sm text-red-600">Non sono riuscito a creare il PDF. Riprova.</p>}
           <div className="card mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -135,7 +157,7 @@ export default function VitelliPage() {
                 <button className="btn-secondary px-3" aria-label="Martedì precedente" onClick={() => setSpost((s) => s - 1)}><ChevronLeft className="h-4 w-4" /></button>
                 <button className="btn-secondary px-3" aria-label="Martedì successivo" onClick={() => setSpost((s) => s + 1)}><ChevronRight className="h-4 w-4" /></button>
                 <button className="btn-secondary" onClick={copia}>{copiato ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copiato ? 'Copiata' : 'Copia lista'}</button>
-                <button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />Stampa</button>
+                <button className="btn-primary" onClick={scaricaPdf} disabled={pdf === 'in corso'}>{pdf === 'in corso' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
               </div>
             </div>
 
