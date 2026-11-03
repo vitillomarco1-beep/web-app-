@@ -125,6 +125,8 @@ export interface AnimaleDC {
   codiceRiproduttivo?: string | null // RC
   giorniGravidanza?: number | null // DCC
   dataPartoPrevista?: string | null // DUE, come scritta nel file
+  giorniVita?: number | null // età in giorni (lista vitelli)
+  dataNascita?: string | null // come scritta nel file
   extra?: Record<string, number | string> // tutte le altre colonne del file
 }
 
@@ -244,7 +246,12 @@ export interface Dati {
   ingredienti: Ingrediente[]
   razioni: Razione[]
   analisiPmr: AnalisiPmr[]
+  vitelliDC: ImportDC[] // ultima lista vitelli di DairyComp
+  vaccinazioniVitelli: VaccinazioneVitello[]
 }
+
+/** Vaccino fatto a un vitello. id = `${vitello}|${vaccino}` */
+export interface VaccinazioneVitello { id: string; vitello: string; vaccino: string; fattaIl: string; eta?: number; scarico?: { farmacoId: string; quantita: number } }
 
 /** Analisi di laboratorio del PMR (unifeed). Percentuali sulla sostanza secca, tranne ss (sul tal quale). */
 export interface AnalisiPmr {

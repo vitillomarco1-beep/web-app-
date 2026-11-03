@@ -4,7 +4,7 @@
 // riconosce le intestazioni più comuni e permette di correggere l'abbinamento a mano.
 import type { AnimaleDC, ImportDC } from './types'
 
-export type Campo = 'id' | 'gruppo' | 'lattazione' | 'dim' | 'latte' | 'grasso' | 'proteine' | 'cellule' | 'scs' | 'codiceRiproduttivo' | 'giorniGravidanza' | 'dataParto'
+export type Campo = 'id' | 'gruppo' | 'lattazione' | 'dim' | 'latte' | 'grasso' | 'proteine' | 'cellule' | 'scs' | 'codiceRiproduttivo' | 'giorniGravidanza' | 'dataParto' | 'giorniVita' | 'dataNascita'
 
 export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'id', etichetta: 'Numero vacca (ID)', alias: ['ID', 'COW', 'VACCA', 'MATRICOLA', 'MATR', 'BARN', 'NUMERO', 'ANIMALE'] },
@@ -18,6 +18,8 @@ export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
   { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
   { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGR', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA', 'GGRV', 'GGGRAV'] },
+  { campo: 'giorniVita', etichetta: 'Giorni di vita', alias: ['GGVITA', 'GGVIT', 'GVITA', 'GGV', 'ETAGG', 'GGETA', 'AGEDAYS', 'AGED', 'AGEDY', 'DAYSOLD', 'GGNAS', 'GIORNIVITA', 'GGNASC'] },
+  { campo: 'dataNascita', etichetta: 'Data di nascita (BDAT)', alias: ['BDAT', 'DNAS', 'DNASC', 'DATANASC', 'DATANASCITA', 'NASCITA', 'DTNAS', 'BIRTH', 'BIRTHDATE'] },
   { campo: 'dataParto', etichetta: 'Data parto prevista (DUE)', alias: ['DUE', 'PPR', 'DDAT', 'DUEDATE', 'DPP', 'DATAPARTO', 'PARTOPREV', 'PREVPARTO', 'DPARTO', 'DATAPP', 'EXPCALV', 'PARTOPREVISTO', 'DTPAR', 'DPREV', 'DPRT'] },
 ]
 
@@ -125,6 +127,8 @@ export function costruisciAnimali(f: FileLetto, m: Partial<Record<Campo, number>
         codiceRiproduttivo: valore(r, 'codiceRiproduttivo')?.trim() || null,
         giorniGravidanza: numero(valore(r, 'giorniGravidanza')),
         dataPartoPrevista: valore(r, 'dataParto')?.trim() || null,
+        giorniVita: numero(valore(r, 'giorniVita')),
+        dataNascita: valore(r, 'dataNascita')?.trim() || null,
         extra,
       } as AnimaleDC
     })

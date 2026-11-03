@@ -9,6 +9,7 @@ import { applicaGruppiRobot } from '../lib/gruppi'
 import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairycomp'
 import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
+import { VACCINI_VITELLI, etaAl, finestra, idVacVitello, prossimoMartedi, vitelli } from '../lib/vitelli'
 import { SETTIMANE_ANTICIPO, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
@@ -65,7 +66,16 @@ export default function DashboardPage() {
   const listaParti = dati.partiDC[0]
   const listaPartiVecchia = !listaParti || listaParti.data < aggiungiGiorni(isoGiorno(), -60)
 
+  // Vaccinazioni dei vitelli del prossimo martedì
+  const martedi = prossimoMartedi()
+  const listaVitelli = dati.vitelliDC[0]
+  const fatteVit = new Set(dati.vaccinazioniVitelli.map((v) => v.id))
+  const vitelliDaFare = listaVitelli ? vitelli(listaVitelli).reduce((t, c) => t + VACCINI_VITELLI.filter((v) => { const w = finestra(v), e = etaAl(c, martedi); return e >= w.da && e <= w.a && !fatteVit.has(idVacVitello(c.id, v.id)) }).length, 0) : 0
+  const giornoSettimana = new Date().getDay()
+
   const cose: Cosa[] = [
+    ...(listaVitelli && listaVitelli.data < martedi && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista vitelli di DairyComp per le vaccinazioni di martedì', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
+    ...(vitelliDaFare ? [{ testo: `Vaccinazioni vitelli di martedì ${fmtData(martedi)}: ${vitelliDaFare} ${vitelliDaFare === 1 ? 'vaccino' : 'vaccini'} da fare`, link: '/area-riservata/vitelli', tipo: 'vaccino' as const }] : []),
     ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),
     ...(daVaccinare.length ? [{ testo: `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}`, link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),
     ...(gruppiDaCaricare.length ? [{ testo: `Carica i file dei robot della settimana scorsa: mancano ${gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
