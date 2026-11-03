@@ -15,7 +15,7 @@ const MAX_IMPORT = 120 // fotografie conservate nel browser (con il servizio onl
 export default function ImportDairyComp({ onChiudi, onImportato, destinazione = 'latte' }: { onChiudi: () => void; onImportato: (id: string) => void; destinazione?: 'latte' | 'mandria' }) {
   const { dati, aggiungi, aggiorna, elimina, imposta } = useStore()
   const perMandria = destinazione === 'mandria'
-  const [aggiornaLatte, setAggiornaLatte] = useState(true)
+  const aggiornaLatte = true // la sezione Latte si aggiorna sempre dalla lista Mandria
   const [file, setFile] = useState<FileLetto | null>(null)
   const [nomeFile, setNomeFile] = useState('')
   const [abbinamento, setAbbinamento] = useState<Partial<Record<Campo, number>>>({})
@@ -156,7 +156,7 @@ export default function ImportDairyComp({ onChiudi, onImportato, destinazione = 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block"><span className="label">Data dei dati</span><input className="input" type="date" max={isoGiorno()} value={data} onChange={(e) => setData(e.target.value)} /></label>
             {perMandria
-              ? <label className="flex items-center gap-2 self-end pb-2"><input type="checkbox" checked={aggiornaLatte} onChange={(e) => setAggiornaLatte(e.target.checked)} /> Aggiorna anche la sezione Latte (gruppi {[...gruppiStalle].join(', ')})</label>
+              ? <p className="self-end pb-2 text-sm text-stone-600">Aggiorna anche la sezione Latte (gruppi {[...gruppiStalle].join(', ')}).</p>
               : <label className="flex items-center gap-2 self-end pb-2"><input type="checkbox" checked={aggiornaStalle} onChange={(e) => setAggiornaStalle(e.target.checked)} /> Aggiorna i capi delle stalle</label>}
           </div>
           {esistente && <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800">! Esistono già dati del {data}: verranno sostituiti.</p>}

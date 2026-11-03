@@ -6,7 +6,6 @@ import { useStore } from '../lib/store'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto, conferma } from '../components/ui'
 import BarChart from '../components/BarChart'
-import ImportDairyComp from '../components/ImportDairyComp'
 import { FASI, etichettaColonna, faseDi, inLattazione as lattante, perGruppo, riepilogo, type Riepilogo } from '../lib/dairycomp'
 import { fmt0, fmt1, fmt2, fmtData } from '../lib/format'
 
@@ -27,7 +26,6 @@ export default function LattePage() {
   const { dati, elimina } = useStore()
   const imports = useMemo(() => [...dati.importDC].sort((a, b) => b.data.localeCompare(a.data)), [dati.importDC])
   const [selezionato, setSelezionato] = useState<string | null>(null)
-  const [importa, setImporta] = useState(false)
   const [gruppoFiltro, setGruppoFiltro] = useState<number | null | 'tutti'>('tutti')
   const [gruppoTrend, setGruppoTrend] = useState<number | 'mandria'>('mandria')
   const [cerca, setCerca] = useState('')
@@ -42,10 +40,9 @@ export default function LattePage() {
       <>
         <PageHeader titolo="Latte" icona={BarChart3} descrizione="Gruppi e intera mandria, dai dati di DairyComp" />
         <Vuoto>
-          <p>Non ci sono ancora dati di DairyComp.</p>
-          <button className="btn-primary mt-4" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>
+          <p>Non ci sono ancora dati di DairyComp. Si caricano dalla sezione <b>Mandria</b>: la lista completa aggiorna anche questa pagina con i gruppi delle stalle.</p>
+          <Link to="/area-riservata/mandria" className="btn-primary mt-4"><Upload className="h-4 w-4" />Vai a Mandria</Link>
         </Vuoto>
-        {importa && <ImportDairyComp onChiudi={() => setImporta(false)} onImportato={(id) => { setImporta(false); setSelezionato(id) }} />}
       </>
     )
   }
@@ -125,7 +122,7 @@ export default function LattePage() {
   return (
     <>
       <PageHeader titolo="Latte" icona={BarChart3} descrizione="Gruppi e intera mandria, dai dati di DairyComp"
-        azioni={<button className="btn-primary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>} />
+        azioni={<Link to="/area-riservata/mandria" className="btn-secondary"><Upload className="h-4 w-4" />Aggiorna da Mandria</Link>} />
 
       {/* Dati di riferimento */}
       <div className="mb-5 flex flex-wrap items-center gap-3 text-sm">
@@ -329,7 +326,6 @@ export default function LattePage() {
         Le mungiture giornaliere della sala restano in <Link to="/area-riservata/produzione" className="text-brand-700 hover:underline">Mungiture</Link>.
       </p>
 
-      {importa && <ImportDairyComp onChiudi={() => setImporta(false)} onImportato={(id) => { setImporta(false); setSelezionato(id) }} />}
     </>
   )
 }
