@@ -121,3 +121,21 @@ export function statoAsciutta(vacca: string, lista: ImportDC | undefined, oggi =
   const tipo = giorniAllAsciutta <= ASCIUTTA_IMMINENTE_GG ? 'imminente' : (p.giorniGravidanzaOggi ?? 0) >= GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA ? 'vicina' : 'lontana'
   return { tipo, dataAsciutta, giorniAllAsciutta, giorniGravidanza: p.giorniGravidanzaOggi }
 }
+
+export interface MessaInAsciutta { p: PartoPrevisto; dataAsciutta: string; giorniAlParto: number }
+
+/** Asciutta solo il lunedì: si asciugano le vacche che quel lunedì sono a 58–64 giorni dal parto previsto
+ *  (7 giorni, così ogni vacca capita in un solo lunedì; in media circa 61 giorni di asciutta). */
+export const ASCIUTTA_GG_DA = 58
+export const ASCIUTTA_GG_A = 64
+
+/** Vacche da mettere in asciutta il lunedì della settimana che contiene la data. */
+export function asciutteDellaSettimana(lista: ImportDC | undefined, oggi = isoGiorno(), spostamento = 0): { da: string; a: string; vacche: MessaInAsciutta[] } {
+  const da = aggiungiGiorni(lunediDi(oggi), 7 * spostamento)
+  const a = aggiungiGiorni(da, 6)
+  const vacche = partiPrevisti(lista, oggi)
+    .map((p) => ({ p, dataAsciutta: da, giorniAlParto: giorniTra(da, p.dataParto) }))
+    .filter((x) => x.p.lattazione !== 0 && x.giorniAlParto >= ASCIUTTA_GG_DA && x.giorniAlParto <= ASCIUTTA_GG_A) // le manze non si asciugano
+    .sort((x, y) => x.giorniAlParto - y.giorniAlParto)
+  return { da, a, vacche }
+}

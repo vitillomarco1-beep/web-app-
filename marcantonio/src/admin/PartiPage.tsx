@@ -5,7 +5,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
-import { SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
+import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, asciutteDellaSettimana, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
 
 const giornoSett = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
@@ -241,6 +241,8 @@ export default function PartiPage() {
             </div>
           )}
 
+          <AsciutteCard />
+
           <div className="mt-6 grid gap-6 lg:grid-cols-2 print:hidden">
             <div className="card">
               <h2>Parti nelle prossime settimane</h2>
@@ -274,5 +276,48 @@ export default function PartiPage() {
         </>
       )}
     </>
+  )
+}
+
+/** Vacche da mettere in asciutta nella settimana (parto previsto − 60 giorni): il protocollo si fa partire il lunedì. */
+function AsciutteCard() {
+  const { dati } = useStore()
+  const [sp, setSp] = useState(0)
+  const s = asciutteDellaSettimana(dati.partiDC[0], isoGiorno(), sp)
+  // ancora munte dai robot nell'ultimo giorno caricato?
+  const ultimo = dati.robotVacche.reduce((m, v) => (v.data > m ? v.data : m), '')
+  const munte = new Set(dati.robotVacche.filter((v) => v.data === ultimo && v.mungiture > 0).map((v) => v.vacca))
+  return (
+    <div className="card mt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2>Messa in asciutta della settimana</h2>
+          <p className="mt-0.5 text-sm text-stone-500">Lunedì {fmtData(s.da)} · vacche a {ASCIUTTA_GG_DA}–{ASCIUTTA_GG_A} giorni dal parto previsto · avviso sul cruscotto il lunedì{sp !== 0 && <> · <button className="btn-link" onClick={() => setSp(0)}>questa settimana</button></>}</p>
+        </div>
+        <div className="flex gap-2 print:hidden">
+          <button className="btn-secondary px-3" aria-label="Settimana precedente" onClick={() => setSp((x) => x - 1)}><ChevronLeft className="h-4 w-4" /></button>
+          <button className="btn-secondary px-3" aria-label="Settimana successiva" onClick={() => setSp((x) => x + 1)}><ChevronRight className="h-4 w-4" /></button>
+        </div>
+      </div>
+      {s.vacche.length === 0 ? <p className="mt-3 text-sm text-stone-500">Nessuna vacca da mettere in asciutta questo lunedì.</p> : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="table">
+            <thead><tr><th>Vacca</th><th className="text-right">Gg al parto</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th className="text-right">Gg gravidanza oggi</th></tr></thead>
+            <tbody>
+              {s.vacche.map(({ p, dataAsciutta, giorniAlParto }) => (
+                <tr key={p.vacca}>
+                  <td className="font-semibold">{p.vacca}{ultimo && munte.has(p.vacca) && dataAsciutta < isoGiorno() && <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-[11px] font-semibold text-arancio-800" title={`Munta dal robot il ${fmtData(ultimo)}`}>ancora munta</span>}</td>
+                  <td className="text-right tabular-nums">{giorniAlParto}</td>
+                  <td className="whitespace-nowrap">{fmtData(p.dataParto)}</td>
+                  <td>{categoriaParto(p.lattazione)}</td>
+                  <td>{p.gruppo ?? '—'}</td>
+                  <td className="text-right tabular-nums">{p.giorniGravidanzaOggi ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
