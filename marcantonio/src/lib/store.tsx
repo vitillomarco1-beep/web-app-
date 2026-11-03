@@ -15,6 +15,14 @@ function carica(): Dati {
   return datiDimostrativi()
 }
 
+const CHIAVE_CODA = 'marcantonio:da-inviare'
+function leggiCoda(): Collezione[] {
+  try { return JSON.parse(localStorage.getItem(CHIAVE_CODA) || '[]') } catch { return [] }
+}
+function scriviCoda(c: Set<Collezione>) {
+  try { localStorage.setItem(CHIAVE_CODA, JSON.stringify([...c])) } catch { /* storage bloccato */ }
+}
+
 type Elemento<K extends Collezione> = Dati[K][number]
 
 interface StoreApi {
@@ -51,29 +59,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const allineate = useRef<Partial<Record<Collezione, unknown>>>({})
   const pezzi = useRef<Partial<Record<Collezione, number>>>({})
   const attivo = useRef(false) // true quando l'archivio contiene già i dati: da qui in poi si salva
-  const inCoda = useRef(new Set<Collezione>())
+  // Modifiche non ancora inviate (es. in stalla senza rete): restano salvate anche chiudendo l'app
+  // e partono appena la connessione torna. Finché sono in coda, i dati in arrivo non le sovrascrivono.
+  const inCoda = useRef(new Set<Collezione>(leggiCoda()))
   const lavorando = useRef(false)
   const timer = useRef<number>()
+  const riprova = useRef<number>()
 
   const svuotaCoda = useCallback(async () => {
-    if (lavorando.current || !dbRef.current) return
+    if (lavorando.current || !dbRef.current || !attivo.current) return
     lavorando.current = true
+    window.clearTimeout(riprova.current)
     setSync('salvataggio')
     try {
       while (inCoda.current.size) {
         const col = inCoda.current.values().next().value as Collezione
-        inCoda.current.delete(col)
         const valori = datiRef.current[col] as unknown[]
         pezzi.current[col] = await salvaCollezione(dbRef.current, col, valori, pezzi.current[col] ?? 0)
         allineate.current[col] = valori
+        // se nel frattempo è cambiata di nuovo resta in coda per il giro successivo
+        if (datiRef.current[col] === valori) inCoda.current.delete(col)
+        scriviCoda(inCoda.current)
       }
       setSync('sincronizzato')
     } catch {
       setSync('errore')
+      riprova.current = window.setTimeout(() => void svuotaCoda(), 15000)
     } finally {
       lavorando.current = false
     }
   }, [])
+
+  useEffect(() => {
+    const online = () => void svuotaCoda()
+    window.addEventListener('online', online)
+    return () => window.removeEventListener('online', online)
+  }, [svuotaCoda])
 
   // Archivio condiviso: ascolto unico per tutta la sessione.
   useEffect(() => {
@@ -101,7 +122,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ;(cambi as Record<string, unknown>)[col] = valori
         }
         if (Object.keys(cambi).length) setDati((d) => ({ ...d, ...cambi }))
-        if (!lavorando.current) setSync('sincronizzato')
+        if (inCoda.current.size) void svuotaCoda()
+        else if (!lavorando.current) setSync('sincronizzato')
       }, () => setSync('errore'))
     })
     return () => { annullato = true; window.clearTimeout(attesa); stop?.() }
@@ -115,6 +137,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (allineate.current[col] !== dati[col]) { inCoda.current.add(col); nuove = true }
     }
     if (!nuove) return
+    scriviCoda(inCoda.current)
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(svuotaCoda, 1500)
   }, [dati, svuotaCoda])
@@ -123,6 +146,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!dbRef.current) return
     attivo.current = true
     for (const col of Object.keys(datiRef.current) as Collezione[]) inCoda.current.add(col)
+    scriviCoda(inCoda.current)
     await svuotaCoda()
   }, [svuotaCoda])
 

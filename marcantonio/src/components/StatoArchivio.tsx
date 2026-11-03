@@ -11,7 +11,7 @@ export function EtichettaArchivio() {
     vuoto: { t: 'Archivio da attivare', c: 'text-arancio-600', I: CloudUpload },
     sincronizzato: { t: 'Dati condivisi', c: 'text-emerald-600', I: Cloud },
     salvataggio: { t: 'Salvataggio…', c: 'text-stone-500', I: RefreshCw },
-    errore: { t: 'Archivio non raggiungibile', c: 'text-red-600', I: CloudOff },
+    errore: { t: 'Senza rete: invio appena possibile', c: 'text-red-600', I: CloudOff },
   }[sync]
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${info.c}`} title="Stato dell'archivio condiviso tra PC e telefono">
@@ -41,7 +41,7 @@ export function AttivaArchivio() {
           <h2 className="text-lg">Condividi i dati tra PC e telefono</h2>
           <p className="mt-1 text-sm text-stone-600">
             L'archivio condiviso è ancora vuoto. Fai questo passaggio <strong>una sola volta, dal dispositivo dove hai caricato i dati</strong> (di solito il PC):
-            da quel momento ogni modifica compare anche sugli altri dispositivi.
+            da quel momento potrai caricare e modificare i dati sia dal telefono sia dal PC, e ogni modifica comparirà anche sull’altro.
           </p>
           <p className="mt-2 text-sm text-stone-600">
             Su questo dispositivo: {voci.length ? voci.map(([n, t]) => `${n} ${t}`).join(' · ') : 'nessun dato caricato'}.
