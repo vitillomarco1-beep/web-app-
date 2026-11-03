@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { ClipboardPaste, ListChecks } from 'lucide-react'
 import { useStore } from '../lib/store'
-import type { Ingrediente } from '../lib/types'
-import { LISTINO_TIPICO, abbina, leggiQuotazioni, type RigaQuotazione } from '../lib/prezzi'
-import { fmt2, isoGiorno, nuovoId } from '../lib/format'
+import type { Ingrediente, QuotazioneClal } from '../lib/types'
+import { LISTINO_TIPICO } from '../lib/prezzi'
+import { PAGINE_CLAL, leggiTabelleClal, meseIt, quotazioniAttuali, suggerisci } from '../lib/clal'
+import { fmt0, fmt2, isoGiorno, nuovoId } from '../lib/format'
 
 const num = (s: string) => { const n = Number(s.replace(',', '.')); return s.trim() && Number.isFinite(n) ? n : null }
 const testo = (n: number) => (n ? String(Math.round(n * 100) / 100).replace('.', ',') : '')
@@ -80,98 +81,100 @@ function Listino() {
   )
 }
 
-type Riga = RigaQuotazione & { ingredienteId: string; usa: boolean }
-
 function ImportaClal() {
-  const { dati, aggiungi, aggiorna } = useStore()
+  const { dati, aggiorna, imposta } = useStore()
+  const quot = quotazioniAttuali(dati.quotazioniClal).sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
   const [incollato, setIncollato] = useState('')
-  const [unita, setUnita] = useState<'t' | 'q'>('t')
-  const [data, setData] = useState(isoGiorno())
-  const [righe, setRighe] = useState<Riga[] | null>(null)
   const [esito, setEsito] = useState('')
-  const aQ = (p: number) => (unita === 't' ? p / 10 : p)
+  const ingr = [...dati.ingredienti].sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
+  const collegato = (nome: string) => dati.ingredienti.filter((i) => i.clal?.voce === nome)
+  const rif = (q: QuotazioneClal) => ({ prezzoQ: Math.round(q.prezzoT) / 10, data: q.mese, voce: q.nome })
+
+  /** Collega un alimento a una quotazione (o lo scollega con nome vuoto). */
+  const collega = (i: Ingrediente, nome: string) => {
+    const q = quot.find((x) => x.nome === nome)
+    if (!q) { const { clal: _c, ...resto } = i; void _c; aggiorna('ingredienti', { ...resto, fonte: i.fonte === 'clal' ? 'fornitore' : i.fonte }); return }
+    aggiorna('ingredienti', { ...i, clal: rif(q) })
+  }
+  const daSuggerire = dati.ingredienti.filter((i) => !i.clal && suggerisci(i.nome))
+  const collegaSuggeriti = () => daSuggerire.forEach((i) => { const q = quot.find((x) => x.nome === suggerisci(i.nome)); if (q) aggiorna('ingredienti', { ...i, clal: rif(q) }) })
 
   const leggi = () => {
-    const r = leggiQuotazioni(incollato)
-    setRighe(r.map((x) => {
-      const i = abbina(x.voce, dati.ingredienti)
-      if (i) return { ...x, ingredienteId: i.id, usa: !(i.prezzoQ > 0) }
-      // alimento del listino non ancora inserito: proposto come nuovo
-      const l = abbina(x.voce, LISTINO_TIPICO.filter((t) => !dati.ingredienti.some((g) => g.nome.toLowerCase() === t.nome.toLowerCase())).map((t) => ({ id: `nuovo:${t.nome}`, nome: t.nome })))
-      return { ...x, ingredienteId: l?.id ?? '', usa: false }
-    }))
-    setEsito(r.length ? '' : 'Non ho trovato righe con un prodotto e un prezzo. Copia la tabella con i nomi dei prodotti e i prezzi.')
-  }
-
-  const applica = () => {
-    if (!righe) return
-    let rif = 0, usati = 0
-    const nuovi: Ingrediente[] = []
-    for (const r of righe) {
-      if (!r.ingredienteId) continue
-      const clal = { prezzoQ: Math.round(aQ(r.prezzo) * 100) / 100, data, voce: r.voce }
-      if (r.ingredienteId.startsWith('nuovo:')) {
-        nuovi.push({ id: nuovoId(), nome: r.ingredienteId.slice(6), prezzoQ: r.usa ? clal.prezzoQ : 0, clal, ...(r.usa ? { fonte: 'clal' as const, aggiornatoIl: data } : {}) })
-        rif++; if (r.usa) usati++
-        continue
-      }
-      const i = dati.ingredienti.find((x) => x.id === r.ingredienteId)
-      if (!i) continue
-      aggiorna('ingredienti', { ...i, clal, ...(r.usa ? { prezzoQ: clal.prezzoQ, fonte: 'clal' as const, aggiornatoIl: data } : {}) })
-      rif++; if (r.usa) usati++
+    const lette = leggiTabelleClal(incollato)
+    if (!lette.length) { setEsito('Non ho trovato tabelle di prezzi CLAL nel testo incollato. Copia dalla pagina CLAL il riquadro con il nome del prodotto, gli anni e i mesi.'); return }
+    const oggi = isoGiorno()
+    const nuove = new Map(dati.quotazioniClal.map((q) => [q.id, q]))
+    lette.forEach((l) => nuove.set(l.nome, { id: l.nome, nome: l.nome, mese: l.mese, prezzoT: l.prezzoT, importataIl: oggi }))
+    imposta('quotazioniClal', [...nuove.values()])
+    // aggiorna gli alimenti collegati; se usano il prezzo CLAL cambia anche il prezzo dei calcoli
+    let agg = 0
+    for (const i of dati.ingredienti) {
+      const l = i.clal && lette.find((x) => x.nome === i.clal!.voce)
+      if (!l) continue
+      const r = { prezzoQ: Math.round(l.prezzoT) / 10, data: l.mese, voce: l.nome }
+      aggiorna('ingredienti', { ...i, clal: r, ...(i.fonte === 'clal' ? { prezzoQ: r.prezzoQ, aggiornatoIl: oggi } : {}) })
+      agg++
     }
-    nuovi.forEach((n) => aggiungi('ingredienti', n))
-    setEsito(`✓ ${rif} quotazioni salvate come riferimento${usati ? `, ${usati} usate come prezzo` : ''}.`)
-    setRighe(null); setIncollato('')
+    setEsito(`✓ ${lette.length} quotazioni importate (${[...new Set(lette.map((l) => meseIt(l.mese)))].join(', ')})${agg ? `, ${agg} alimenti aggiornati` : ''}.`)
+    setIncollato('')
   }
-
-  const giaAbbinati = new Set(righe?.map((r) => r.ingredienteId).filter(Boolean))
 
   return (
-    <div className="mt-4 space-y-3">
-      <ol className="list-decimal space-y-1 pl-5 text-sm text-stone-600">
-        <li>Apri <b>clal.it</b> nella sezione delle materie prime per mangimi (Borsa Merci).</li>
-        <li>Seleziona la tabella dei prezzi con il mouse (o tieni premuto sul telefono) e <b>copia</b>.</li>
-        <li>Incolla qui sotto e premi <b>Leggi i prezzi</b>.</li>
-      </ol>
-      <textarea className="input min-h-[120px] font-mono text-xs" placeholder={'Esempio:\nMais nazionale ibrido   228,00   232,00\nFarina di estrazione di soia 44%   385,00   390,00\nFieno di erba medica 1° taglio   150,00   160,00'}
-        value={incollato} onChange={(e) => setIncollato(e.target.value)} />
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block"><span className="label">Prezzi in</span>
-          <select className="input !w-auto" value={unita} onChange={(e) => setUnita(e.target.value as 't' | 'q')}>
-            <option value="t">€/tonnellata</option><option value="q">€/quintale</option>
-          </select>
-        </label>
-        <label className="block"><span className="label">Data delle quotazioni</span><input type="date" className="input" value={data} onChange={(e) => setData(e.target.value)} /></label>
-        <button className="btn-primary" onClick={leggi} disabled={!incollato.trim()}>Leggi i prezzi</button>
-      </div>
-      {esito && <p className={`text-sm ${esito.startsWith('✓') ? 'text-emerald-700' : 'text-red-600'}`}>{esito}</p>}
-
-      {righe && righe.length > 0 && (
-        <div className="rounded-xl border border-stone-200 p-3">
-          <p className="text-xs text-stone-500">Abbina ogni quotazione a un alimento. Viene sempre salvata come <b>riferimento CLAL</b>; spunta "Usa" per farla diventare anche il prezzo dei calcoli.</p>
-          <ul className="mt-2 divide-y divide-stone-100">
-            {righe.map((r, k) => (
-              <li key={k} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{r.voce}</span>
-                  <span className="text-xs text-stone-500">{r.min !== undefined ? `${fmt2(r.min)}–${fmt2(r.max!)} → ` : ''}<b>{fmt2(aQ(r.prezzo))} €/q</b></span>
-                </span>
-                <select className="input !w-44 py-1.5 text-xs" value={r.ingredienteId} onChange={(e) => setRighe(righe.map((x, j) => (j === k ? { ...x, ingredienteId: e.target.value } : x)))}>
-                  <option value="">Non usare</option>
-                  {[...dati.ingredienti].sort((a, b) => a.nome.localeCompare(b.nome, 'it')).map((i) => <option key={i.id} value={i.id}>{i.nome}{giaAbbinati.has(i.id) && i.id !== r.ingredienteId ? ' (già abbinato)' : ''}</option>)}
-                  {LISTINO_TIPICO.filter((l) => !dati.ingredienti.some((i) => i.nome.toLowerCase() === l.nome.toLowerCase())).map((l) => <option key={l.nome} value={`nuovo:${l.nome}`}>+ {l.nome} (nuovo)</option>)}
-                </select>
-                <label className="flex items-center gap-1 text-xs"><input type="checkbox" className="h-4 w-4" checked={r.usa} disabled={!r.ingredienteId} onChange={(e) => setRighe(righe.map((x, j) => (j === k ? { ...x, usa: e.target.checked } : x)))} />Usa</label>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 flex justify-end gap-2">
-            <button className="btn-secondary" onClick={() => setRighe(null)}>Annulla</button>
-            <button className="btn-primary" onClick={applica} disabled={!righe.some((r) => r.ingredienteId)}>Salva quotazioni</button>
+    <div className="mt-4 space-y-4">
+      <div>
+        <p className="text-sm text-stone-600">Prezzi medi mensili della <b>Borsa Merci di Milano</b> pubblicati da CLAL (€/t, convertiti in €/q). Collega ogni alimento alla sua quotazione: resta come <b>riferimento di mercato</b> accanto al tuo prezzo; con <b>"usa"</b> diventa il prezzo dei calcoli e si aggiorna da solo a ogni importazione.</p>
+        {daSuggerire.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-arancio-200 bg-arancio-50/60 p-3 text-sm">
+            <span className="min-w-0 flex-1">Abbinamenti suggeriti: {daSuggerire.map((i) => `${i.nome} → ${suggerisci(i.nome)}`).join(' · ')}</span>
+            <button className="btn-secondary py-1.5" onClick={collegaSuggeriti}>Collega</button>
           </div>
+        )}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="table">
+          <thead><tr><th>Prodotto CLAL</th><th className="num">€/q</th><th>Alimento collegato</th></tr></thead>
+          <tbody>
+            {quot.map((q) => {
+              const c = collegato(q.nome)
+              return (
+                <tr key={q.id}>
+                  <td><div className="font-medium">{q.nome}</div><div className="text-xs text-stone-500">{meseIt(q.mese)} · {fmt0(q.prezzoT)} €/t</div></td>
+                  <td className="num font-semibold">{fmt2(q.prezzoT / 10)}</td>
+                  <td>
+                    <select className="input !w-40 py-1.5 text-xs" value="" onChange={(e) => { const i = dati.ingredienti.find((x) => x.id === e.target.value); if (i) collega(i, q.nome) }}>
+                      <option value="">{c.length ? '+ collega altro…' : 'Collega a…'}</option>
+                      {ingr.filter((i) => i.clal?.voce !== q.nome).map((i) => <option key={i.id} value={i.id}>{i.nome}{i.clal ? ` (ora: ${i.clal.voce})` : ''}</option>)}
+                    </select>
+                    {c.map((i) => (
+                      <div key={i.id} className="mt-1 flex flex-wrap items-center gap-x-2 text-xs">
+                        <span className="font-medium text-brand-900">{i.nome}</span>
+                        {i.fonte === 'clal' ? <span className="text-emerald-700">prezzo CLAL in uso</span>
+                          : <button className="text-brand-700 hover:underline" onClick={() => aggiorna('ingredienti', { ...i, clal: rif(q), prezzoQ: rif(q).prezzoQ, fonte: 'clal', aggiornatoIl: isoGiorno() })}>usa</button>}
+                        <button className="text-stone-400 hover:text-rose-600" onClick={() => collega(i, '')}>scollega</button>
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="rounded-xl border border-stone-200 p-3">
+        <h3 className="text-sm font-semibold text-stone-800">Aggiorna le quotazioni (una volta al mese)</h3>
+        <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-sm text-stone-600">
+          <li>Apri la pagina CLAL: {PAGINE_CLAL.map((p, k) => <span key={p.url}>{k > 0 && ' · '}<a className="text-brand-700 underline" href={p.url} target="_blank" rel="noreferrer">{p.nome}</a></span>)}</li>
+          <li>Seleziona tutto (Ctrl+A, sul telefono "Seleziona tutto") e copia.</li>
+          <li>Incolla qui sotto e premi <b>Importa quotazioni</b>. Puoi incollare più pagine una dopo l'altra.</li>
+        </ol>
+        <textarea className="input mt-2 min-h-[90px] font-mono text-xs" placeholder="Incolla qui il contenuto della pagina CLAL…" value={incollato} onChange={(e) => setIncollato(e.target.value)} />
+        <div className="mt-2 flex items-center justify-end gap-3">
+          {esito && <span className={`text-sm ${esito.startsWith('✓') ? 'text-emerald-700' : 'text-red-600'}`}>{esito}</span>}
+          <button className="btn-primary" onClick={leggi} disabled={!incollato.trim()}>Importa quotazioni</button>
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -248,7 +248,11 @@ export interface Dati {
   analisiPmr: AnalisiPmr[]
   vitelliDC: ImportDC[] // ultima lista vitelli di DairyComp
   vaccinazioniVitelli: VaccinazioneVitello[]
+  quotazioniClal: QuotazioneClal[]
 }
+
+/** Quotazione mensile CLAL (Borsa Merci di Milano), id = nome del prodotto. */
+export interface QuotazioneClal { id: string; nome: string; mese: string /* AAAA-MM */; prezzoT: number /* €/t */; importataIl: string }
 
 /** Vaccino fatto a un vitello. id = `${vitello}|${vaccino}` */
 export interface VaccinazioneVitello { id: string; vitello: string; vaccino: string; fattaIl: string; eta?: number; scarico?: { farmacoId: string; quantita: number } }

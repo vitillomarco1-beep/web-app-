@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import type { AnalisiMangime, CategoriaRazione, Ingrediente, Razione } from '../lib/types'
 import { MANGIMI_NOTI, SS_MANGIME_TIPICA } from '../lib/ingerito'
 import PrezziMercato, { NOMI_FONTE } from '../components/PrezziMercato'
+import { meseIt } from '../lib/clal'
 import { Campo, Modale, StatTile, Vuoto } from '../components/ui'
 import { CATEGORIE, calcolaMargine, costoRazione, nomeCategoria, settimaneConDati } from '../lib/margine'
 import { KG_PER_LITRO } from '../lib/salute'
@@ -380,7 +381,7 @@ function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
   }
   const salva = () => { const p = num(prezzo); if (p !== i.prezzoQ) aggiorna('ingredienti', { ...i, prezzoQ: p, fonte: i.fonte === 'clal' || !i.fonte ? 'fornitore' : i.fonte, aggiornatoIl: isoGiorno() }) }
   useEffect(() => { setPrezzo(String(i.prezzoQ || '').replace('.', ',')) }, [i.prezzoQ])
-  const usaClal = () => i.clal && aggiorna('ingredienti', { ...i, prezzoQ: i.clal.prezzoQ, fonte: 'clal', aggiornatoIl: i.clal.data })
+  const usaClal = () => i.clal && aggiorna('ingredienti', { ...i, prezzoQ: i.clal.prezzoQ, fonte: 'clal', aggiornatoIl: isoGiorno() })
   return (
     <li className="flex items-center gap-2 py-2">
       <span className="min-w-0 flex-1 text-sm font-medium">
@@ -388,7 +389,7 @@ function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
         {(i.fonte || i.aggiornatoIl) && <span className="block text-xs font-normal text-stone-500">{i.fonte ? NOMI_FONTE[i.fonte] : ''}{i.aggiornatoIl ? ` · ${fmtData(i.aggiornatoIl)}` : ''}</span>}
         {i.clal && (
           <span className="block text-xs font-normal text-stone-500">
-            CLAL {fmt2(i.clal.prezzoQ)} €/q del {fmtData(i.clal.data)}
+            CLAL {fmt2(i.clal.prezzoQ)} €/q · {i.clal.data.length === 7 ? meseIt(i.clal.data) : fmtData(i.clal.data)}
             {i.prezzoQ > 0 && i.fonte !== 'clal' && <span className={i.prezzoQ > i.clal.prezzoQ ? ' text-rose-700' : ' text-emerald-700'}> ({i.prezzoQ > i.clal.prezzoQ ? '+' : ''}{fmt0((i.prezzoQ / i.clal.prezzoQ - 1) * 100)}%)</span>}
             {i.fonte !== 'clal' && <button className="ml-1 text-brand-700 hover:underline" onClick={usaClal}>usa</button>}
           </span>
