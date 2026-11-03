@@ -243,6 +243,24 @@ export interface Dati {
   vaccinazioni: Vaccinazione[]
   ingredienti: Ingrediente[]
   razioni: Razione[]
+  analisiPmr: AnalisiPmr[]
+}
+
+/** Analisi di laboratorio del PMR (unifeed). Percentuali sulla sostanza secca, tranne ss (sul tal quale). */
+export interface AnalisiPmr {
+  id: string
+  data: string // data del prelievo
+  stalla?: number // undefined = vale per tutte le stalle
+  ss: number // sostanza secca % sul tal quale
+  pg?: number // proteina grezza % ss
+  ndf?: number
+  adf?: number
+  amido?: number
+  grassi?: number
+  ceneri?: number
+  ufl?: number // UFL per kg di ss
+  laboratorio?: string
+  note?: string
 }
 
 /** Alimento della razione con il prezzo (tal quale). */

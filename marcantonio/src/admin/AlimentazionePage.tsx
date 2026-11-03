@@ -1,4 +1,4 @@
-import { Milk, Scale, Tag, Wheat } from 'lucide-react'
+import { FlaskConical, Milk, Scale, Tag, Wheat } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useStore } from '../lib/store'
 import type { Scarico, Stalla, Turno } from '../lib/types'
@@ -11,6 +11,8 @@ import VerificaSettimanale from './VerificaSettimanale'
 import MargineSezione, { RazioniPrezzi } from './MarginePage'
 import { useSearchParams } from 'react-router-dom'
 import FotoPesate from '../components/FotoPesate'
+import AnalisiPmrModale from '../components/AnalisiPmrModale'
+import { analisiValida } from '../lib/pmr'
 
 const TURNI: Turno[] = ['mattina', 'sera']
 type Griglia = Record<string, string> // chiave `${stalla}-${turno}` -> kg digitati
@@ -105,6 +107,15 @@ export default function AlimentazionePage() {
   const kgDi = (lista: Scarico[]) => lista.reduce((s, x) => s + x.kg, 0)
   const sommaGiorno = (data: string, stalla?: number) =>
     kgDi(scarichi.filter((s) => s.data === data && (stalla === undefined || s.stalla === stalla)))
+  // Sostanza secca: kg tal quale × SS% dell'analisi del PMR valida per quella stalla e quel giorno
+  const ssPct = (stalla: number, data: string) => analisiValida(dati.analisiPmr, stalla, data)?.ss
+  const ssDi = (lista: Scarico[]) => lista.reduce((t, x) => { const p = ssPct(x.stalla, x.data); return p === undefined ? t : t + (x.kg * p) / 100 }, 0)
+  const conSS = (lista: Scarico[]) => lista.length > 0 && lista.every((x) => ssPct(x.stalla, x.data) !== undefined)
+  const ssGiorno = (data: string, stalla?: number) => {
+    const l = scarichi.filter((s) => s.data === data && (stalla === undefined || s.stalla === stalla))
+    return conSS(l) ? ssDi(l) : null
+  }
+  const [apriPmr, setApriPmr] = useState(false)
 
   // Le medie usano solo giorni conclusi: oggi è di solito ancora incompleto
   const ultimoCompleto = scarichi.reduce((m, s) => (s.data < oggi && s.data > m ? s.data : m), '') || ultimoGiorno
@@ -114,6 +125,13 @@ export default function AlimentazionePage() {
   const mediaCapoStalla = (st: Stalla) => (st.capi > 0 ? kgDi(scarichi7.filter((s) => s.stalla === st.numero)) / giorni7 / st.capi : 0)
   const capiTotali = stalle.reduce((s, x) => s + x.capi, 0)
   const mediaCapo = capiTotali > 0 ? kgDi(scarichi7) / giorni7 / capiTotali : 0
+  const ss7 = conSS(scarichi7) ? ssDi(scarichi7) : null
+  const mediaSSCapo = ss7 !== null && capiTotali > 0 ? ss7 / giorni7 / capiTotali : null
+  const mediaSSCapoStalla = (st: Stalla) => {
+    const l = scarichi7.filter((s) => s.stalla === st.numero)
+    return st.capi > 0 && conSS(l) ? ssDi(l) / giorni7 / st.capi : null
+  }
+  const ultimaAnalisi = [...dati.analisiPmr].sort((a, b) => b.data.localeCompare(a.data))[0]
 
   // Latte per kg di razione: tutte le stalle ospitano vacche in lattazione,
   // quindi si confronta la razione complessiva con il latte munto negli stessi giorni.
@@ -128,7 +146,7 @@ export default function AlimentazionePage() {
   const fineGrafico = ultimoGiorno || oggi
   const serie = Array.from({ length: 30 }, (_, i) => {
     const data = aggiungiGiorni(fineGrafico, i - 29)
-    return { data, kg: sg === null ? 0 : sommaGiorno(data, sg) }
+    return { data, kg: sg === null ? 0 : sommaGiorno(data, sg), ss: sg === null ? null : ssGiorno(data, sg) }
   })
 
   // ---- Registro ultimi 14 giorni
@@ -178,14 +196,27 @@ export default function AlimentazionePage() {
 
   return (
     <>
-      <PageHeader titolo="Alimentazione" icona={Wheat} descrizione="Razione scaricata dal carro miscelatore (peso tal quale), mattina e sera, per stalla" />
+      <PageHeader titolo="Alimentazione" icona={Wheat} descrizione="Razione scaricata dal carro miscelatore (peso tal quale), mattina e sera, per stalla"
+        azioni={<button className="btn-secondary" onClick={() => setApriPmr(true)}><FlaskConical className="h-4 w-4" />Analisi PMR</button>} />
+      {apriPmr && <AnalisiPmrModale onChiudi={() => setApriPmr(false)} />}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile icona={Wheat} tono="brand" etichetta={ultimoCompleto ? `Razione scaricata il ${fmtData(ultimoCompleto)}` : 'Razione scaricata'}
           valore={fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto) : 0)} unita="kg"
-          nota={stalle.map((s) => `St. ${s.numero}: ${fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto, s.numero) : 0)}`).join(' · ')} />
+          nota={<>{stalle.map((s) => `St. ${s.numero}: ${fmt0(ultimoCompleto ? sommaGiorno(ultimoCompleto, s.numero) : 0)}`).join(' · ')}
+            {ultimoCompleto && ssGiorno(ultimoCompleto) !== null && <div className="mt-0.5 font-semibold text-stone-700">Sostanza secca: {fmt0(ssGiorno(ultimoCompleto)!)} kg</div>}</>} />
         <StatTile icona={Scale} tono="arancio" etichetta="Kg per vacca al giorno" valore={capiTotali > 0 ? fmt1(mediaCapo) : '—'} unita="kg/capo"
-          nota={capiTotali > 0 ? `Media 7 giorni · ${stalle.map((s) => `St. ${s.numero}: ${s.capi ? fmt1(mediaCapoStalla(s)) : '—'}`).join(' · ')}` : 'Inserisci i capi presenti in ogni stalla'} />
+          nota={capiTotali > 0 ? <>
+            Tal quale, media 7 giorni · {stalle.map((s) => `St. ${s.numero}: ${s.capi ? fmt1(mediaCapoStalla(s)) : '—'}`).join(' · ')}
+            {mediaSSCapo !== null ? (
+              <div className="mt-1.5 rounded-lg bg-arancio-50 px-2 py-1.5 text-stone-700">
+                <div><span className="font-serif text-lg font-bold text-stone-900">{fmt1(mediaSSCapo)}</span> kg SS/capo{ultimaAnalisi && <> · SS {fmt1(ultimaAnalisi.ss)}% (analisi del {fmtData(ultimaAnalisi.data)})</>}</div>
+                <div>{stalle.map((s) => { const v = mediaSSCapoStalla(s); return `St. ${s.numero}: ${v !== null ? fmt1(v) : '—'}` }).join(' · ')}</div>
+              </div>
+            ) : (
+              <div className="mt-1.5"><button className="btn-link text-xs" onClick={() => setApriPmr(true)}>{dati.analisiPmr.length ? 'Analisi PMR non valida per tutti i giorni: controlla date e stalle' : '+ Aggiungi l’analisi del PMR per la sostanza secca'}</button></div>
+            )}
+          </> : 'Inserisci i capi presenti in ogni stalla'} />
         <StatTile icona={Milk} tono="blu" etichetta="Latte per kg di razione" valore={razione7 > 0 ? fmt2(litri7 / razione7) : '—'} unita="l/kg"
           nota="Tutte le stalle, ultimi 7 giorni (razione tal quale)" />
         <StatTile icona={Tag} tono="verde" etichetta="Vacche alimentate" valore={fmt0(capiTotali)} unita="capi"
@@ -303,7 +334,14 @@ export default function AlimentazionePage() {
               </div>
             )}
             <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-sm text-stone-600">Totale scaricato: <b className="tabular-nums">{fmt0(totaleGriglia)} kg</b></span>
+              <span className="text-sm text-stone-600">Totale scaricato: <b className="tabular-nums">{fmt0(totaleGriglia)} kg t.q.</b>{(() => {
+                const p = stalle.map((st) => ssPct(st.numero, giorno))
+                if (!totaleGriglia || p.some((x) => x === undefined)) return null
+                const ss = modo === 'diretto'
+                  ? stalle.reduce((t, st, i) => t + TURNI.reduce((a, tu) => a + (parseKg(griglia[chiave(st.numero, tu)] ?? '') ?? 0), 0) * p[i]! / 100, 0)
+                  : TURNI.reduce((t, tu) => t + calcolati(tu).reduce<number>((a, k, i) => a + (k && k > 0 ? (k * (p[i] ?? 0)) / 100 : 0), 0), 0)
+                return <> · <b className="tabular-nums">{fmt0(ss)} kg SS</b></>
+              })()}</span>
               <div className="flex items-center gap-3">
                 {salvato && <span className="text-sm text-green-700">✓ Salvato</span>}
                 <button className="btn-primary">Salva</button>
@@ -327,7 +365,7 @@ export default function AlimentazionePage() {
           </div>
           <div className="mt-4">
             <BarChart unita="kg" formatta={fmt0}
-              dati={serie.map((g) => ({ etichetta: fmtData(g.data).slice(0, 5), valore: g.kg, dettaglio: `${fmtData(g.data)} · stalla ${sg}` }))} />
+              dati={serie.map((g) => ({ etichetta: fmtData(g.data).slice(0, 5), valore: g.kg, dettaglio: `${fmtData(g.data)} · stalla ${sg}${g.ss !== null && g.kg ? ` · ${fmt0(g.ss)} kg SS` : ''}` }))} />
           </div>
         </section>
       </div>
@@ -343,7 +381,8 @@ export default function AlimentazionePage() {
             <tr>
               <th>Data</th>
               {stalle.map((s) => <th key={s.id} className="num" colSpan={2}>Stalla {s.numero} (M / S)</th>)}
-              <th className="num">Totale kg</th>
+              <th className="num">Totale kg t.q.</th>
+              <th className="num">Totale kg SS</th>
             </tr>
           </thead>
           <tbody>
@@ -361,6 +400,7 @@ export default function AlimentazionePage() {
                     )
                   }))}
                   <td className="num font-semibold">{tot ? fmt0(tot) : '—'}</td>
+                  <td className="num font-semibold text-arancio-800">{tot && ssGiorno(data) !== null ? fmt0(ssGiorno(data)!) : '—'}</td>
                 </tr>
               )
             })}
@@ -384,7 +424,7 @@ export default function AlimentazionePage() {
                   <div className="text-sm font-medium">{s.nome || `Stalla ${s.numero}`}</div>
                   {s.gruppoDairyComp !== undefined && <div className="text-xs text-stone-400">Gruppo DairyComp {s.gruppoDairyComp}</div>}
                   {s.robot && <div className="text-xs text-stone-400">{s.robot.numero} robot {s.robot.marca}</div>}
-                  <div className="text-sm text-stone-500">{s.capi} capi{s.capi > 0 && ` · ${fmt1(mediaCapoStalla(s))} kg/capo/giorno`}</div>
+                  <div className="text-sm text-stone-500">{s.capi} capi{s.capi > 0 && ` · ${fmt1(mediaCapoStalla(s))} kg t.q./capo/giorno`}{s.capi > 0 && mediaSSCapoStalla(s) !== null && ` · ${fmt1(mediaSSCapoStalla(s)!)} kg SS`}</div>
                 </div>
                 <button className="btn-link" onClick={() => setModStalla(s)}>Modifica</button>
               </div>

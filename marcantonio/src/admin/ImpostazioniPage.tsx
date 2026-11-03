@@ -43,7 +43,7 @@ export default function ImpostazioniPage() {
   const importa = async (f: File) => {
     try {
       const d = JSON.parse(await f.text()) as Partial<Dati>
-      const chiavi: (keyof Dati)[] = ['capi', 'mungiture', 'analisi', 'consegne', 'lavorazioni', 'uscite', 'stalle', 'scarichi', 'verifiche', 'importDC', 'mandriaDC', 'nomiGruppi', 'casi', 'parametri', 'farmaci', 'robotGiorni', 'robotVacche', 'importRobot', 'messaggi', 'partiDC', 'vaccinazioni', 'ingredienti', 'razioni']
+      const chiavi: (keyof Dati)[] = ['capi', 'mungiture', 'analisi', 'consegne', 'lavorazioni', 'uscite', 'stalle', 'scarichi', 'verifiche', 'importDC', 'mandriaDC', 'nomiGruppi', 'casi', 'parametri', 'farmaci', 'robotGiorni', 'robotVacche', 'importRobot', 'messaggi', 'partiDC', 'vaccinazioni', 'ingredienti', 'razioni', 'analisiPmr']
       if (!chiavi.some((k) => Array.isArray(d[k]))) throw new Error('formato non riconosciuto')
       if (!conferma('Sostituire tutti i dati attuali con quelli del backup?')) return
       sostituisciTutto({ ...DATI_VUOTI, ...d } as Dati)
