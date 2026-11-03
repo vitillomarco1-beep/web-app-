@@ -3,17 +3,20 @@
 /** Alimenti più comuni nelle razioni delle bovine da latte, con le parole per riconoscerli nelle quotazioni. */
 export const LISTINO_TIPICO: { nome: string; parole: string[]; fonte: 'fornitore' | 'aziendale' }[] = [
   { nome: 'Silomais', parole: ['silomais', 'insilato di mais', 'trinciato di mais'], fonte: 'aziendale' },
+  { nome: 'Silofrumento', parole: ['silofrumento', 'insilato di frumento', 'trinciato di frumento'], fonte: 'aziendale' },
   { nome: 'Pastone di mais', parole: ['pastone'], fonte: 'aziendale' },
   { nome: 'Fieno di erba medica', parole: ['erba medica', 'medica', 'fieno di erba medica'], fonte: 'aziendale' },
-  { nome: 'Fieno polifita', parole: ['polifita', 'fieno di prato', 'fieno maggengo', 'loietto'], fonte: 'aziendale' },
+  { nome: 'Fieno polifita', parole: ['polifita', 'fieno di prato', 'fieno maggengo', 'loietto', 'fieno'], fonte: 'aziendale' },
   { nome: 'Paglia', parole: ['paglia'], fonte: 'fornitore' },
   { nome: 'Farina di mais', parole: ['mais', 'granoturco', 'granturco'], fonte: 'fornitore' },
-  { nome: 'Farina di soia 44%', parole: ['soia 44', 'estrazione di soia', 'farina di soia', 'f.e. soia', 'soia decorticata'], fonte: 'fornitore' },
+  { nome: 'Farina di soia 44%', parole: ['soia 44', 'estrazione di soia', 'farina di soia', 'f.e. soia', 'soia decorticata', 'soia'], fonte: 'fornitore' },
+  { nome: 'Melasso', parole: ['melasso'], fonte: 'fornitore' },
   { nome: 'Orzo', parole: ['orzo'], fonte: 'fornitore' },
   { nome: 'Crusca / cruschello', parole: ['crusca', 'cruschello', 'tritello'], fonte: 'fornitore' },
   { nome: 'Polpe di bietola', parole: ['polpe', 'bietola', 'barbabietola'], fonte: 'fornitore' },
   { nome: 'Farina di girasole', parole: ['girasole'], fonte: 'fornitore' },
   { nome: 'Seme di cotone', parole: ['cotone'], fonte: 'fornitore' },
+  { nome: 'Pasta di scarto', parole: ['pasta di scarto', 'scarti di pasta', 'pasta'], fonte: 'fornitore' },
   { nome: 'Nucleo / integratore', parole: ['nucleo', 'integratore'], fonte: 'fornitore' },
   { nome: 'Mash Robot', parole: ['mash'], fonte: 'fornitore' },
 ]
@@ -70,4 +73,10 @@ export function abbina<T extends { id: string; nome: string }>(voce: string, ing
     if (ingr) return ingr
   }
   return undefined
+}
+
+/** Alimento già inserito che corrisponde a una voce del listino tipico (nome uguale o parola chiave intera). */
+export function alimentoDelListino<T extends { nome: string }>(l: { nome: string; parole: string[] }, ingredienti: T[]): T | undefined {
+  const parola = (testo: string, q: string) => new RegExp(`(^|[^a-z])${norm(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(norm(testo))
+  return ingredienti.find((i) => norm(i.nome) === norm(l.nome)) ?? ingredienti.find((i) => l.parole.some((q) => parola(i.nome, q)))
 }

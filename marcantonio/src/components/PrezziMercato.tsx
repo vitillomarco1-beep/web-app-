@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ClipboardPaste, ListChecks } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { Ingrediente, QuotazioneClal } from '../lib/types'
-import { LISTINO_TIPICO } from '../lib/prezzi'
+import { LISTINO_TIPICO, alimentoDelListino } from '../lib/prezzi'
 import { PAGINE_CLAL, leggiTabelleClal, meseIt, quotazioniAttuali, suggerisci } from '../lib/clal'
 import { fmt0, fmt2, isoGiorno, nuovoId } from '../lib/format'
 
@@ -31,7 +31,7 @@ export default function PrezziMercato() {
 
 function Listino() {
   const { dati, aggiungi, aggiorna } = useStore()
-  const trova = (nome: string) => dati.ingredienti.find((i) => i.nome.toLowerCase() === nome.toLowerCase())
+  const trova = (nome: string) => { const l = LISTINO_TIPICO.find((x) => x.nome === nome); return l ? alimentoDelListino(l, dati.ingredienti) : undefined }
   const [valori, setValori] = useState<Record<string, { prezzo: string; fonte: 'fornitore' | 'aziendale' }>>(() =>
     Object.fromEntries(LISTINO_TIPICO.map((l) => { const i = trova(l.nome); return [l.nome, { prezzo: testo(i?.prezzoQ ?? 0), fonte: (i?.fonte === 'aziendale' || i?.fonte === 'fornitore' ? i.fonte : l.fonte) }] })))
   const [esito, setEsito] = useState('')
@@ -60,7 +60,7 @@ function Listino() {
           return (
             <li key={l.nome} className="flex flex-wrap items-center gap-2 py-2">
               <span className="min-w-0 flex-1 text-sm">
-                <span className="block font-medium">{l.nome}</span>
+                <span className="block font-medium">{l.nome}{i && i.nome.toLowerCase() !== l.nome.toLowerCase() && <span className="font-normal text-stone-500"> (il tuo “{i.nome}”)</span>}</span>
                 {i?.clal && <span className="block text-xs text-stone-500">CLAL: {fmt2(i.clal.prezzoQ)} €/q</span>}
               </span>
               <select className="input !w-auto py-1.5 text-xs" value={v.fonte} onChange={(e) => setValori({ ...valori, [l.nome]: { ...v, fonte: e.target.value as 'fornitore' | 'aziendale' } })} aria-label={`Fonte ${l.nome}`}>
