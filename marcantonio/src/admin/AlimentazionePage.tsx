@@ -236,7 +236,7 @@ export default function AlimentazionePage() {
               Verifica settimanale {daVerificare > 0 && <span className="ml-1 rounded-full bg-amber-100 px-2 text-xs font-semibold text-amber-800">{daVerificare}</span>}
             </button>
             <button role="tab" aria-selected={scheda === 'razioni'} className={cls('razioni')} onClick={() => setScheda('razioni')}>Razioni e prezzi</button>
-            <button role="tab" aria-selected={scheda === 'margine'} className={cls('margine')} onClick={() => setScheda('margine')}>Margine</button>
+            <button role="tab" aria-selected={scheda === 'margine'} className={cls('margine')} onClick={() => setScheda('margine')}>IOFC</button>
           </div>
         )
       })()}

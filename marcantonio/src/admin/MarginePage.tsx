@@ -22,18 +22,19 @@ export default function MargineSezione({ onVaiRazioni }: { onVaiRazioni: () => v
   const [sett, setSett] = useState(settimane[0] ?? '')
   const m = sett ? calcolaMargine(dati, sett) : null
 
-  if (!m) return <Vuoto><p>Per calcolare il margine servono i dati dei robot: caricali in <b>Carica la settimana</b>.</p></Vuoto>
+  if (!m) return <Vuoto><p>Per calcolare l'IOFC servono i dati dei robot: caricali in <b>Carica la settimana</b>.</p></Vuoto>
   if (!dati.razioni.length) return (
     <Vuoto>
-      <p>Inserisci le razioni e i prezzi degli alimenti per calcolare il margine.</p>
+      <p>Inserisci le razioni e i prezzi degli alimenti per calcolare l'IOFC.</p>
       <button className="btn-primary mt-4" onClick={onVaiRazioni}><Wheat className="h-4 w-4" />Razioni e prezzi</button>
     </Vuoto>
   )
   return (
     <>
+      <p className="mb-3 text-sm text-stone-600"><b>IOFC</b> (Income Over Feed Cost): ricavo del latte meno i costi alimentari.</p>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-xl bg-stone-100 p-1">
-          {([['lattazione', 'Margine lattazione'], ['aziendale', 'Margine aziendale']] as const).map(([id, nome]) => (
+          {([['lattazione', 'IOFC lattazione'], ['aziendale', 'IOFC aziendale']] as const).map(([id, nome]) => (
             <button key={id} onClick={() => setVista(id)}
               className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${vista === id ? 'bg-white text-brand-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>{nome}</button>
           ))}
@@ -71,7 +72,7 @@ function Lattazione({ m }: { m: M }) {
     <>
       <Avvisi m={m} />
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatTile icona={TrendingUp} tono="verde" etichetta="Margine per vacca al giorno" valore={t.capi ? fmtEur(t.margine / t.capi) : '—'} nota={`${eur0(t.margine)} al giorno in tutto`} />
+        <StatTile icona={TrendingUp} tono="verde" etichetta="IOFC per vacca al giorno" valore={t.capi ? fmtEur(t.margine / t.capi) : '—'} nota={`${eur0(t.margine)} al giorno in tutto`} />
         <StatTile icona={Milk} tono="brand" etichetta="Ricavo latte per vacca" valore={t.capi ? fmtEur(t.ricavo / t.capi) : '—'} nota={`${fmt1(t.capi ? t.kgLatte / t.capi : 0)} kg · ${fmt2(m.prezzoLatte)} €/l`} />
         <StatTile icona={Wheat} tono="arancio" etichetta="Costo alimentare per vacca" valore={t.capi ? fmtEur(t.costo / t.capi) : '—'} nota={`${fmt0(t.capi)} vacche munte`} />
         <StatTile icona={Scale} tono="rosso" etichetta="Costo alimentare per litro" valore={litri ? `${fmt2(t.costo / litri)} €` : '—'} nota={`${t.ricavo ? fmt0((t.costo / t.ricavo) * 100) : 0}% del ricavo`} />
@@ -81,7 +82,7 @@ function Lattazione({ m }: { m: M }) {
         <h2>Per gruppo</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Gruppo</th><th className="text-right">Vacche</th><th className="text-right">Latte/vacca</th><th className="text-right">Ricavo/vacca</th><th className="text-right">Razione/vacca</th><th className="text-right">Robot/vacca</th><th className="text-right">Margine/vacca</th><th className="text-right">Margine/giorno</th></tr></thead>
+            <thead><tr><th>Gruppo</th><th className="text-right">Vacche</th><th className="text-right">Latte/vacca</th><th className="text-right">Ricavo/vacca</th><th className="text-right">Razione/vacca</th><th className="text-right">Robot/vacca</th><th className="text-right">IOFC/vacca</th><th className="text-right">IOFC/giorno</th></tr></thead>
             <tbody>
               {m.stalle.map((s) => (
                 <tr key={s.stalla}>
@@ -101,11 +102,11 @@ function Lattazione({ m }: { m: M }) {
       </div>
 
       <div className="card mt-6">
-        <div className="flex items-center gap-2"><TrendingDown className="h-5 w-5 text-rose-600" /><h2>Vacche con il margine più basso</h2></div>
+        <div className="flex items-center gap-2"><TrendingDown className="h-5 w-5 text-rose-600" /><h2>Vacche con l'IOFC più basso</h2></div>
         <p className="mt-0.5 text-sm text-stone-500">Latte della vacca meno il costo alimentare medio per capo del suo gruppo.</p>
         <div className="mt-3 overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Vacca</th><th>Stalla</th><th className="text-right">Latte/giorno</th><th className="text-right">Ricavo</th><th className="text-right">Costo</th><th className="text-right">Margine</th></tr></thead>
+            <thead><tr><th>Vacca</th><th>Stalla</th><th className="text-right">Latte/giorno</th><th className="text-right">Ricavo</th><th className="text-right">Costo</th><th className="text-right">IOFC</th></tr></thead>
             <tbody>
               {m.vacche.slice(0, 15).map((v) => (
                 <tr key={v.vacca}>
@@ -136,8 +137,8 @@ function Aziendale({ m }: { m: M }) {
     <>
       <Avvisi m={m} tutte />
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatTile icona={TrendingUp} tono="verde" etichetta="Margine aziendale al giorno" valore={eur0(a.margine)} nota={`${eur0(a.margine * 30)} al mese`} />
-        <StatTile icona={Milk} tono="brand" etichetta="Margine per vacca in latte al giorno" valore={a.capi ? fmtEur(a.margine / a.capi) : '—'} nota={`lattazione da sola: ${a.capi ? fmtEur(m.lattazione.margine / a.capi) : '—'}`} />
+        <StatTile icona={TrendingUp} tono="verde" etichetta="IOFC aziendale al giorno" valore={eur0(a.margine)} nota={`${eur0(a.margine * 30)} al mese`} />
+        <StatTile icona={Milk} tono="brand" etichetta="IOFC per vacca in latte al giorno" valore={a.capi ? fmtEur(a.margine / a.capi) : '—'} nota={`lattazione da sola: ${a.capi ? fmtEur(m.lattazione.margine / a.capi) : '—'}`} />
         <StatTile icona={Wheat} tono="arancio" etichetta="Costo alimentare al giorno" valore={eur0(a.costo)} nota={`di cui non in lattazione ${eur0(a.costoAltre)}`} />
         <StatTile icona={Scale} tono="rosso" etichetta="Costo alimentare per litro" valore={litri ? `${fmt2(a.costo / litri)} €` : '—'} nota={`lattazione da sola: ${litri ? fmt2(m.lattazione.costo / litri) : '—'} €`} />
       </div>
@@ -147,7 +148,7 @@ function Aziendale({ m }: { m: M }) {
         <div className="mt-3 grid gap-2 rounded-xl bg-brand-50/50 p-4 text-sm sm:grid-cols-3">
           <div>Ricavo latte<div className="text-lg font-bold text-brand-900">{eur0(a.ricavo)}</div></div>
           <div>− Costi alimentari (tutti)<div className="text-lg font-bold text-brand-900">{eur0(a.costo)}</div></div>
-          <div>= Margine al giorno<div className={`text-lg font-bold ${segno(a.margine)}`}>{eur0(a.margine)}</div></div>
+          <div>= IOFC al giorno<div className={`text-lg font-bold ${segno(a.margine)}`}>{eur0(a.margine)}</div></div>
         </div>
         <div className="mt-3 overflow-x-auto">
           <table className="table">
@@ -163,7 +164,7 @@ function Aziendale({ m }: { m: M }) {
                 </tr>
               ))}
               <tr className="font-semibold"><td colSpan={4}>Ricavo latte</td><td className="text-right tabular-nums">{fmtEur(a.ricavo)}</td><td /></tr>
-              <tr className="font-semibold"><td colSpan={4}>Margine al netto di tutti i costi alimentari</td><td className={`text-right tabular-nums ${segno(a.margine)}`}>{fmtEur(a.margine)}</td><td /></tr>
+              <tr className="font-semibold"><td colSpan={4}>IOFC al netto di tutti i costi alimentari</td><td className={`text-right tabular-nums ${segno(a.margine)}`}>{fmtEur(a.margine)}</td><td /></tr>
             </tbody>
           </table>
         </div>
