@@ -242,6 +242,7 @@ export default function PartiPage() {
               </div>
               <div>
                 <p className="text-sm text-stone-600">Lista attuale: <b>{lista.nomeFile}</b> del {fmtData(lista.data)} · {lista.animali.length} animali</p>
+                <p className="mt-1 text-xs text-stone-500">Prossimo aggiornamento consigliato: entro il {fmtData(aggiungiGiorni(lista.data, 60))} (ogni 2 mesi te lo ricorda il cruscotto).</p>
                 <div className="mt-3">{caricatore}</div>
                 {errore && <p className="mt-2 text-sm text-red-600">{errore}</p>}
               </div>

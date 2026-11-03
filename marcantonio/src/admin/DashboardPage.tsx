@@ -61,7 +61,12 @@ export default function DashboardPage() {
   const fatteVacc = new Set(dati.vaccinazioni.map((v) => v.id))
   const daVaccinare = partiPrevisti(dati.partiDC[0]).filter((p) => nellaSettimana(p, settVacc) && !vaccinataTutto(p, fatteVacc))
 
+  // Lista parti di DairyComp: va ricaricata ogni 2 mesi
+  const listaParti = dati.partiDC[0]
+  const listaPartiVecchia = !listaParti || listaParti.data < aggiungiGiorni(isoGiorno(), -60)
+
   const cose: Cosa[] = [
+    ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),
     ...(daVaccinare.length ? [{ testo: `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}`, link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),
     ...(gruppiDaCaricare.length ? [{ testo: `Carica i file dei robot della settimana scorsa: mancano ${gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     ...(daSistemare.length ? [{ testo: `${daSistemare.length} vacche da sistemare in DairyComp (munte dal robot di un altro gruppo)`, link: '/area-riservata/latte', tipo: 'avviso' as const }] : []),

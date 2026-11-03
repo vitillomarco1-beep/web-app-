@@ -18,7 +18,7 @@ export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
   { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
   { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGR', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA', 'GGRV', 'GGGRAV'] },
-  { campo: 'dataParto', etichetta: 'Data parto prevista (DUE)', alias: ['DUE', 'DDAT', 'DUEDATE', 'DPP', 'DATAPARTO', 'PARTOPREV', 'PREVPARTO', 'DPARTO', 'DATAPP', 'EXPCALV', 'PARTOPREVISTO', 'DTPAR', 'DPREV', 'DPRT'] },
+  { campo: 'dataParto', etichetta: 'Data parto prevista (DUE)', alias: ['DUE', 'PPR', 'DDAT', 'DUEDATE', 'DPP', 'DATAPARTO', 'PARTOPREV', 'PREVPARTO', 'DPARTO', 'DATAPP', 'EXPCALV', 'PARTOPREVISTO', 'DTPAR', 'DPREV', 'DPRT'] },
 ]
 
 const norm = (s: string) => s.toUpperCase().normalize('NFD').replace(/[^A-Z0-9]/g, '')
