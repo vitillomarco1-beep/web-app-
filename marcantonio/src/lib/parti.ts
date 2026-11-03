@@ -99,3 +99,25 @@ export function categoriaParto(l: number | null) {
   if (l === 0) return 'Manza'
   return `Vacca (latt. ${l})`
 }
+
+/** Giorni di asciutta prima del parto (messa in asciutta = parto previsto − questi giorni). */
+export const GIORNI_ASCIUTTA = 60
+/** Gravidanza da cui una vacca è "vicina all'asciutta" (circa 200 giorni). */
+export const GRAVIDANZA_VICINA_ASCIUTTA = 195
+/** Messa in asciutta entro questi giorni: è già in programma, nessun avviso. */
+export const ASCIUTTA_IMMINENTE_GG = 7
+
+export type StatoAsciutta =
+  | { tipo: 'imminente' | 'vicina' | 'lontana'; dataAsciutta: string; giorniAllAsciutta: number; giorniGravidanza: number | null }
+  | { tipo: 'non gravida' | 'sconosciuto' }
+
+/** Dove si trova una vacca rispetto alla messa in asciutta, secondo la lista parti di DairyComp. */
+export function statoAsciutta(vacca: string, lista: ImportDC | undefined, oggi = isoGiorno(), giorniAsciutta = GIORNI_ASCIUTTA): StatoAsciutta {
+  if (!lista || !lista.animali.some((a) => a.id === vacca)) return { tipo: 'sconosciuto' }
+  const p = partiPrevisti(lista, oggi).find((x) => x.vacca === vacca)
+  if (!p) return { tipo: 'non gravida' }
+  const dataAsciutta = aggiungiGiorni(p.dataParto, -giorniAsciutta)
+  const giorniAllAsciutta = giorniTra(oggi, dataAsciutta)
+  const tipo = giorniAllAsciutta <= ASCIUTTA_IMMINENTE_GG ? 'imminente' : (p.giorniGravidanzaOggi ?? 0) >= GRAVIDANZA_VICINA_ASCIUTTA ? 'vicina' : 'lontana'
+  return { tipo, dataAsciutta, giorniAllAsciutta, giorniGravidanza: p.giorniGravidanzaOggi }
+}

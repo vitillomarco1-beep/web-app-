@@ -11,6 +11,7 @@ import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
 import { VACCINI_VITELLI, etaAl, finestra, idVacVitello, prossimoMartedi, vitelli } from '../lib/vitelli'
 import { calcolaMargine, settimaneConDati } from '../lib/margine'
+import { statoAsciutta } from '../lib/parti'
 import { SETTIMANE_ANTICIPO, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
@@ -76,10 +77,16 @@ export default function DashboardPage() {
 
   // Vacche al pareggio (IOFC stimato): producono circa quanto mangiano
   const settIofc = dati.razioni.length ? settimaneConDati(dati)[0] : undefined
-  const alPareggio = settIofc ? calcolaMargine(dati, settIofc).vacche.filter((v) => v.alPareggio) : []
+  // incrociate con la messa in asciutta: se è già imminente non serve l'avviso
+  const alPareggio = (settIofc ? calcolaMargine(dati, settIofc).vacche.filter((v) => v.alPareggio) : [])
+    .map((v) => ({ v, s: statoAsciutta(v.vacca, dati.partiDC[0]) }))
+  const anticipare = alPareggio.filter((x) => x.s.tipo === 'vicina')
+  const altre = alPareggio.filter((x) => x.s.tipo === 'lontana' || x.s.tipo === 'non gravida' || x.s.tipo === 'sconosciuto')
+  const descr = (x: (typeof alPareggio)[number]) => x.s.tipo === 'non gravida' ? 'non gravida' : x.s.tipo === 'sconosciuto' ? 'non in lista parti' : `gravida ${'giorniGravidanza' in x.s ? x.s.giorniGravidanza : '?'} gg`
 
   const cose: Cosa[] = [
-    ...(alPareggio.length ? [{ testo: `${alPareggio.length} ${alPareggio.length === 1 ? 'vacca al pareggio' : 'vacche al pareggio'} (producono circa quanto mangiano, stima): ${alPareggio.slice(0, 8).map((v) => `${v.vacca} (${fmt1(v.kgGiorno)} kg)`).join(', ')}${alPareggio.length > 8 ? '…' : ''}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
+    ...(anticipare.length ? [{ testo: `Al pareggio e vicine all'asciutta (circa 200 gg di gravidanza): valuta di anticiparla – ${anticipare.slice(0, 8).map((x) => `${x.v.vacca} (${fmt1(x.v.kgGiorno)} kg, asciutta prevista ${x.s.tipo === 'vicina' ? fmtData(x.s.dataAsciutta) : ''})`).join(', ')}${anticipare.length > 8 ? '…' : ''}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
+    ...(altre.length ? [{ testo: `${altre.length} ${altre.length === 1 ? 'vacca al pareggio' : 'vacche al pareggio'} lontane dall'asciutta (producono circa quanto mangiano, stima): ${altre.slice(0, 8).map((x) => `${x.v.vacca} (${fmt1(x.v.kgGiorno)} kg, ${descr(x)})`).join(', ')}${altre.length > 8 ? '…' : ''}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
     ...(listaVitelli && listaVitelli.data < martedi && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista vitelli di DairyComp per le vaccinazioni di martedì', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
     ...(vitelliDaFare ? [{ testo: `Vaccinazioni vitelli di martedì ${fmtData(martedi)}: ${vitelliDaFare} ${vitelliDaFare === 1 ? 'vaccino' : 'vaccini'} da fare`, link: '/area-riservata/vitelli', tipo: 'vaccino' as const }] : []),
     ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),
