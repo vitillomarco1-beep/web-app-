@@ -296,7 +296,7 @@ export function RazioniPrezzi() {
                       <option value="">Scegli…</option>
                       {ingr.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
                     </select>
-                    <input className="input !w-20 shrink-0" inputMode="decimal" value={v.kgCapo || ''} placeholder="kg" onChange={(e) => setModifica({ ...modifica, voci: modifica.voci.map((x, j) => (j === i ? { ...x, kgCapo: num(e.target.value) } : x)) })} />
+                    <CampoKg valore={v.kgCapo} onCambia={(n) => setModifica({ ...modifica, voci: modifica.voci.map((x, j) => (j === i ? { ...x, kgCapo: n } : x)) })} />
                     <button type="button" className="text-stone-400 hover:text-rose-600" aria-label="Togli" onClick={() => setModifica({ ...modifica, voci: modifica.voci.filter((_, j) => j !== i) })}><X className="h-4 w-4" /></button>
                   </div>
                 ))}
@@ -321,7 +321,7 @@ export function RazioniPrezzi() {
                     <option value="">Nessuno</option>
                     {ingr.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
                   </select>
-                  <input className="input !w-20 shrink-0" inputMode="decimal" placeholder="kg" value={modifica.robot?.kgCapo || ''} onChange={(e) => setModifica({ ...modifica, robot: { ingredienteId: modifica.robot?.ingredienteId ?? '', kgCapo: num(e.target.value) } })} />
+                  <CampoKg valore={modifica.robot?.kgCapo ?? 0} onCambia={(n) => setModifica({ ...modifica, robot: { ingredienteId: modifica.robot?.ingredienteId ?? '', kgCapo: n } })} />
                 </div>
               </div>
             )}
@@ -351,5 +351,16 @@ function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
       <span className="w-8 text-xs text-stone-500">€/q</span>
       <button className="text-stone-300 hover:text-rose-600 disabled:opacity-30" disabled={usato} title={usato ? 'Usato in una razione' : 'Elimina'} onClick={() => elimina('ingredienti', i.id)}><Trash2 className="h-4 w-4" /></button>
     </li>
+  )
+}
+
+/** Campo dei kg: tiene il testo scritto (es. "0," mentre si digita 0,7) e passa il numero. */
+function CampoKg({ valore, onCambia }: { valore: number; onCambia: (n: number) => void }) {
+  const [testo, setTesto] = useState(valore ? String(valore).replace('.', ',') : '')
+  // se il valore cambia da fuori (es. riga tolta), riallinea il testo
+  if (num(testo) !== valore && !(testo === '' && valore === 0)) setTesto(valore ? String(valore).replace('.', ',') : '')
+  return (
+    <input className="input !w-20 shrink-0" inputMode="decimal" placeholder="kg" value={testo}
+      onChange={(e) => { const t = e.target.value.replace(/[^0-9.,]/g, ''); setTesto(t); onCambia(num(t)) }} />
   )
 }
