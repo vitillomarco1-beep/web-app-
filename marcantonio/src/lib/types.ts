@@ -241,6 +241,24 @@ export interface Dati {
   messaggi: Messaggio[]
   partiDC: ImportDC[] // ultima lista dei parti previsti di DairyComp
   vaccinazioni: Vaccinazione[]
+  ingredienti: Ingrediente[]
+  razioni: Razione[]
+}
+
+/** Alimento della razione con il prezzo (tal quale). */
+export interface Ingrediente { id: string; nome: string; prezzoQ: number /* €/quintale */; note?: string }
+
+export type CategoriaRazione = 'lattazione' | 'asciutta' | 'closeup' | 'manze' | 'altro'
+
+/** Razione di un gruppo di animali: kg tal quale per capo al giorno. */
+export interface Razione {
+  id: string
+  nome: string
+  categoria: CategoriaRazione
+  gruppi: number[] // gruppi DairyComp che la mangiano (per le stalle di lattazione: il gruppo della stalla)
+  voci: { ingredienteId: string; kgCapo: number }[]
+  robot?: { ingredienteId: string; kgCapo: number } // concentrato dato al robot (solo lattazione)
+  note?: string
 }
 
 /** Vaccino pre-parto segnato come fatto. id = `${vacca}|${dataParto}|${vaccino}` */
