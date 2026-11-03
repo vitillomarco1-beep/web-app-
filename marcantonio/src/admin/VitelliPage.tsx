@@ -88,7 +88,7 @@ export default function VitelliPage() {
             evidenzia: tutti.map((c) => x.ritardo.includes(c)),
           }
         }),
-        'Le righe in rosso sono vitelli in ritardo (finestra del vaccino già passata). Segnare i vaccini fatti anche nell’app, sezione Vitelli e vaccini.')
+        'Le righe in grassetto sono vitelli in ritardo (finestra del vaccino già passata). Segnare i vaccini fatti anche nell’app, sezione Vitelli e vaccini.')
       const esito = await scarica(blob, `vaccinazioni-vitelli-${martedi}.pdf`)
       setPdf(esito === 'errore' ? 'errore' : esito === 'ok' ? 'ok' : '')
     } catch { setPdf('errore') }
