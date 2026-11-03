@@ -180,6 +180,16 @@ export function RazioniPrezzi() {
   const [modifica, setModifica] = useState<Razione | null>(null)
   const [gruppiTesto, setGruppiTesto] = useState('')
   const [nuovo, setNuovo] = useState({ nome: '', prezzo: '' })
+  const [nuovoInRazione, setNuovoInRazione] = useState({ nome: '', prezzo: '' })
+  /** Crea un alimento dalla finestra della razione e lo mette nella prima riga vuota. */
+  const creaInRazione = () => {
+    if (!modifica || !nuovoInRazione.nome.trim()) return
+    const id = nuovoId()
+    aggiungi('ingredienti', { id, nome: nuovoInRazione.nome.trim(), prezzoQ: num(nuovoInRazione.prezzo) })
+    const vuota = modifica.voci.findIndex((v) => !v.ingredienteId)
+    setModifica({ ...modifica, voci: vuota >= 0 ? modifica.voci.map((v, j) => (j === vuota ? { ...v, ingredienteId: id } : v)) : [...modifica.voci, { ingredienteId: id, kgCapo: 0 }] })
+    setNuovoInRazione({ nome: '', prezzo: '' })
+  }
   const ingr = [...dati.ingredienti].sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
 
   const apri = (r: Razione) => { setModifica(r); setGruppiTesto(r.gruppi.join(', ')) }
@@ -213,9 +223,8 @@ export function RazioniPrezzi() {
       <div className="card">
         <div className="flex items-center justify-between gap-3">
           <h2>Razioni</h2>
-          <button className="btn-primary" onClick={() => apri(nuovaRazione())} disabled={!ingr.length}><Plus className="h-4 w-4" />Nuova razione</button>
+          <button className="btn-primary" onClick={() => apri(nuovaRazione())} ><Plus className="h-4 w-4" />Nuova razione</button>
         </div>
-        {!ingr.length && <p className="mt-2 text-sm text-stone-500">Prima inserisci gli alimenti con il prezzo (a destra).</p>}
         <div className="mt-4 space-y-3">
           {CATEGORIE.map((c) => dati.razioni.filter((r) => r.categoria === c.id).map((r) => {
             const k = costoRazione(r, dati.ingredienti)
@@ -276,7 +285,7 @@ export function RazioniPrezzi() {
               <Campo label="Nome"><input className="input" value={modifica.nome} placeholder={nomeCategoria(modifica.categoria)} onChange={(e) => setModifica({ ...modifica, nome: e.target.value })} /></Campo>
             </div>
             <Campo label="Gruppi DairyComp che la mangiano">
-              <input className="input" value={gruppiTesto} placeholder={modifica.categoria === 'closeup' ? '3, 23' : 'es. 1'} onChange={(e) => setGruppiTesto(e.target.value)} />
+              <input className="input" required pattern=".*[0-9].*" title="Scrivi almeno un numero di gruppo" value={gruppiTesto} placeholder={modifica.categoria === 'closeup' ? '3, 23' : 'es. 1'} onChange={(e) => setGruppiTesto(e.target.value)} />
             </Campo>
             <div>
               <span className="label">Alimenti (kg tal quale per capo al giorno)</span>
@@ -293,6 +302,16 @@ export function RazioniPrezzi() {
                 ))}
               </div>
               <button type="button" className="btn-link mt-2" onClick={() => setModifica({ ...modifica, voci: [...modifica.voci, { ingredienteId: '', kgCapo: 0 }] })}>+ Aggiungi alimento</button>
+              <div className="mt-3 rounded-lg border border-dashed border-stone-300 p-3">
+                <span className="text-xs font-medium text-stone-600">Alimento non in elenco? Crealo qui:</span>
+                <div className="mt-1.5 flex gap-2">
+                  <input className="input min-w-0 flex-1" placeholder="Nome (es. Silomais)" value={nuovoInRazione.nome} onChange={(e) => setNuovoInRazione({ ...nuovoInRazione, nome: e.target.value })}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); creaInRazione() } }} />
+                  <input className="input !w-20 shrink-0" inputMode="decimal" placeholder="€/q" value={nuovoInRazione.prezzo} onChange={(e) => setNuovoInRazione({ ...nuovoInRazione, prezzo: e.target.value })}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); creaInRazione() } }} />
+                  <button type="button" className="btn-secondary px-3" onClick={creaInRazione} aria-label="Crea alimento"><Plus className="h-4 w-4" /></button>
+                </div>
+              </div>
             </div>
             {modifica.categoria === 'lattazione' && (
               <div>
