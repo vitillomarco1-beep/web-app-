@@ -1,56 +1,47 @@
 import { useState, type FormEvent } from 'react'
-import { Euro, Milk, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp, Wheat, X } from 'lucide-react'
+import { Milk, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp, Wheat, X } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { CategoriaRazione, Ingrediente, Razione } from '../lib/types'
-import { Campo, Modale, PageHeader, StatTile, Vuoto } from '../components/ui'
+import { Campo, Modale, StatTile, Vuoto } from '../components/ui'
 import { CATEGORIE, calcolaMargine, costoRazione, nomeCategoria, settimaneConDati } from '../lib/margine'
 import { KG_PER_LITRO } from '../lib/salute'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, nuovoId } from '../lib/format'
 import { GRUPPI_PREDEFINITI } from '../lib/dairycomp'
 
-type Scheda = 'lattazione' | 'aziendale' | 'razioni'
+type Vista = 'lattazione' | 'aziendale'
 const num = (s: string) => { const n = Number(s.replace(',', '.')); return Number.isFinite(n) ? n : 0 }
 const eur0 = (n: number) => `${fmt0(n)} €`
 const segno = (n: number) => (n >= 0 ? 'text-emerald-700' : 'text-rose-700')
 
-/** Margine sul costo alimentare: lattazione (solo le sue razioni) e aziendale (tutte le razioni). */
-export default function MarginePage() {
+/** Margine sul costo alimentare (scheda della sezione Alimentazione): lattazione e aziendale. */
+export default function MargineSezione({ onVaiRazioni }: { onVaiRazioni: () => void }) {
   const { dati } = useStore()
   const settimane = settimaneConDati(dati)
-  const [scheda, setScheda] = useState<Scheda>(dati.razioni.length ? 'lattazione' : 'razioni')
+  const [vista, setVista] = useState<Vista>('lattazione')
   const [sett, setSett] = useState(settimane[0] ?? '')
   const m = sett ? calcolaMargine(dati, sett) : null
 
-  const schede: { id: Scheda; nome: string }[] = [
-    { id: 'lattazione', nome: 'Margine lattazione' },
-    { id: 'aziendale', nome: 'Margine aziendale' },
-    { id: 'razioni', nome: 'Razioni e prezzi' },
-  ]
-
+  if (!m) return <Vuoto><p>Per calcolare il margine servono i dati dei robot: caricali in <b>Carica la settimana</b>.</p></Vuoto>
+  if (!dati.razioni.length) return (
+    <Vuoto>
+      <p>Inserisci le razioni e i prezzi degli alimenti per calcolare il margine.</p>
+      <button className="btn-primary mt-4" onClick={onVaiRazioni}><Wheat className="h-4 w-4" />Razioni e prezzi</button>
+    </Vuoto>
+  )
   return (
     <>
-      <PageHeader titolo="Margine" icona={Euro} descrizione="Ricavo del latte al netto dei costi alimentari"
-        azioni={scheda !== 'razioni' && settimane.length > 0 && (
-          <select className="input !w-auto" value={sett} onChange={(e) => setSett(e.target.value)} aria-label="Settimana">
-            {settimane.map((s) => <option key={s} value={s}>Settimana {fmtData(s)} – {fmtData(aggiungiGiorni(s, 6))}</option>)}
-          </select>
-        )} />
-
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
-        {schede.map((s) => (
-          <button key={s.id} onClick={() => setScheda(s.id)}
-            className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${scheda === s.id ? 'bg-white text-brand-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>{s.nome}</button>
-        ))}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-xl bg-stone-100 p-1">
+          {([['lattazione', 'Margine lattazione'], ['aziendale', 'Margine aziendale']] as const).map(([id, nome]) => (
+            <button key={id} onClick={() => setVista(id)}
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${vista === id ? 'bg-white text-brand-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>{nome}</button>
+          ))}
+        </div>
+        <select className="input !w-auto" value={sett} onChange={(e) => setSett(e.target.value)} aria-label="Settimana">
+          {settimane.map((s) => <option key={s} value={s}>Settimana {fmtData(s)} – {fmtData(aggiungiGiorni(s, 6))}</option>)}
+        </select>
       </div>
-
-      {scheda === 'razioni' ? <RazioniPrezzi /> : !m ? (
-        <Vuoto><p>Per calcolare il margine servono i dati dei robot: caricali in <b>Carica la settimana</b>.</p></Vuoto>
-      ) : !dati.razioni.length ? (
-        <Vuoto>
-          <p>Inserisci le razioni e i prezzi degli alimenti per calcolare il margine.</p>
-          <button className="btn-primary mt-4" onClick={() => setScheda('razioni')}><Wheat className="h-4 w-4" />Razioni e prezzi</button>
-        </Vuoto>
-      ) : scheda === 'lattazione' ? <Lattazione m={m} /> : <Aziendale m={m} />}
+      {vista === 'lattazione' ? <Lattazione m={m} /> : <Aziendale m={m} />}
     </>
   )
 }
@@ -184,7 +175,7 @@ function Aziendale({ m }: { m: M }) {
 
 const nuovaRazione = (): Razione => ({ id: '', nome: '', categoria: 'lattazione', gruppi: [], voci: [{ ingredienteId: '', kgCapo: 0 }] })
 
-function RazioniPrezzi() {
+export function RazioniPrezzi() {
   const { dati, aggiungi, aggiorna, elimina } = useStore()
   const [modifica, setModifica] = useState<Razione | null>(null)
   const [gruppiTesto, setGruppiTesto] = useState('')

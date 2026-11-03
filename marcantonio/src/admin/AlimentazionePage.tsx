@@ -8,6 +8,8 @@ import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, isoGiorno, lunediDi, nuovoId
 import { perGiorno } from '../lib/statistiche'
 import { parseKg, pesateDaScarichi, scarichiDaPesate } from '../lib/pesate'
 import VerificaSettimanale from './VerificaSettimanale'
+import MargineSezione, { RazioniPrezzi } from './MarginePage'
+import { useSearchParams } from 'react-router-dom'
 import FotoPesate from '../components/FotoPesate'
 
 const TURNI: Turno[] = ['mattina', 'sera']
@@ -20,7 +22,8 @@ export default function AlimentazionePage() {
   const stalle = [...dati.stalle].sort((a, b) => a.numero - b.numero)
   const scarichi = dati.scarichi
 
-  const [scheda, setScheda] = useState<'scarichi' | 'verifica'>('scarichi')
+  const [parametri] = useSearchParams()
+  const [scheda, setScheda] = useState<'scarichi' | 'verifica' | 'razioni' | 'margine'>(() => (['verifica', 'razioni', 'margine'].includes(parametri.get('scheda') ?? '') ? parametri.get('scheda') as 'verifica' | 'razioni' | 'margine' : 'scarichi'))
 
   // ---- Inserimento del giorno: pesate del carro (predefinito) o kg diretti per stalla
   const [giorno, setGiorno] = useState(oggi)
@@ -193,18 +196,20 @@ export default function AlimentazionePage() {
         const lunScorso = aggiungiGiorni(lunediDi(oggi), -7)
         const daVerificare = Array.from({ length: 8 }, (_, i) => aggiungiGiorni(lunScorso, -7 * i))
           .filter((l) => !dati.verifiche.some((v) => v.settimana === l) && scarichi.some((s) => s.data >= l && s.data <= aggiungiGiorni(l, 6))).length
-        const cls = (s: typeof scheda) => `border-b-2 px-4 py-2 text-sm font-medium ${scheda === s ? 'border-brand-700 text-brand-800' : 'border-transparent text-stone-500 hover:text-stone-800'}`
+        const cls = (s: typeof scheda) => `whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${scheda === s ? 'border-brand-700 text-brand-800' : 'border-transparent text-stone-500 hover:text-stone-800'}`
         return (
-          <div className="mb-6 flex gap-1 border-b border-stone-200" role="tablist">
+          <div className="mb-6 flex gap-1 overflow-x-auto border-b border-stone-200" role="tablist">
             <button role="tab" aria-selected={scheda === 'scarichi'} className={cls('scarichi')} onClick={() => setScheda('scarichi')}>Scarichi giornalieri</button>
             <button role="tab" aria-selected={scheda === 'verifica'} className={cls('verifica')} onClick={() => setScheda('verifica')}>
               Verifica settimanale {daVerificare > 0 && <span className="ml-1 rounded-full bg-amber-100 px-2 text-xs font-semibold text-amber-800">{daVerificare}</span>}
             </button>
+            <button role="tab" aria-selected={scheda === 'razioni'} className={cls('razioni')} onClick={() => setScheda('razioni')}>Razioni e prezzi</button>
+            <button role="tab" aria-selected={scheda === 'margine'} className={cls('margine')} onClick={() => setScheda('margine')}>Margine</button>
           </div>
         )
       })()}
 
-      {scheda === 'verifica' ? (
+      {scheda === 'razioni' ? <RazioniPrezzi /> : scheda === 'margine' ? <MargineSezione onVaiRazioni={() => setScheda('razioni')} /> : scheda === 'verifica' ? (
         <VerificaSettimanale onApriGiorno={(d) => { setGiorno(d); setScheda('scarichi'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
       ) : (<>
       <div className="grid gap-6 xl:grid-cols-5">

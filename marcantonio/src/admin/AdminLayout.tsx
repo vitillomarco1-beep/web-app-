@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Baby, BarChart3, Euro, Camera, FileUp, HeartPulse, Pill, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
+  Baby, BarChart3, Camera, FileUp, HeartPulse, Pill, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
   Settings, Tag, Truck, Wheat, X, type LucideIcon,
 } from 'lucide-react'
 import Logo from '../components/Logo'
@@ -33,7 +33,6 @@ export default function AdminLayout() {
           { to: `${R}/salute`, label: 'Salute', icona: HeartPulse },
           { to: `${R}/farmaci`, label: 'Farmaci', icona: Pill },
           { to: `${R}/parti`, label: 'Parti e vaccini', icona: Baby },
-          { to: `${R}/margine`, label: 'Margine', icona: Euro },
         ] },
         { titolo: 'Latte', voci: [
           { to: `${R}/latte`, label: 'Gruppi e mandria', icona: BarChart3 },
