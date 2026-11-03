@@ -9,7 +9,7 @@ import { applicaGruppiRobot } from '../lib/gruppi'
 import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairycomp'
 import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
-import { VACCINI_VITELLI, etaAl, finestra, idVacVitello, prossimoMartedi, vitelli } from '../lib/vitelli'
+import { VACCINI_VITELLI, etaAl, finestra, fonteVitelli, idVacVitello, prossimoMartedi, vitelliDaFonte } from '../lib/vitelli'
 import { GIORNI_MIN_PAREGGIO, calcolaMargine, settimaneConDati } from '../lib/margine'
 import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA, asciutteDellaSettimana } from '../lib/parti'
 import { DIM_FINE_CARRIERA, GIORNI_PAREGGIO_MACELLO, valutaPareggio } from '../lib/pareggio'
@@ -71,9 +71,10 @@ export default function DashboardPage() {
 
   // Vaccinazioni dei vitelli del prossimo martedì
   const martedi = prossimoMartedi()
-  const listaVitelli = dati.vitelliDC[0]
+  const fonteVit = fonteVitelli(dati)
+  const listaVitelli = fonteVit?.lista
   const fatteVit = new Set(dati.vaccinazioniVitelli.map((v) => v.id))
-  const vitelliDaFare = listaVitelli ? vitelli(listaVitelli).reduce((t, c) => t + VACCINI_VITELLI.filter((v) => { const w = finestra(v), e = etaAl(c, martedi); return e >= w.da && e <= w.a && !fatteVit.has(idVacVitello(c.id, v.id)) }).length, 0) : 0
+  const vitelliDaFare = listaVitelli ? vitelliDaFonte(fonteVit).reduce((t, c) => t + VACCINI_VITELLI.filter((v) => { const w = finestra(v), e = etaAl(c, martedi); return e >= w.da && e <= w.a && !fatteVit.has(idVacVitello(c.id, v.id)) }).length, 0) : 0
   const giornoSettimana = new Date().getDay()
 
   // Vacche al pareggio (IOFC stimato): producono circa quanto mangiano
@@ -100,7 +101,7 @@ export default function DashboardPage() {
     ...(macello.length ? [{ testo: `Fine carriera, valuta l'invio al macello: ${macello.length === 1 ? 'una vacca non gravida oltre i ' + DIM_FINE_CARRIERA + ' giorni di lattazione produce' : `${macello.length} vacche non gravide oltre i ${DIM_FINE_CARRIERA} giorni di lattazione producono`} quanto mangiano da almeno ${GIORNI_PAREGGIO_MACELLO} giorni (stima) – ${elenco(macello)}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
     ...(daControllareSalute.length ? [{ testo: `Calo di produzione da controllare (possibile problema di salute): ${daControllareSalute.length === 1 ? 'una vacca produce' : `${daControllareSalute.length} vacche producono`} quanto mangiano da almeno ${GIORNI_MIN_PAREGGIO} giorni – ${elenco(daControllareSalute)}`, link: '/area-riservata/salute', tipo: 'farmaco' as const }] : []),
     ...(anticipare.length ? [{ testo: `Valuta la messa in asciutta anticipata: ${anticipare.length === 1 ? 'una vacca gravida da oltre ' + GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA + ' giorni produce' : `${anticipare.length} vacche gravide da oltre ${GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA} giorni producono`} quanto mangiano da almeno ${GIORNI_MIN_PAREGGIO} giorni (stima) – ${elenco(anticipare)}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
-    ...(listaVitelli && listaVitelli.data < martedi && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista vitelli di DairyComp per le vaccinazioni di martedì', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
+    ...(listaVitelli && listaVitelli.data < martedi && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista Mandria (con GDNAS) o la lista vitelli di DairyComp per le vaccinazioni di martedì', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
     ...(vitelliDaFare ? [{ testo: `Vaccinazioni vitelli di martedì ${fmtData(martedi)}: ${vitelliDaFare} ${vitelliDaFare === 1 ? 'vaccino' : 'vaccini'} da fare`, link: '/area-riservata/vitelli', tipo: 'vaccino' as const }] : []),
     ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),
     ...(daVaccinare.length ? [{ testo: `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}`, link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),

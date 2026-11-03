@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, FileDown, FileUp, Loader2, Syringe } from 'lucide-react'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
@@ -6,7 +6,7 @@ import type { Farmaco } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, leggiFile } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
-import { VACCINI_VITELLI, etaAl, finestra, idVacVitello, prossimoMartedi, vitelli, type VaccinoVitello, type Vitello } from '../lib/vitelli'
+import { VACCINI_VITELLI, etaAl, finestra, fonteVitelli, idVacVitello, prossimoMartedi, vitelliDaFonte, type VaccinoVitello, type Vitello } from '../lib/vitelli'
 
 const farmacoDi = (farmaci: Farmaco[], v: VaccinoVitello) =>
   farmaci.find((f) => { const n = f.nome.toLowerCase().replace(/\s+/g, ' '); return v.id === 'intranasal' ? n.includes('intranasal') : (n.includes('respi 4') || n.includes('respi4')) && !n.includes('intranasal') })
@@ -16,7 +16,8 @@ const dose = (f: Farmaco, v: VaccinoVitello) => (f.unita === 'ml' ? v.doseMl : 1
 export default function VitelliPage() {
   const { dati, imposta, aggiungi, aggiorna, elimina } = useStore()
   const oggi = isoGiorno()
-  const lista = dati.vitelliDC[0]
+  const fonte = fonteVitelli(dati)
+  const lista = fonte?.lista
   const [spost, setSpost] = useState(0)
   const martedi = aggiungiGiorni(prossimoMartedi(oggi), 7 * spost)
   const [dataLista, setDataLista] = useState(oggi)
@@ -25,10 +26,14 @@ export default function VitelliPage() {
   const [pdf, setPdf] = useState<'' | 'in corso' | 'ok' | 'errore'>('')
   const input = useRef<HTMLInputElement>(null)
 
-  const tutti = useMemo(() => vitelli(lista), [lista])
+  const tutti = useMemo(() => vitelliDaFonte(fonte), [fonte?.lista, fonte?.daMandria]) // eslint-disable-line react-hooks/exhaustive-deps
   // Il ritardo si conta solo per i martedì da quando si usa l'app (prima lista caricata)
   const inizioNum = dati.parametri.find((x) => x.id === 'inizioVitelli')?.valore
   const inizio = inizioNum ? `${String(inizioNum).slice(0, 4)}-${String(inizioNum).slice(4, 6)}-${String(inizioNum).slice(6, 8)}` : lista?.data ?? oggi
+  // la prima volta che c'è una lista (anche dalla Mandria) si fissa l'inizio da cui contare i ritardi
+  useEffect(() => {
+    if (!inizioNum && lista) imposta('parametri', [...dati.parametri.filter((x) => x.id !== 'inizioVitelli'), { id: 'inizioVitelli', valore: Number(lista.data.replace(/-/g, '')) }])
+  }, [inizioNum, lista?.data]) // eslint-disable-line react-hooks/exhaustive-deps
   /** Martedì in cui il vitello era nella finestra del vaccino. */
   const martediFinestra = (c: Vitello, da: number) => { const e = etaAl(c, martedi); return aggiungiGiorni(martedi, -7 * Math.ceil((e - da - 6) / 7)) }
   const fatte = new Map(dati.vaccinazioniVitelli.map((v) => [v.id, v]))
@@ -121,7 +126,7 @@ export default function VitelliPage() {
 
       {!lista ? (
         <Vuoto>
-          <p>Esporta da DairyComp la lista dei vitelli con <b>numero</b>, <b>gruppo</b> e <b>giorni di vita</b> (o data di nascita) e caricala qui, possibilmente il martedì mattina.</p>
+          <p>Il modo più comodo: aggiungi i giorni di vita (<b>GDNAS</b>) alla lista completa che carichi in <b>Mandria</b>, e i vitelli si prendono da lì. In alternativa esporta da DairyComp la lista dei vitelli con <b>numero</b>, <b>gruppo</b> e <b>giorni di vita</b> e caricala qui, possibilmente il martedì mattina.</p>
           <div className="mt-4 flex justify-center">{caricatore}</div>
           {errore && <p className="mt-3 text-sm text-red-600">{errore}</p>}
         </Vuoto>
@@ -200,7 +205,8 @@ export default function VitelliPage() {
 
           <div className="card mt-6 space-y-3 print:hidden">
             <h2>Lista vitelli</h2>
-            <p className="text-sm text-stone-600">Lista attuale: <b>{lista.nomeFile}</b> del {fmtData(lista.data)} · {tutti.length} vitelli con età</p>
+            <p className="text-sm text-stone-600">Vitelli presi da: <b>{fonte?.daMandria ? 'lista Mandria' : 'lista vitelli'}</b> ({lista.nomeFile}) del {fmtData(lista.data)} · {tutti.length} vitelli{fonte?.daMandria ? ' fino a 90 giorni' : ' con età'}</p>
+            <p className="text-xs text-stone-500">Se la lista completa in <b>Mandria</b> contiene anche i giorni di vita (<b>GDNAS</b>), i vitelli si prendono da lì e non serve caricare la lista vitelli a parte. Si usa sempre la lista più recente tra le due.</p>
             <p className="text-xs text-stone-500">Le vaccinazioni si fanno il martedì: ogni vitello capita una sola volta in ciascuna finestra di 7 giorni, quindi in media viene vaccinato all'età obiettivo (3, 15 e 35 giorni). Spuntando un vaccino, la dose viene tolta dal magazzino Farmaci se c'è un farmaco con quel nome.</p>
             {caricatore}
             {errore && <p className="text-sm text-red-600">{errore}</p>}

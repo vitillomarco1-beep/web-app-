@@ -47,3 +47,25 @@ export function vitelli(lista: ImportDC | undefined): Vitello[] {
 
 export const etaAl = (v: Vitello, data: string) => giorniTra(v.nascita, data)
 export const idVacVitello = (vitello: string, vaccino: string) => `${vitello}|${vaccino}`
+
+/** Età massima (giorni) considerata "vitello" quando i vitelli si prendono dalla lista Mandria. */
+export const ETA_MAX_VITELLI = 90
+
+/**
+ * Lista da cui prendere i vitelli: la più recente tra la lista vitelli e la lista Mandria,
+ * purché quest'ultima abbia i giorni di vita (GDNAS) o la data di nascita.
+ */
+export function fonteVitelli(dati: { vitelliDC: ImportDC[]; mandriaDC: ImportDC[] }): { lista: ImportDC; daMandria: boolean } | undefined {
+  const v = dati.vitelliDC[0]
+  const m = dati.mandriaDC[0]
+  const mUsabile = m && m.animali.some((a) => typeof a.giorniVita === 'number' || !!a.dataNascita) ? m : undefined
+  if (mUsabile && (!v || mUsabile.data >= v.data)) return { lista: mUsabile, daMandria: true }
+  return v ? { lista: v, daMandria: false } : undefined
+}
+
+/** Vitelli della lista scelta (dalla Mandria solo quelli fino a ETA_MAX_VITELLI giorni alla data della lista). */
+export function vitelliDaFonte(f: ReturnType<typeof fonteVitelli>): Vitello[] {
+  if (!f) return []
+  const tutti = vitelli(f.lista)
+  return f.daMandria ? tutti.filter((c) => etaAl(c, f.lista.data) <= ETA_MAX_VITELLI) : tutti
+}
