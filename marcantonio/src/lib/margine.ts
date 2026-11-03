@@ -58,11 +58,13 @@ export interface MargineVacca {
   vacca: string; stalla: number; kgGiorno: number; ricavo: number; costo: number; margine: number
   giorni: number // giorni con dati robot nel periodo
   kgPareggio: number // latte al giorno che ripaga il costo alimentare stimato
-  alPareggio: boolean // produce quanto mangia (o meno): IOFC entro il margine di tolleranza
+  alPareggio: boolean // per almeno GIORNI_MIN_PAREGGIO giorni consecutivi ha prodotto quanto mangia (o meno)
+  giorniAlPareggio: number // giorni consecutivi più lunghi al pareggio nel periodo
+  finoAllUltimoGiorno: boolean // la serie arriva all'ultimo giorno caricato (situazione ancora in corso)
 }
 /** Una vacca è "al pareggio" se il suo latte supera il pareggio di meno del 10%. */
 export const TOLLERANZA_PAREGGIO = 0.1
-/** Giorni minimi di dati per giudicare una vacca (esclude arrivi e uscite a metà settimana). */
+/** Giorni consecutivi al pareggio che fanno scattare l'avviso. */
 export const GIORNI_MIN_PAREGGIO = 3
 
 export function calcolaMargine(dati: Dati, settimana: string) {
@@ -98,13 +100,26 @@ export function calcolaMargine(dati: Dati, settimana: string) {
     })
     // margine di ogni vacca: suo latte − costo medio per capo della stalla
     const costoCapo = capi ? costo / capi : 0
-    const perVacca = new Map<string, { kg: number; n: number }>()
-    for (const v of vg) { const x = perVacca.get(v.vacca) ?? { kg: 0, n: 0 }; x.kg += v.kg; x.n++; perVacca.set(v.vacca, x) }
+    const perVacca = new Map<string, { kg: number; n: number; giorno: Map<string, number> }>()
+    for (const v of vg) {
+      const x = perVacca.get(v.vacca) ?? { kg: 0, n: 0, giorno: new Map<string, number>() }
+      x.kg += v.kg; x.n++; x.giorno.set(v.data, (x.giorno.get(v.data) ?? 0) + v.kg)
+      perVacca.set(v.vacca, x)
+    }
+    const kgPareggio = prezzoLatte > 0 ? (costoCapo / prezzoLatte) * KG_PER_LITRO : 0
+    const soglia = kgPareggio * (1 + TOLLERANZA_PAREGGIO)
     for (const [vacca, x] of perVacca) {
       const kgGiorno = x.kg / x.n
-      const kgPareggio = prezzoLatte > 0 ? (costoCapo / prezzoLatte) * KG_PER_LITRO : 0
+      // giorni consecutivi (nei giorni del periodo) con il latte al pareggio o sotto
+      let serie = 0, maxSerie = 0, ultimaSerie = 0
+      for (const g of giorni) {
+        const kg = x.giorno.get(g)
+        if (kg !== undefined && costoCapo > 0 && kg <= soglia) { serie++; maxSerie = Math.max(maxSerie, serie) } else serie = 0
+      }
+      ultimaSerie = serie
       vacche.push({ vacca, stalla: s.numero, kgGiorno, ricavo: euro(kgGiorno), costo: costoCapo, margine: euro(kgGiorno) - costoCapo, giorni: x.n, kgPareggio,
-        alPareggio: costoCapo > 0 && x.n >= GIORNI_MIN_PAREGGIO && kgGiorno <= kgPareggio * (1 + TOLLERANZA_PAREGGIO) })
+        giorniAlPareggio: maxSerie, finoAllUltimoGiorno: ultimaSerie >= GIORNI_MIN_PAREGGIO,
+        alPareggio: maxSerie >= GIORNI_MIN_PAREGGIO })
     }
   }
 
