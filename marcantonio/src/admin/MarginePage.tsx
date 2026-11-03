@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Milk, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp, Wheat, X } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { AnalisiMangime, CategoriaRazione, Ingrediente, Razione } from '../lib/types'
@@ -392,8 +392,28 @@ function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
     aggiorna('ingredienti', { ...i, analisi: vuota ? undefined : a })
     setAnalisi(null)
   }
-  const salva = () => { const p = num(prezzo); if (p !== i.prezzoQ) aggiorna('ingredienti', { ...i, prezzoQ: p, fonte: i.fonte === 'clal' || !i.fonte ? 'fornitore' : i.fonte, aggiornatoIl: isoGiorno() }) }
-  useEffect(() => { setPrezzo(String(i.prezzoQ || '').replace('.', ',')) }, [i.prezzoQ])
+  const iRef = useRef(i)
+  iRef.current = i
+  const timer = useRef<number>()
+  const inModifica = useRef(false)
+  // salvataggio automatico: mezzo secondo dopo l'ultima cifra, oppure uscendo dal campo
+  const salva = (testo = prezzo) => {
+    window.clearTimeout(timer.current)
+    inModifica.current = false
+    const x = iRef.current
+    const p = num(testo)
+    if (p !== x.prezzoQ) aggiorna('ingredienti', { ...x, prezzoQ: p, fonte: x.fonte === 'clal' || !x.fonte ? 'fornitore' : x.fonte, aggiornatoIl: isoGiorno() })
+  }
+  const scrivi = (t: string) => {
+    const testo = t.replace(/[^0-9.,]/g, '')
+    setPrezzo(testo)
+    inModifica.current = true
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => salva(testo), 500)
+  }
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  // se il prezzo cambia da fuori (altro dispositivo, listino, CLAL) e non lo stai scrivendo, aggiorna il campo
+  useEffect(() => { if (!inModifica.current) setPrezzo(String(i.prezzoQ || '').replace('.', ',')) }, [i.prezzoQ])
   const usaClal = () => i.clal && aggiorna('ingredienti', { ...i, prezzoQ: i.clal.prezzoQ, fonte: 'clal', aggiornatoIl: isoGiorno() })
   return (
     <li className="flex items-center gap-2 py-2">
@@ -410,7 +430,7 @@ function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
         <button className="text-xs font-normal text-brand-700 hover:underline" onClick={apriAnalisi}>{i.analisi ? `Analisi: PG ${fmt1(i.analisi.pg ?? 0)}% · SS ${fmt1(i.analisi.ss ?? 0)}%${i.analisi.ssStimata ? ' (stimata)' : ''}` : '+ Analisi'}</button>
       </span>
       <input className="input !w-24 shrink-0 py-1.5 text-right" inputMode="decimal" value={prezzo} placeholder="€/q" aria-label={`Prezzo ${i.nome}`}
-        onChange={(e) => setPrezzo(e.target.value)} onBlur={salva} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+        onChange={(e) => scrivi(e.target.value)} onBlur={() => salva()} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
       <span className="w-8 text-xs text-stone-500">€/q</span>
       {analisi && (
         <Modale titolo={`Componenti analitici – ${i.nome}`} onChiudi={() => setAnalisi(null)}>

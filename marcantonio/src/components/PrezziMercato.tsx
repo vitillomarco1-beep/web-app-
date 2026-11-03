@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ClipboardPaste, ListChecks } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { Ingrediente, QuotazioneClal } from '../lib/types'
@@ -30,54 +30,61 @@ export default function PrezziMercato() {
 }
 
 function Listino() {
-  const { dati, aggiungi, aggiorna } = useStore()
-  const trova = (nome: string) => { const l = LISTINO_TIPICO.find((x) => x.nome === nome); return l ? alimentoDelListino(l, dati.ingredienti) : undefined }
-  const [valori, setValori] = useState<Record<string, { prezzo: string; fonte: 'fornitore' | 'aziendale' }>>(() =>
-    Object.fromEntries(LISTINO_TIPICO.map((l) => { const i = trova(l.nome); return [l.nome, { prezzo: testo(i?.prezzoQ ?? 0), fonte: (i?.fonte === 'aziendale' || i?.fonte === 'fornitore' ? i.fonte : l.fonte) }] })))
-  const [esito, setEsito] = useState('')
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-stone-600">Gli alimenti più usati sono già elencati: scrivi il prezzo che conosci (fornitore o costo di produzione aziendale) in <b>€/quintale tal quale</b>. <b>Si salva da solo</b> mentre scrivi; i campi lasciati vuoti non aggiungono alimenti.</p>
+      <ul className="mt-3 divide-y divide-stone-100">
+        {LISTINO_TIPICO.map((l) => <RigaListino key={l.nome} l={l} />)}
+      </ul>
+    </div>
+  )
+}
 
-  const salva = () => {
-    let n = 0
-    for (const l of LISTINO_TIPICO) {
-      const v = valori[l.nome]
-      const p = num(v.prezzo)
-      if (p === null) continue
-      const i = trova(l.nome)
-      if (i) { if (i.prezzoQ !== p || i.fonte !== v.fonte) { aggiorna('ingredienti', { ...i, prezzoQ: p, fonte: v.fonte, aggiornatoIl: isoGiorno() }); n++ } }
-      else { aggiungi('ingredienti', { id: nuovoId(), nome: l.nome, prezzoQ: p, fonte: v.fonte, aggiornatoIl: isoGiorno() }); n++ }
-    }
-    setEsito(n ? `✓ ${n} prezzi salvati` : 'Nessun prezzo cambiato')
-    setTimeout(() => setEsito(''), 3000)
+function RigaListino({ l }: { l: (typeof LISTINO_TIPICO)[number] }) {
+  const { dati, aggiungi, aggiorna } = useStore()
+  const i = alimentoDelListino(l, dati.ingredienti)
+  const [prezzo, setPrezzo] = useState(testo(i?.prezzoQ ?? 0))
+  const fonte: 'fornitore' | 'aziendale' = i?.fonte === 'aziendale' || i?.fonte === 'fornitore' ? i.fonte : l.fonte
+  const [salvato, setSalvato] = useState(false)
+  const timer = useRef<number>()
+  const inModifica = useRef(false)
+  const datiRef = useRef(dati)
+  datiRef.current = dati
+  useEffect(() => { if (!inModifica.current) setPrezzo(testo(i?.prezzoQ ?? 0)) }, [i?.prezzoQ]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const salva = (t: string, f: 'fornitore' | 'aziendale') => {
+    window.clearTimeout(timer.current)
+    inModifica.current = false
+    const p = num(t)
+    const att = alimentoDelListino(l, datiRef.current.ingredienti)
+    if (p === null) return
+    if (att) { if (att.prezzoQ !== p || att.fonte !== f) aggiorna('ingredienti', { ...att, prezzoQ: p, fonte: f, aggiornatoIl: isoGiorno() }) }
+    else aggiungi('ingredienti', { id: nuovoId(), nome: l.nome, prezzoQ: p, fonte: f, aggiornatoIl: isoGiorno() })
+    setSalvato(true); window.setTimeout(() => setSalvato(false), 1500)
+  }
+  const scrivi = (v: string) => {
+    const t = v.replace(/[^0-9.,]/g, '')
+    setPrezzo(t); inModifica.current = true
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => salva(t, fonte), 600)
   }
 
   return (
-    <div className="mt-4">
-      <p className="text-sm text-stone-600">Gli alimenti più usati sono già elencati: scrivi il prezzo che conosci (fornitore o costo di produzione aziendale) in <b>€/quintale tal quale</b>. Quelli lasciati vuoti non vengono aggiunti.</p>
-      <ul className="mt-3 divide-y divide-stone-100">
-        {LISTINO_TIPICO.map((l) => {
-          const v = valori[l.nome]
-          const i = trova(l.nome)
-          return (
-            <li key={l.nome} className="flex flex-wrap items-center gap-2 py-2">
-              <span className="min-w-0 flex-1 text-sm">
-                <span className="block font-medium">{l.nome}{i && i.nome.toLowerCase() !== l.nome.toLowerCase() && <span className="font-normal text-stone-500"> (il tuo “{i.nome}”)</span>}</span>
-                {i?.clal && <span className="block text-xs text-stone-500">CLAL: {fmt2(i.clal.prezzoQ)} €/q</span>}
-              </span>
-              <select className="input !w-auto py-1.5 text-xs" value={v.fonte} onChange={(e) => setValori({ ...valori, [l.nome]: { ...v, fonte: e.target.value as 'fornitore' | 'aziendale' } })} aria-label={`Fonte ${l.nome}`}>
-                <option value="fornitore">Fornitore</option>
-                <option value="aziendale">Aziendale</option>
-              </select>
-              <input className="input !w-20 shrink-0 py-1.5 text-right" inputMode="decimal" placeholder="€/q" value={v.prezzo} aria-label={`Prezzo ${l.nome}`}
-                onChange={(e) => setValori({ ...valori, [l.nome]: { ...v, prezzo: e.target.value.replace(/[^0-9.,]/g, '') } })} />
-            </li>
-          )
-        })}
-      </ul>
-      <div className="mt-3 flex items-center justify-end gap-3">
-        {esito && <span className="text-sm text-emerald-700">{esito}</span>}
-        <button className="btn-primary" onClick={salva}>Salva prezzi</button>
-      </div>
-    </div>
+    <li className="flex flex-wrap items-center gap-2 py-2">
+      <span className="min-w-0 flex-1 text-sm">
+        <span className="block font-medium">{l.nome}{i && i.nome.toLowerCase() !== l.nome.toLowerCase() && <span className="font-normal text-stone-500"> (il tuo “{i.nome}”)</span>}</span>
+        {i?.clal && <span className="block text-xs text-stone-500">CLAL: {fmt2(i.clal.prezzoQ)} €/q</span>}
+      </span>
+      {salvato && <span className="text-xs text-emerald-700">✓ salvato</span>}
+      <select className="input !w-auto py-1.5 text-xs" value={fonte} aria-label={`Fonte ${l.nome}`}
+        onChange={(e) => { const f = e.target.value as 'fornitore' | 'aziendale'; if (i) aggiorna('ingredienti', { ...i, fonte: f }); else if (num(prezzo) !== null) salva(prezzo, f) }}>
+        <option value="fornitore">Fornitore</option>
+        <option value="aziendale">Aziendale</option>
+      </select>
+      <input className="input !w-20 shrink-0 py-1.5 text-right" inputMode="decimal" placeholder="€/q" value={prezzo} aria-label={`Prezzo ${l.nome}`}
+        onChange={(e) => scrivi(e.target.value)} onBlur={() => inModifica.current && salva(prezzo, fonte)} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+    </li>
   )
 }
 
