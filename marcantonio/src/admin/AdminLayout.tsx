@@ -7,6 +7,7 @@ import {
 import Logo from '../components/Logo'
 import { useAuth } from '../lib/auth'
 import { useStore } from '../lib/store'
+import { AttivaArchivio, EtichettaArchivio } from '../components/StatoArchivio'
 
 interface Voce { to: string; label: string; icona: LucideIcon; end?: boolean; badge?: number }
 
@@ -79,6 +80,7 @@ export default function AdminLayout() {
 
   const piede = (
     <div className="space-y-0.5 border-t border-stone-200 pt-3">
+      <div className="px-3 pb-2"><EtichettaArchivio /></div>
       <Link to="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-stone-500 hover:bg-stone-100"><Globe className="h-[18px] w-[18px]" strokeWidth={1.8} />Sito pubblico</Link>
       <button onClick={() => { esci(); navigate('/') }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-stone-500 hover:bg-stone-100">
         <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />Esci{sessione && <span className="ml-auto text-xs text-stone-400">{sessione.utente}</span>}
@@ -98,12 +100,13 @@ export default function AdminLayout() {
       {/* Intestazione (telefono) */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-2 backdrop-blur lg:hidden">
         <Link to={collaboratore ? `${R}/pesata` : R}><Logo altezza="h-10" /></Link>
+        {!collaboratore && <EtichettaArchivio />}
         {collaboratore && (
           <button onClick={() => { esci(); navigate('/') }} className="flex items-center gap-1.5 text-sm text-stone-500"><LogOut className="h-4 w-4" />Esci</button>
         )}
       </header>
 
-      <main className={`min-w-0 flex-1 p-4 sm:p-8 ${collaboratore ? '' : 'pb-28 lg:pb-8'}`}><Outlet /></main>
+      <main className={`min-w-0 flex-1 p-4 sm:p-8 ${collaboratore ? '' : 'pb-28 lg:pb-8'}`}>{!collaboratore && <AttivaArchivio />}<Outlet /></main>
 
       {/* Barra in basso (telefono) */}
       {!collaboratore && (
