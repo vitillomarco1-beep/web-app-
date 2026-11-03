@@ -39,7 +39,7 @@ export default function MandriaPage() {
 
   const stallaDi = (g: number | null) => dati.stalle.find((s) => s.gruppoDairyComp !== undefined && s.gruppoDairyComp === g)
   const nomeGruppo = (g: number | null, a: AnimaleDC[]) =>
-    dati.nomiGruppi.find((x) => x.id === String(g))?.nome || nomeAutomaticoGruppo(a, stallaDi(g)?.numero)
+    dati.nomiGruppi.find((x) => x.id === String(g))?.nome || nomeAutomaticoGruppo(a, stallaDi(g)?.numero, g)
   const salvaNome = (g: string) => {
     const altri = dati.nomiGruppi.filter((x) => x.id !== g)
     imposta('nomiGruppi', testoNome.trim() ? [...altri, { id: g, nome: testoNome.trim() }] : altri)
@@ -138,7 +138,7 @@ export default function MandriaPage() {
               <>
                 {rinomina === gruppo ? (
                   <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); salvaNome(gruppo!) }}>
-                    <input className="input w-64" autoFocus value={testoNome} onChange={(e) => setTestoNome(e.target.value)} placeholder={nomeAutomaticoGruppo(gruppoSel[1], stallaDi(gruppoSel[0])?.numero)} />
+                    <input className="input w-64" autoFocus value={testoNome} onChange={(e) => setTestoNome(e.target.value)} placeholder={nomeAutomaticoGruppo(gruppoSel[1], stallaDi(gruppoSel[0])?.numero, gruppoSel[0])} />
                     <button className="btn-primary px-3 py-2">Salva</button>
                     <button type="button" className="btn-secondary px-3 py-2" onClick={() => setRinomina(null)}>Annulla</button>
                   </form>

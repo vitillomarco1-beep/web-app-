@@ -219,7 +219,15 @@ export function categoria(a: AnimaleDC): string {
 }
 
 /** Nome proposto per un gruppo in base agli animali che contiene. */
-export function nomeAutomaticoGruppo(animali: AnimaleDC[], stalla?: number): string {
+/** Gruppi DairyComp con un ruolo fisso in azienda. */
+export const GRUPPI_PREDEFINITI: Record<number, string> = {
+  3: 'Close up · sala parto',
+  23: 'Close up · sala parto',
+}
+export const isCloseUp = (g: number | null | undefined) => g === 3 || g === 23
+
+export function nomeAutomaticoGruppo(animali: AnimaleDC[], stalla?: number, gruppo?: number | null): string {
+  if (gruppo != null && GRUPPI_PREDEFINITI[gruppo]) return GRUPPI_PREDEFINITI[gruppo]
   const conta = new Map<string, number>()
   animali.forEach((a) => conta.set(categoria(a), (conta.get(categoria(a)) ?? 0) + 1))
   const [primo, secondo] = [...conta.entries()].sort((a, b) => b[1] - a[1])

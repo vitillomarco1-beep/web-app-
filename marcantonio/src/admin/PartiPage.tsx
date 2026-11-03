@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Baby, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, FileUp, Printer, Syringe } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
-import { abbinaColonne, costruisciAnimali, leggiFile } from '../lib/dairycomp'
+import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
 import { SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
 
@@ -27,7 +27,17 @@ export default function PartiPage() {
   const [copiato, setCopiato] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
-  const parti = useMemo(() => partiPrevisti(lista, oggi), [lista, oggi])
+  // Il gruppo, se manca nella lista parti, viene preso dall'ultima lista Mandria di DairyComp
+  const mandria = dati.mandriaDC[0]
+  const parti = useMemo(() => {
+    const gruppi = new Map((mandria?.animali ?? []).map((a) => [a.id, a.gruppo]))
+    return partiPrevisti(lista, oggi).map((p) => (p.gruppo === null && gruppi.has(p.vacca) ? { ...p, gruppo: gruppi.get(p.vacca) ?? null } : p))
+  }, [lista, oggi, mandria])
+  const nomeGr = (g: number | null) => (g === null ? null : isCloseUp(g) ? `gruppo ${g} · close up` : `gruppo ${g}`)
+  const etichettaGr = (g: number | null) =>
+    g === null ? '—' : isCloseUp(g)
+      ? <span className="inline-flex items-center gap-1"><span>{g}</span><span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">close up</span></span>
+      : g
   const sett = settimanaVaccinazioni(oggi, anticipo, spostamento)
   const daVaccinare = parti.filter((p) => nellaSettimana(p, sett))
   const fatte = new Set(dati.vaccinazioni.map((v) => v.id))
@@ -97,7 +107,7 @@ export default function PartiPage() {
 
   const testo = () =>
     [`Vaccinazioni pre-parto (${VACCINI_PREPARTO.map((v) => v.breve).join(' + ')}) – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
-      ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  gr. ${p.gruppo}` : ''}`)].join('\n')
+      ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)].join('\n')
   const copia = async () => {
     try { await navigator.clipboard.writeText(testo()); setCopiato(true); setTimeout(() => setCopiato(false), 2000) } catch { /* appunti non disponibili */ }
   }
@@ -159,7 +169,7 @@ export default function PartiPage() {
                         <span className="w-14 text-lg font-bold text-brand-900">{p.vacca}</span>
                         <span className="min-w-0 flex-1 text-sm">
                           <span className="block font-medium">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400">(stimata)</span>}</span>
-                          <span className="block text-xs text-stone-500">{categoriaParto(p.lattazione)}{p.gruppo !== null ? ` · gruppo ${p.gruppo}` : ''}{p.giorniGravidanzaOggi !== null ? ` · ${p.giorniGravidanzaOggi} gg grav.` : ''}</span>
+                          <span className="block text-xs text-stone-500">{categoriaParto(p.lattazione)}{p.gruppo !== null ? ` · ${nomeGr(p.gruppo)}` : ''}{p.giorniGravidanzaOggi !== null ? ` · ${p.giorniGravidanzaOggi} gg grav.` : ''}</span>
                         </span>
                       </div>
                       <div className="mt-2 pl-[4.25rem]">{bottoni(p, true)}</div>
@@ -178,7 +188,7 @@ export default function PartiPage() {
                           <td className="font-semibold">{p.vacca}</td>
                           <td className="whitespace-nowrap">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400" title="Calcolata dai giorni di gravidanza">(stimata)</span>}</td>
                           <td>{categoriaParto(p.lattazione)}</td>
-                          <td>{p.gruppo ?? '—'}</td>
+                          <td>{etichettaGr(p.gruppo)}</td>
                           <td className="text-right tabular-nums">{p.giorniGravidanzaOggi ?? '—'}</td>
                           <td>{bottoni(p)}</td>
                         </tr>
