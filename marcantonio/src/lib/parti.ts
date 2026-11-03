@@ -102,8 +102,8 @@ export function categoriaParto(l: number | null) {
 
 /** Giorni di asciutta prima del parto (messa in asciutta = parto previsto − questi giorni). */
 export const GIORNI_ASCIUTTA = 60
-/** Gravidanza da cui una vacca è "vicina all'asciutta" (circa 200 giorni). */
-export const GRAVIDANZA_VICINA_ASCIUTTA = 195
+/** Gravidanza minima per proporre l'asciutta anticipata: prima, un calo di produzione fa pensare a un problema di salute. */
+export const GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA = 180
 /** Messa in asciutta entro questi giorni: è già in programma, nessun avviso. */
 export const ASCIUTTA_IMMINENTE_GG = 7
 
@@ -118,6 +118,6 @@ export function statoAsciutta(vacca: string, lista: ImportDC | undefined, oggi =
   if (!p) return { tipo: 'non gravida' }
   const dataAsciutta = aggiungiGiorni(p.dataParto, -giorniAsciutta)
   const giorniAllAsciutta = giorniTra(oggi, dataAsciutta)
-  const tipo = giorniAllAsciutta <= ASCIUTTA_IMMINENTE_GG ? 'imminente' : (p.giorniGravidanzaOggi ?? 0) >= GRAVIDANZA_VICINA_ASCIUTTA ? 'vicina' : 'lontana'
+  const tipo = giorniAllAsciutta <= ASCIUTTA_IMMINENTE_GG ? 'imminente' : (p.giorniGravidanzaOggi ?? 0) >= GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA ? 'vicina' : 'lontana'
   return { tipo, dataAsciutta, giorniAllAsciutta, giorniGravidanza: p.giorniGravidanzaOggi }
 }

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Milk, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp, Wheat, X } from 'lucide-react'
 import { useStore } from '../lib/store'
 import type { AnalisiMangime, CategoriaRazione, Ingrediente, Razione } from '../lib/types'
-import { ASCIUTTA_IMMINENTE_GG, GIORNI_ASCIUTTA, statoAsciutta } from '../lib/parti'
+import { ASCIUTTA_IMMINENTE_GG, GIORNI_ASCIUTTA, GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA, statoAsciutta } from '../lib/parti'
 import { MANGIMI_NOTI, SS_MANGIME_TIPICA } from '../lib/ingerito'
 import PrezziMercato, { NOMI_FONTE } from '../components/PrezziMercato'
 import { meseIt } from '../lib/clal'
@@ -107,7 +107,7 @@ function Lattazione({ m }: { m: M }) {
 
       <div className="card mt-6">
         <div className="flex items-center gap-2"><TrendingDown className="h-5 w-5 text-rose-600" /><h2>Vacche con l'IOFC più basso</h2><span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600">stima</span></div>
-        <p className="mt-0.5 text-sm text-stone-500">Latte della vacca meno il costo alimentare <b>medio</b> per capo del suo gruppo: non sappiamo quanto mangia davvero ogni vacca, quindi è una stima. <b>Pareggio</b> = latte al giorno che ripaga quel costo. Se una vacca produce al pareggio o sotto (+{fmt0(TOLLERANZA_PAREGGIO * 100)}% di tolleranza) per almeno {GIORNI_MIN_PAREGGIO} giorni consecutivi, il cruscotto propone di <b>valutare la messa in asciutta anticipata</b>, tranne se l'asciutta ({GIORNI_ASCIUTTA} giorni prima del parto previsto) è già entro {ASCIUTTA_IMMINENTE_GG} giorni.</p>
+        <p className="mt-0.5 text-sm text-stone-500">Latte della vacca meno il costo alimentare <b>medio</b> per capo del suo gruppo: non sappiamo quanto mangia davvero ogni vacca, quindi è una stima. <b>Pareggio</b> = latte al giorno che ripaga quel costo. Se una vacca produce al pareggio o sotto (+{fmt0(TOLLERANZA_PAREGGIO * 100)}% di tolleranza) per almeno {GIORNI_MIN_PAREGGIO} giorni consecutivi, il cruscotto propone di <b>valutare la messa in asciutta anticipata</b> se è gravida da almeno {GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA} giorni, altrimenti di <b>controllarne la salute</b> (il calo può dipendere da una malattia). Nessun avviso se l'asciutta ({GIORNI_ASCIUTTA} giorni prima del parto previsto) è già entro {ASCIUTTA_IMMINENTE_GG} giorni.</p>
         <div className="mt-3 overflow-x-auto">
           <table className="table">
             <thead><tr><th>Vacca</th><th>Stalla</th><th className="text-right">Latte/giorno</th><th className="text-right">Ricavo</th><th className="text-right">Costo</th><th className="text-right">Pareggio</th><th className="text-right">IOFC</th></tr></thead>
@@ -116,7 +116,9 @@ function Lattazione({ m }: { m: M }) {
                 <tr key={v.vacca}>
                   <td className="font-semibold">{v.vacca}{v.alPareggio && (() => { const s = statoAsciutta(v.vacca, dati.partiDC[0]); return s.tipo === 'imminente'
                     ? <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-600" title={`Messa in asciutta prevista il ${fmtData(s.dataAsciutta)}`}>asciutta il {fmtData(s.dataAsciutta).slice(0, 5)}</span>
-                    : <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800" title={s.tipo === 'vicina' || s.tipo === 'lontana' ? `Asciutta prevista il ${fmtData(s.dataAsciutta)}` : ''}>{v.giorniAlPareggio} gg al pareggio · valuta asciutta anticipata{s.tipo === 'non gravida' ? ' (non gravida)' : ''}</span> })()}</td><td>{v.stalla}</td>
+                    : s.tipo === 'vicina'
+                      ? <span className="ml-2 rounded-full bg-arancio-100 px-2 py-0.5 text-[11px] font-semibold text-arancio-800" title={`Gravida ${s.giorniGravidanza} giorni, asciutta prevista il ${fmtData(s.dataAsciutta)}`}>{v.giorniAlPareggio} gg al pareggio · valuta asciutta anticipata</span>
+                      : <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800" title="Non gravida da 180 giorni: il calo può dipendere da un problema di salute">{v.giorniAlPareggio} gg al pareggio · controlla salute{s.tipo === 'non gravida' ? ' (non gravida)' : ''}</span> })()}</td><td>{v.stalla}</td>
                   <td className="text-right tabular-nums">{fmt1(v.kgGiorno)} kg</td>
                   <td className="text-right tabular-nums">{fmtEur(v.ricavo)}</td>
                   <td className="text-right tabular-nums">{fmtEur(v.costo)}</td>
@@ -127,7 +129,7 @@ function Lattazione({ m }: { m: M }) {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-stone-500">{(() => { const n = m.vacche.filter((v) => v.alPareggio && statoAsciutta(v.vacca, dati.partiDC[0]).tipo !== 'imminente').length; return n === 0 ? 'Nessuna vacca al pareggio: tutte producono più di quanto mangiano.' : n === 1 ? '1 vacca al pareggio da almeno ' + GIORNI_MIN_PAREGGIO + ' giorni: valuta la messa in asciutta anticipata.' : `${n} vacche al pareggio da almeno ${GIORNI_MIN_PAREGGIO} giorni: valuta la messa in asciutta anticipata.` })()}</p>
+        <p className="mt-2 text-xs text-stone-500">{(() => { const n = m.vacche.filter((v) => v.alPareggio && statoAsciutta(v.vacca, dati.partiDC[0]).tipo !== 'imminente').length; return n === 0 ? 'Nessuna vacca al pareggio: tutte producono più di quanto mangiano.' : n === 1 ? '1 vacca al pareggio da almeno ' + GIORNI_MIN_PAREGGIO + ' giorni.' : `${n} vacche al pareggio da almeno ${GIORNI_MIN_PAREGGIO} giorni.` })()}</p>
       </div>
     </>
   )

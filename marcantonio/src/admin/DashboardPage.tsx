@@ -11,7 +11,7 @@ import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
 import { VACCINI_VITELLI, etaAl, finestra, idVacVitello, prossimoMartedi, vitelli } from '../lib/vitelli'
 import { GIORNI_MIN_PAREGGIO, calcolaMargine, settimaneConDati } from '../lib/margine'
-import { statoAsciutta } from '../lib/parti'
+import { GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA, statoAsciutta } from '../lib/parti'
 import { SETTIMANE_ANTICIPO, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
@@ -80,11 +80,14 @@ export default function DashboardPage() {
   // incrociate con la messa in asciutta: se è già imminente non serve l'avviso
   const alPareggio = (settIofc ? calcolaMargine(dati, settIofc).vacche.filter((v) => v.alPareggio) : [])
     .map((v) => ({ v, s: statoAsciutta(v.vacca, dati.partiDC[0]) }))
-  const anticipare = alPareggio.filter((x) => x.s.tipo !== 'imminente')
-  const descr = (x: (typeof alPareggio)[number]) => x.s.tipo === 'non gravida' ? 'non gravida' : x.s.tipo === 'sconosciuto' ? 'non in lista parti' : `asciutta prevista ${'dataAsciutta' in x.s ? fmtData(x.s.dataAsciutta) : '?'}`
+  // gravide da almeno 180 giorni: asciutta anticipata; le altre: calo da controllare (salute)
+  const anticipare = alPareggio.filter((x) => x.s.tipo === 'vicina')
+  const daControllareSalute = alPareggio.filter((x) => x.s.tipo === 'lontana' || x.s.tipo === 'non gravida' || x.s.tipo === 'sconosciuto')
+  const descr = (x: (typeof alPareggio)[number]) => x.s.tipo === 'non gravida' ? 'non gravida' : x.s.tipo === 'sconosciuto' ? 'non in lista parti' : `gravida ${'giorniGravidanza' in x.s ? x.s.giorniGravidanza : '?'} gg${x.s.tipo === 'vicina' ? `, asciutta prevista ${fmtData(x.s.dataAsciutta)}` : ''}`
 
   const cose: Cosa[] = [
-    ...(anticipare.length ? [{ testo: `Valuta la messa in asciutta anticipata: ${anticipare.length === 1 ? 'una vacca produce' : `${anticipare.length} vacche producono`} quanto mangiano da almeno ${GIORNI_MIN_PAREGGIO} giorni (stima) – ${anticipare.slice(0, 8).map((x) => `${x.v.vacca} (${fmt1(x.v.kgGiorno)} kg, ${x.v.giorniAlPareggio} gg, ${descr(x)})`).join(', ')}${anticipare.length > 8 ? '…' : ''}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
+    ...(daControllareSalute.length ? [{ testo: `Calo di produzione da controllare (possibile problema di salute): ${daControllareSalute.length === 1 ? 'una vacca produce' : `${daControllareSalute.length} vacche producono`} quanto mangiano da almeno ${GIORNI_MIN_PAREGGIO} giorni ma non sono gravide da ${GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA} giorni – ${daControllareSalute.slice(0, 8).map((x) => `${x.v.vacca} (${fmt1(x.v.kgGiorno)} kg, ${x.v.giorniAlPareggio} gg, ${descr(x)})`).join(', ')}${daControllareSalute.length > 8 ? '…' : ''}`, link: '/area-riservata/salute', tipo: 'farmaco' as const }] : []),
+    ...(anticipare.length ? [{ testo: `Valuta la messa in asciutta anticipata: ${anticipare.length === 1 ? 'una vacca gravida da oltre ' + GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA + ' giorni produce' : `${anticipare.length} vacche gravide da oltre ${GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA} giorni producono`} quanto mangiano da almeno ${GIORNI_MIN_PAREGGIO} giorni (stima) – ${anticipare.slice(0, 8).map((x) => `${x.v.vacca} (${fmt1(x.v.kgGiorno)} kg, ${x.v.giorniAlPareggio} gg, ${descr(x)})`).join(', ')}${anticipare.length > 8 ? '…' : ''}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
     ...(listaVitelli && listaVitelli.data < martedi && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista vitelli di DairyComp per le vaccinazioni di martedì', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
     ...(vitelliDaFare ? [{ testo: `Vaccinazioni vitelli di martedì ${fmtData(martedi)}: ${vitelliDaFare} ${vitelliDaFare === 1 ? 'vaccino' : 'vaccini'} da fare`, link: '/area-riservata/vitelli', tipo: 'vaccino' as const }] : []),
     ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),
