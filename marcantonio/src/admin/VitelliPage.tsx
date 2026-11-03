@@ -46,7 +46,8 @@ export default function VitelliPage() {
   })
   const totDaFare = sezioni.reduce((t, s) => t + s.daFare.filter((c) => !fatte.has(idVacVitello(c.id, s.v.id))).length, 0)
   const totRitardo = sezioni.reduce((t, s) => t + s.ritardo.length, 0)
-  const listaVecchia = lista && lista.data < martedi && martedi <= aggiungiGiorni(oggi, 7)
+  // la lista del lunedì mattina va bene per il martedì (le età vengono portate avanti di un giorno)
+  const listaVecchia = lista && lista.data < aggiungiGiorni(martedi, -1) && martedi <= aggiungiGiorni(oggi, 7)
 
   const carica = async (f: File) => {
     setErrore('')
@@ -147,7 +148,7 @@ export default function VitelliPage() {
           {listaVecchia && (
             <div className="mt-6 flex items-start gap-2 rounded-xl border border-arancio-200 bg-arancio-50/60 p-4 text-sm text-arancio-900">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>La lista è del {fmtData(lista.data)}: i vitelli nati dopo non ci sono. Per il martedì carica la lista aggiornata quella mattina.</span>
+              <span>La lista è del {fmtData(lista.data)}: i vitelli nati dopo non ci sono. Carica la lista Mandria (con GDNAS) il lunedì mattina: il martedì l'app aggiunge da sola un giorno all'età.</span>
             </div>
           )}
 
