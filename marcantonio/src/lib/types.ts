@@ -261,10 +261,23 @@ export interface AnalisiPmr {
   ufl?: number // UFL per kg di ss
   laboratorio?: string
   note?: string
+  allegato?: { id: string; url: string; nome: string } // file del laboratorio (archivio condiviso)
 }
 
 /** Alimento della razione con il prezzo (tal quale). */
-export interface Ingrediente { id: string; nome: string; prezzoQ: number /* €/quintale */; note?: string }
+export interface Ingrediente { id: string; nome: string; prezzoQ: number /* €/quintale */; note?: string; analisi?: AnalisiMangime }
+
+/** Componenti analitici di un mangime come sul cartellino: % sul tal quale. */
+export interface AnalisiMangime {
+  ss?: number // sostanza secca % (se il cartellino non la riporta si usa un valore tipico)
+  ssStimata?: boolean
+  pg?: number // proteina grezza
+  grassi?: number
+  fibra?: number // fibra grezza
+  ceneri?: number
+  sodio?: number
+  amido?: number
+}
 
 export type CategoriaRazione = 'lattazione' | 'asciutta' | 'closeup' | 'manze' | 'altro'
 

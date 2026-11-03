@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Milk, Pencil, Plus, Scale, Trash2, TrendingDown, TrendingUp, Wheat, X } from 'lucide-react'
 import { useStore } from '../lib/store'
-import type { CategoriaRazione, Ingrediente, Razione } from '../lib/types'
+import type { AnalisiMangime, CategoriaRazione, Ingrediente, Razione } from '../lib/types'
+import { MANGIMI_NOTI, SS_MANGIME_TIPICA } from '../lib/ingerito'
 import { Campo, Modale, StatTile, Vuoto } from '../components/ui'
 import { CATEGORIE, calcolaMargine, costoRazione, nomeCategoria, settimaneConDati } from '../lib/margine'
 import { KG_PER_LITRO } from '../lib/salute'
@@ -264,6 +265,19 @@ export function RazioniPrezzi() {
           <input className="input !w-24" inputMode="decimal" placeholder="€/q" value={nuovo.prezzo} onChange={(e) => setNuovo({ ...nuovo, prezzo: e.target.value })} />
           <button className="btn-primary px-3" aria-label="Aggiungi alimento"><Plus className="h-4 w-4" /></button>
         </form>
+        {MANGIMI_NOTI.map((m) => {
+          const esistente = dati.ingredienti.find((i) => i.nome.toLowerCase().includes(m.cerca))
+          if (esistente?.analisi) return null
+          return (
+            <div key={m.nome} className="mt-3 rounded-xl border border-arancio-200 bg-arancio-50/60 p-3 text-sm">
+              <div className="font-semibold text-brand-900">{m.nome} – dal cartellino</div>
+              <div className="text-xs text-stone-600">PG {fmt1(m.analisi.pg!)}% · grassi {fmt1(m.analisi.grassi!)}% · fibra {fmt1(m.analisi.fibra!)}% · ceneri {fmt1(m.analisi.ceneri!)}% · sodio {m.analisi.sodio}% (sul tal quale)</div>
+              <button className="btn-link mt-1" onClick={() => esistente ? aggiorna('ingredienti', { ...esistente, analisi: m.analisi }) : aggiungi('ingredienti', { id: nuovoId(), nome: m.nome, prezzoQ: 0, analisi: m.analisi })}>
+                {esistente ? `Applica a “${esistente.nome}”` : 'Aggiungi agli alimenti'}
+              </button>
+            </div>
+          )
+        })}
         <ul className="mt-3 divide-y divide-stone-100">
           {ingr.map((i) => <RigaIngrediente key={i.id} i={i} usato={usato(i.id)} />)}
         </ul>
@@ -339,16 +353,55 @@ export function RazioniPrezzi() {
   )
 }
 
+const CAMPI_MANGIME: { k: keyof AnalisiMangime; nome: string }[] = [
+  { k: 'ss', nome: 'Sostanza secca' }, { k: 'pg', nome: 'Proteina grezza' }, { k: 'grassi', nome: 'Grassi grezzi' }, { k: 'fibra', nome: 'Fibra grezza' },
+  { k: 'ceneri', nome: 'Ceneri grezze' }, { k: 'amido', nome: 'Amido' }, { k: 'sodio', nome: 'Sodio' },
+]
+
 function RigaIngrediente({ i, usato }: { i: Ingrediente; usato: boolean }) {
   const { aggiorna, elimina } = useStore()
   const [prezzo, setPrezzo] = useState(String(i.prezzoQ || ''))
+  const [analisi, setAnalisi] = useState<Record<string, string> | null>(null)
+  const apriAnalisi = () => setAnalisi(Object.fromEntries(CAMPI_MANGIME.map((c) => [c.k, i.analisi?.[c.k] !== undefined && !(c.k === 'ss' && i.analisi?.ssStimata) ? String(i.analisi[c.k]).replace('.', ',') : ''])))
+  const salvaAnalisi = (e: FormEvent) => {
+    e.preventDefault()
+    if (!analisi) return
+    const a: AnalisiMangime = {}
+    for (const c of CAMPI_MANGIME) { const t = analisi[c.k]?.trim(); if (t) (a as Record<string, number>)[c.k] = num(t) }
+    if (a.ss === undefined) { a.ss = SS_MANGIME_TIPICA; a.ssStimata = true }
+    const vuota = CAMPI_MANGIME.every((c) => c.k === 'ss' || a[c.k] === undefined)
+    aggiorna('ingredienti', { ...i, analisi: vuota ? undefined : a })
+    setAnalisi(null)
+  }
   const salva = () => { const p = num(prezzo); if (p !== i.prezzoQ) aggiorna('ingredienti', { ...i, prezzoQ: p }) }
   return (
     <li className="flex items-center gap-2 py-2">
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{i.nome}</span>
+      <span className="min-w-0 flex-1 text-sm font-medium">
+        <span className="block truncate">{i.nome}</span>
+        <button className="text-xs font-normal text-brand-700 hover:underline" onClick={apriAnalisi}>{i.analisi ? `Analisi: PG ${fmt1(i.analisi.pg ?? 0)}% · SS ${fmt1(i.analisi.ss ?? 0)}%${i.analisi.ssStimata ? ' (stimata)' : ''}` : '+ Analisi'}</button>
+      </span>
       <input className="input !w-24 shrink-0 py-1.5 text-right" inputMode="decimal" value={prezzo} placeholder="€/q" aria-label={`Prezzo ${i.nome}`}
         onChange={(e) => setPrezzo(e.target.value)} onBlur={salva} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
       <span className="w-8 text-xs text-stone-500">€/q</span>
+      {analisi && (
+        <Modale titolo={`Componenti analitici – ${i.nome}`} onChiudi={() => setAnalisi(null)}>
+          <form className="space-y-4" onSubmit={salvaAnalisi}>
+            <p className="text-sm text-stone-600">Come sul cartellino: <b>% sul tal quale</b>. Se la sostanza secca non c'è, lascia vuoto: uso l'{SS_MANGIME_TIPICA}%, valore tipico dei mangimi.</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {CAMPI_MANGIME.map((c) => (
+                <label key={c.k} className="block"><span className="label">{c.nome} %</span>
+                  <input className="input" inputMode="decimal" value={analisi[c.k] ?? ''} placeholder={c.k === 'ss' ? `${SS_MANGIME_TIPICA} (tipica)` : ''}
+                    onChange={(e) => setAnalisi({ ...analisi, [c.k]: e.target.value.replace(/[^0-9.,]/g, '') })} />
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setAnalisi(null)}>Annulla</button>
+              <button className="btn-primary">Salva</button>
+            </div>
+          </form>
+        </Modale>
+      )}
       <button className="text-stone-300 hover:text-rose-600 disabled:opacity-30" disabled={usato} title={usato ? 'Usato in una razione' : 'Elimina'} onClick={() => elimina('ingredienti', i.id)}><Trash2 className="h-4 w-4" /></button>
     </li>
   )

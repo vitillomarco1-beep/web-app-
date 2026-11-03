@@ -13,6 +13,7 @@ import { useSearchParams } from 'react-router-dom'
 import FotoPesate from '../components/FotoPesate'
 import AnalisiPmrModale from '../components/AnalisiPmrModale'
 import { analisiValida } from '../lib/pmr'
+import IngeritoCard from '../components/IngeritoCard'
 
 const TURNI: Turno[] = ['mattina', 'sera']
 type Griglia = Record<string, string> // chiave `${stalla}-${turno}` -> kg digitati
@@ -369,6 +370,8 @@ export default function AlimentazionePage() {
           </div>
         </section>
       </div>
+
+      <IngeritoCard stalle={stalle} kgTqCapo={mediaCapoStalla} data={ultimoCompleto || oggi} onAnalisiPmr={() => setApriPmr(true)} onRazioni={() => { setScheda('razioni'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
 
       {/* Registro */}
       <section className="card mt-6 overflow-x-auto p-0">
