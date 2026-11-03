@@ -18,7 +18,7 @@ export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
   { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
   { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGR', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA', 'GGRV', 'GGGRAV'] },
-  { campo: 'giorniVita', etichetta: 'Giorni di vita', alias: ['GGVITA', 'GGVIT', 'GVITA', 'GGV', 'ETAGG', 'GGETA', 'AGEDAYS', 'AGED', 'AGEDY', 'DAYSOLD', 'GGNAS', 'GIORNIVITA', 'GGNASC'] },
+  { campo: 'giorniVita', etichetta: 'Giorni di vita', alias: ['GDNAS', 'GGVITA', 'GGVIT', 'GVITA', 'GGV', 'ETAGG', 'GGETA', 'AGEDAYS', 'AGED', 'AGEDY', 'DAYSOLD', 'GGNAS', 'GIORNIVITA', 'GGNASC'] },
   { campo: 'dataNascita', etichetta: 'Data di nascita (BDAT)', alias: ['BDAT', 'DNAS', 'DNASC', 'DATANASC', 'DATANASCITA', 'NASCITA', 'DTNAS', 'BIRTH', 'BIRTHDATE'] },
   { campo: 'dataParto', etichetta: 'Data parto prevista (DUE)', alias: ['DUE', 'PPR', 'DDAT', 'DUEDATE', 'DPP', 'DATAPARTO', 'PARTOPREV', 'PREVPARTO', 'DPARTO', 'DATAPP', 'EXPCALV', 'PARTOPREVISTO', 'DTPAR', 'DPREV', 'DPRT'] },
 ]
