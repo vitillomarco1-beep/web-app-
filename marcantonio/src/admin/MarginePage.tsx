@@ -6,7 +6,7 @@ import { MANGIMI_NOTI, SS_MANGIME_TIPICA } from '../lib/ingerito'
 import PrezziMercato, { NOMI_FONTE } from '../components/PrezziMercato'
 import { meseIt } from '../lib/clal'
 import { Campo, Modale, StatTile, Vuoto } from '../components/ui'
-import { CATEGORIE, calcolaMargine, costoRazione, nomeCategoria, settimaneConDati } from '../lib/margine'
+import { CATEGORIE, GIORNI_MIN_PAREGGIO, TOLLERANZA_PAREGGIO, calcolaMargine, costoRazione, nomeCategoria, settimaneConDati } from '../lib/margine'
 import { KG_PER_LITRO } from '../lib/salute'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, fmtEur, isoGiorno, nuovoId } from '../lib/format'
 import { GRUPPI_PREDEFINITI } from '../lib/dairycomp'
@@ -104,25 +104,26 @@ function Lattazione({ m }: { m: M }) {
       </div>
 
       <div className="card mt-6">
-        <div className="flex items-center gap-2"><TrendingDown className="h-5 w-5 text-rose-600" /><h2>Vacche con l'IOFC più basso</h2></div>
-        <p className="mt-0.5 text-sm text-stone-500">Latte della vacca meno il costo alimentare medio per capo del suo gruppo.</p>
+        <div className="flex items-center gap-2"><TrendingDown className="h-5 w-5 text-rose-600" /><h2>Vacche con l'IOFC più basso</h2><span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600">stima</span></div>
+        <p className="mt-0.5 text-sm text-stone-500">Latte della vacca meno il costo alimentare <b>medio</b> per capo del suo gruppo: non sappiamo quanto mangia davvero ogni vacca, quindi è una stima. <b>Pareggio</b> = latte al giorno che ripaga quel costo; "al pareggio" = produce meno del pareggio +{fmt0(TOLLERANZA_PAREGGIO * 100)}% (con almeno {GIORNI_MIN_PAREGGIO} giorni di dati).</p>
         <div className="mt-3 overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Vacca</th><th>Stalla</th><th className="text-right">Latte/giorno</th><th className="text-right">Ricavo</th><th className="text-right">Costo</th><th className="text-right">IOFC</th></tr></thead>
+            <thead><tr><th>Vacca</th><th>Stalla</th><th className="text-right">Latte/giorno</th><th className="text-right">Ricavo</th><th className="text-right">Costo</th><th className="text-right">Pareggio</th><th className="text-right">IOFC</th></tr></thead>
             <tbody>
               {m.vacche.slice(0, 15).map((v) => (
                 <tr key={v.vacca}>
-                  <td className="font-semibold">{v.vacca}</td><td>{v.stalla}</td>
+                  <td className="font-semibold">{v.vacca}{v.alPareggio && <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800">al pareggio</span>}</td><td>{v.stalla}</td>
                   <td className="text-right tabular-nums">{fmt1(v.kgGiorno)} kg</td>
                   <td className="text-right tabular-nums">{fmtEur(v.ricavo)}</td>
                   <td className="text-right tabular-nums">{fmtEur(v.costo)}</td>
+                  <td className="text-right tabular-nums">{fmt1(v.kgPareggio)} kg</td>
                   <td className={`text-right font-semibold tabular-nums ${segno(v.margine)}`}>{fmtEur(v.margine)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-stone-500">{(() => { const n = m.vacche.filter((v) => v.margine < 0).length; return n === 0 ? 'Tutte le vacche ripagano il costo alimentare medio.' : n === 1 ? '1 vacca non ripaga il costo alimentare medio.' : `${n} vacche non ripagano il costo alimentare medio.` })()}</p>
+        <p className="mt-2 text-xs text-stone-500">{(() => { const n = m.vacche.filter((v) => v.alPareggio).length; return n === 0 ? 'Nessuna vacca al pareggio: tutte producono più di quanto mangiano.' : n === 1 ? '1 vacca è al pareggio: produce circa quanto mangia.' : `${n} vacche sono al pareggio: producono circa quanto mangiano.` })()}</p>
       </div>
     </>
   )

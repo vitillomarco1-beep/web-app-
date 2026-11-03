@@ -10,6 +10,7 @@ import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairyco
 import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
 import { VACCINI_VITELLI, etaAl, finestra, idVacVitello, prossimoMartedi, vitelli } from '../lib/vitelli'
+import { calcolaMargine, settimaneConDati } from '../lib/margine'
 import { SETTIMANE_ANTICIPO, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
@@ -73,7 +74,12 @@ export default function DashboardPage() {
   const vitelliDaFare = listaVitelli ? vitelli(listaVitelli).reduce((t, c) => t + VACCINI_VITELLI.filter((v) => { const w = finestra(v), e = etaAl(c, martedi); return e >= w.da && e <= w.a && !fatteVit.has(idVacVitello(c.id, v.id)) }).length, 0) : 0
   const giornoSettimana = new Date().getDay()
 
+  // Vacche al pareggio (IOFC stimato): producono circa quanto mangiano
+  const settIofc = dati.razioni.length ? settimaneConDati(dati)[0] : undefined
+  const alPareggio = settIofc ? calcolaMargine(dati, settIofc).vacche.filter((v) => v.alPareggio) : []
+
   const cose: Cosa[] = [
+    ...(alPareggio.length ? [{ testo: `${alPareggio.length} ${alPareggio.length === 1 ? 'vacca al pareggio' : 'vacche al pareggio'} (producono circa quanto mangiano, stima): ${alPareggio.slice(0, 8).map((v) => `${v.vacca} (${fmt1(v.kgGiorno)} kg)`).join(', ')}${alPareggio.length > 8 ? '…' : ''}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
     ...(listaVitelli && listaVitelli.data < martedi && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista vitelli di DairyComp per le vaccinazioni di martedì', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
     ...(vitelliDaFare ? [{ testo: `Vaccinazioni vitelli di martedì ${fmtData(martedi)}: ${vitelliDaFare} ${vitelliDaFare === 1 ? 'vaccino' : 'vaccini'} da fare`, link: '/area-riservata/vitelli', tipo: 'vaccino' as const }] : []),
     ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),

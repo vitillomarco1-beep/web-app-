@@ -54,7 +54,16 @@ export interface MargineStalla {
   senzaPrezzo: number
 }
 export interface MargineAltro { razione: Razione; capi: number; costoCapo: number; costo: number; senzaPrezzo: number }
-export interface MargineVacca { vacca: string; stalla: number; kgGiorno: number; ricavo: number; costo: number; margine: number }
+export interface MargineVacca {
+  vacca: string; stalla: number; kgGiorno: number; ricavo: number; costo: number; margine: number
+  giorni: number // giorni con dati robot nel periodo
+  kgPareggio: number // latte al giorno che ripaga il costo alimentare stimato
+  alPareggio: boolean // produce quanto mangia (o meno): IOFC entro il margine di tolleranza
+}
+/** Una vacca è "al pareggio" se il suo latte supera il pareggio di meno del 10%. */
+export const TOLLERANZA_PAREGGIO = 0.1
+/** Giorni minimi di dati per giudicare una vacca (esclude arrivi e uscite a metà settimana). */
+export const GIORNI_MIN_PAREGGIO = 3
 
 export function calcolaMargine(dati: Dati, settimana: string) {
   const prezzoLatte = dati.parametri.find((x) => x.id === 'prezzoLatte')?.valore ?? PREZZO_LATTE_PREDEFINITO
@@ -93,7 +102,9 @@ export function calcolaMargine(dati: Dati, settimana: string) {
     for (const v of vg) { const x = perVacca.get(v.vacca) ?? { kg: 0, n: 0 }; x.kg += v.kg; x.n++; perVacca.set(v.vacca, x) }
     for (const [vacca, x] of perVacca) {
       const kgGiorno = x.kg / x.n
-      vacche.push({ vacca, stalla: s.numero, kgGiorno, ricavo: euro(kgGiorno), costo: costoCapo, margine: euro(kgGiorno) - costoCapo })
+      const kgPareggio = prezzoLatte > 0 ? (costoCapo / prezzoLatte) * KG_PER_LITRO : 0
+      vacche.push({ vacca, stalla: s.numero, kgGiorno, ricavo: euro(kgGiorno), costo: costoCapo, margine: euro(kgGiorno) - costoCapo, giorni: x.n, kgPareggio,
+        alPareggio: costoCapo > 0 && x.n >= GIORNI_MIN_PAREGGIO && kgGiorno <= kgPareggio * (1 + TOLLERANZA_PAREGGIO) })
     }
   }
 
