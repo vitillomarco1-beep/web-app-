@@ -134,5 +134,5 @@ export function calcolaMargine(dati: Dati, settimana: string) {
   const lattazione = { capi: tot('capi'), kgLatte: tot('kgLatte'), ricavo: tot('ricavo'), costo: tot('costo'), margine: tot('margine') }
   const costoAltre = altre.reduce((t, a) => t + a.costo, 0)
   const aziendale = { ...lattazione, costoAltre, costo: lattazione.costo + costoAltre, margine: lattazione.ricavo - lattazione.costo - costoAltre }
-  return { giorni, prezzoLatte, stalle, altre, vacche: vacche.sort((a, b) => a.margine - b.margine), lattazione, aziendale }
+  return { settimana, giorni, prezzoLatte, stalle, altre, vacche: vacche.sort((a, b) => a.margine - b.margine), lattazione, aziendale }
 }
