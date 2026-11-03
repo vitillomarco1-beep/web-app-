@@ -4,7 +4,7 @@
 // riconosce le intestazioni più comuni e permette di correggere l'abbinamento a mano.
 import type { AnimaleDC, ImportDC } from './types'
 
-export type Campo = 'id' | 'gruppo' | 'lattazione' | 'dim' | 'latte' | 'grasso' | 'proteine' | 'cellule' | 'scs' | 'codiceRiproduttivo' | 'giorniGravidanza'
+export type Campo = 'id' | 'gruppo' | 'lattazione' | 'dim' | 'latte' | 'grasso' | 'proteine' | 'cellule' | 'scs' | 'codiceRiproduttivo' | 'giorniGravidanza' | 'dataParto'
 
 export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'id', etichetta: 'Numero vacca (ID)', alias: ['ID', 'COW', 'VACCA', 'MATRICOLA', 'MATR', 'BARN', 'NUMERO', 'ANIMALE'] },
@@ -17,7 +17,8 @@ export const CAMPI: { campo: Campo; etichetta: string; alias: string[] }[] = [
   { campo: 'cellule', etichetta: 'Cellule somatiche (×1000/ml)', alias: ['SCC', 'CELLULE', 'CS', 'CCS'] },
   { campo: 'scs', etichetta: 'Punteggio lineare cellule (LGSCC)', alias: ['LGSCC', 'SCS', 'LS'] },
   { campo: 'codiceRiproduttivo', etichetta: 'Stato riproduttivo (RIPRO / RC)', alias: ['RIPRO', 'RC', 'RPRO', 'STATO', 'REPRO'] },
-  { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGR', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA'] },
+  { campo: 'giorniGravidanza', etichetta: 'Giorni di gravidanza (DCC)', alias: ['DCC', 'GGRA', 'GGR', 'GGRAV', 'DAYSPREG', 'GRAVIDANZA', 'GGRV', 'GGGRAV'] },
+  { campo: 'dataParto', etichetta: 'Data parto prevista (DUE)', alias: ['DUE', 'DDAT', 'DUEDATE', 'DPP', 'DATAPARTO', 'PARTOPREV', 'PREVPARTO', 'DPARTO', 'DATAPP', 'EXPCALV', 'PARTOPREVISTO', 'DTPAR', 'DPREV', 'DPRT'] },
 ]
 
 const norm = (s: string) => s.toUpperCase().normalize('NFD').replace(/[^A-Z0-9]/g, '')
@@ -123,6 +124,7 @@ export function costruisciAnimali(f: FileLetto, m: Partial<Record<Campo, number>
         scs: numero(valore(r, 'scs')),
         codiceRiproduttivo: valore(r, 'codiceRiproduttivo')?.trim() || null,
         giorniGravidanza: numero(valore(r, 'giorniGravidanza')),
+        dataPartoPrevista: valore(r, 'dataParto')?.trim() || null,
         extra,
       } as AnimaleDC
     })

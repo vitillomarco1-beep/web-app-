@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, ChevronRight, Gauge, Milk, Pill, RotateCw, Tag, Upload, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronRight, Gauge, Milk, Pill, RotateCw, Syringe, Tag, Upload, type LucideIcon } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { MotivoChip } from '../components/ui'
 import BarChart from '../components/BarChart'
@@ -9,14 +9,16 @@ import { applicaGruppiRobot } from '../lib/gruppi'
 import { inLattazione, perGruppo, riepilogo, ultimoImport } from '../lib/dairycomp'
 import { inEsaurimento } from '../lib/salute'
 import { giorniCaricati } from './CaricaSettimanaPage'
+import { SETTIMANE_ANTICIPO, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
 
-type Cosa = { testo: string; link: string; tipo: 'carica' | 'avviso' | 'farmaco' }
+type Cosa = { testo: string; link: string; tipo: 'carica' | 'avviso' | 'farmaco' | 'vaccino' }
 const STILE_COSA: Record<Cosa['tipo'], { barra: string; icona: string; I: LucideIcon }> = {
   carica: { barra: 'bg-brand-600', icona: 'bg-brand-100 text-brand-700', I: Upload },
   avviso: { barra: 'bg-arancio-500', icona: 'bg-arancio-100 text-arancio-700', I: AlertTriangle },
   farmaco: { barra: 'bg-rose-500', icona: 'bg-rose-100 text-rose-700', I: Pill },
+  vaccino: { barra: 'bg-sky-500', icona: 'bg-sky-100 text-sky-700', I: Syringe },
 }
 
 /** Cruscotto "Oggi": solo dati veri (robot, DairyComp, scarichi, farmaci) e le cose da fare. */
@@ -54,7 +56,13 @@ export default function DashboardPage() {
     : []
   const maxLatte = Math.max(1, ...gruppi.map((x) => x.r.latteMedio ?? 0))
 
+  // Vaccinazioni pre-parto della settimana (dalla lista parti di DairyComp)
+  const settVacc = settimanaVaccinazioni(isoGiorno(), dati.parametri.find((p) => p.id === 'anticipoVaccini')?.valore ?? SETTIMANE_ANTICIPO)
+  const fatteVacc = new Set(dati.vaccinazioni.map((v) => v.id))
+  const daVaccinare = partiPrevisti(dati.partiDC[0]).filter((p) => nellaSettimana(p, settVacc) && !fatteVacc.has(idVaccinazione(p)))
+
   const cose: Cosa[] = [
+    ...(daVaccinare.length ? [{ testo: `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}`, link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),
     ...(gruppiDaCaricare.length ? [{ testo: `Carica i file dei robot della settimana scorsa: mancano ${gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     ...(daSistemare.length ? [{ testo: `${daSistemare.length} vacche da sistemare in DairyComp (munte dal robot di un altro gruppo)`, link: '/area-riservata/latte', tipo: 'avviso' as const }] : []),
     ...robotFermi.map((g) => ({ testo: `Robot ${g.robot} fermo ${Math.floor(g.pausaMaxMin / 60)} h ${String(g.pausaMaxMin % 60).padStart(2, '0')} dalle ${g.pausaDalle} del ${fmtData(g.data)}`, link: '/area-riservata/mungiture', tipo: 'avviso' as const })),

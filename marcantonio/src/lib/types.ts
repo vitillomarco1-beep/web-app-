@@ -124,6 +124,7 @@ export interface AnimaleDC {
   scs?: number | null // punteggio lineare cellule (LGSCC)
   codiceRiproduttivo?: string | null // RC
   giorniGravidanza?: number | null // DCC
+  dataPartoPrevista?: string | null // DUE, come scritta nel file
   extra?: Record<string, number | string> // tutte le altre colonne del file
 }
 
@@ -238,6 +239,11 @@ export interface Dati {
   robotVacche: GiornoVaccaRobot[]
   importRobot: ImportRobot[]
   messaggi: Messaggio[]
+  partiDC: ImportDC[] // ultima lista dei parti previsti di DairyComp
+  vaccinazioni: Vaccinazione[]
 }
+
+/** Vaccinazione pre-parto segnata come fatta. id = `${vacca}|${dataParto}` */
+export interface Vaccinazione { id: string; vacca: string; dataParto: string; fattaIl: string }
 
 export type Collezione = keyof Dati
