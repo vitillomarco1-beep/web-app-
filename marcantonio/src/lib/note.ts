@@ -16,11 +16,95 @@ export function categoriaNota(testo: string) {
 }
 export const infoCategoria = (id: string) => CATEGORIE_NOTE.find((c) => c.id === id) ?? ALTRO
 
-/** Numero della vacca: "vacca 1072", "la 1072", "n. 1072", oppure il primo numero di 1–5 cifre non seguito da unità. */
-export function vaccaNota(testo: string): string | undefined {
-  const m = testo.match(/\b(?:vacca|vitell[oa]|manza|bovina|capo|numero|n\.?|la|il)\s*(?:n\.?|numero)?\s*(\d{1,5})\b/i)
-    ?? testo.match(/(?<!\b(?:alle|ore|dalle|verso le|vms|ms)\s*)\b(\d{1,5})\b(?![:.,]\d)(?!\s*(?:kg|litri|l\b|ml|gradi|°|%|ore|minuti|giorni|tubett|dosi|volte|quintal|q\b|euro|€))/i)
-  return m?.[1]
+// ---- Numero dell'animale dalla dettatura
+// Può arrivare in tanti modi: "970", "9 7 0", "9 70", "97 0", "nove sette zero", "nove settanta",
+// "novecento settanta", "novecentosettanta". Si provano le interpretazioni possibili e, se c'è la
+// lista della mandria, si sceglie quella che corrisponde a un animale presente.
+
+const UNITA: Record<string, number> = { zero: 0, uno: 1, un: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
+  dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16, diciassette: 17, diciotto: 18, diciannove: 19 }
+const DECINE: Record<string, number> = { venti: 20, trenta: 30, quaranta: 40, cinquanta: 50, sessanta: 60, settanta: 70, ottanta: 80, novanta: 90 }
+
+/** Parola italiana → numero (fino a 9999), es. "novecentosettantadue" → 972. null se non è un numero. */
+export function parolaNumero(p: string): number | null {
+  let w = p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  if (!w) return null
+  let tot = 0
+  const m = w.match(/^(.*?)mila?(.*)$/) // mille, duemila
+  if (m && /^(|un|due|tre|quattro|cinque|sei|sette|otto|nove)$/.test(m[1]) && (w.startsWith('mille') || w.includes('mila'))) {
+    const k = m[1] ? parolaNumero(m[1]) : 1
+    if (k === null) return null
+    tot += k * 1000
+    w = w.startsWith('mille') ? w.slice(5) : m[2]
+  }
+  const c = w.match(/^(.*?)cento(.*)$/)
+  if (c) {
+    const h = c[1] ? parolaNumero(c[1]) : 1
+    if (h === null || h > 9) return null
+    tot += h * 100
+    w = c[2]
+  }
+  if (!w) return tot || (p.match(/cento|mill|mila/) ? tot : null)
+  if (w in UNITA) return tot + UNITA[w]
+  for (const [d, v] of Object.entries(DECINE)) {
+    const base = d.slice(0, -1) // "settant" per "settantuno"/"settantotto"
+    if (w === d) return tot + v
+    if (w.startsWith(d) || w.startsWith(base)) {
+      const resto = w.startsWith(d) ? w.slice(d.length) : w.slice(base.length)
+      if (resto in UNITA && UNITA[resto] < 10) return tot + v + UNITA[resto]
+    }
+  }
+  return null
+}
+
+const UNITA_MISURA = /^(kg|chili|litri|litro|l|ml|gradi|°|%|ore|minuti|giorni|tubett|dos|volt|quintal|q|euro|€|cc|grammi|g)/i
+const PRIMA_NON_ANIMALE = /\b(alle|ore|dalle|verso|vms|ms|robot|box|gruppo|stalla|posto|cuccetta)\s*$/i
+
+/** Sequenze di numeri consecutivi (cifre o parole) nel testo, con la parola che le precede. */
+function sequenze(testo: string): { pezzi: string[]; valori: number[]; prima: string; dopo: string }[] {
+  const tok = testo.split(/(\s+|[,;:.!?()]+)/).filter((t) => t && !/^\s+$/.test(t))
+  const out: { pezzi: string[]; valori: number[]; prima: string; dopo: string }[] = []
+  let i = 0
+  while (i < tok.length) {
+    const val = (t: string) => (/^\d{1,5}$/.test(t) ? Number(t) : parolaNumero(t))
+    if (val(tok[i]) === null) { i++; continue }
+    const pezzi: string[] = [], valori: number[] = []
+    const prima = tok.slice(Math.max(0, i - 2), i).join(' ')
+    while (i < tok.length) {
+      const v = val(tok[i])
+      if (v !== null) { pezzi.push(tok[i]); valori.push(v); i++; continue }
+      // "nove e settanta": la "e" unisce due numeri
+      if (/^e$/i.test(tok[i]) && i + 1 < tok.length && val(tok[i + 1]) !== null && pezzi.length) { i++; continue }
+      break
+    }
+    out.push({ pezzi, valori, prima, dopo: tok[i] ?? '' })
+  }
+  return out
+}
+
+/** Interpretazioni possibili di una sequenza: cifre accostate ("9 70" → 970) e somma ("novecento settanta" → 970). */
+function candidati(valori: number[]): string[] {
+  const accostati = valori.map(String).join('')
+  const somma = String(valori.reduce((a, b) => a + b, 0))
+  // la somma ha senso se ogni pezzo sta negli "zeri" del precedente: 900 + 70, 90 + 7, 1000 + 50
+  const zeri = (n: number) => { let z = 0; while (n > 0 && n % 10 === 0) { n /= 10; z++ } return z }
+  const sommaPlausibile = valori.length > 1 && valori.every((v, k) => k === 0 || (v > 0 && v < 10 ** zeri(valori.slice(0, k).reduce((a, b) => a + b, 0))))
+  return [...new Set(sommaPlausibile ? [somma, accostati] : [accostati, somma])].filter((x) => x.length <= 5)
+}
+
+/**
+ * Numero dell'animale nella nota. Se si passa l'elenco degli animali presenti, sceglie l'interpretazione
+ * che corrisponde a un animale; altrimenti la più probabile.
+ */
+export function vaccaNota(testo: string, presenti?: Set<string>): string | undefined {
+  const seq = sequenze(testo).filter((s) => !PRIMA_NON_ANIMALE.test(s.prima) && !UNITA_MISURA.test(s.dopo))
+  // prima le sequenze dopo "vacca", "la", "numero"…, poi le altre
+  const ordinate = [...seq.filter((s) => /\b(vacca|vitell[oa]|manza|bovina|capo|numero|n|la|il|matricola)\s*$/i.test(s.prima)), ...seq]
+  for (const s of ordinate) {
+    const c = candidati(s.valori)
+    if (presenti?.size) { const ok = c.find((x) => presenti.has(x)); if (ok) return ok }
+  }
+  return ordinate.length ? candidati(ordinate[0].valori)[0] : undefined
 }
 
 // ---- Inserimento automatico in Salute
