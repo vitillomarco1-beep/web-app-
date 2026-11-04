@@ -54,6 +54,35 @@ export default function CaricaSettimanaPage() {
 
   const pronti = Object.entries(scelti).filter(([, v]) => v.letto)
 
+  // Caricamento rapido del file giornaliero (es. C:\robot\mungiture_AAAA-MM-GG.csv dal PC DelPro):
+  // la stalla si riconosce dai nomi dei robot e il file si salva subito.
+  const [rapido, setRapido] = useState<{ ok?: string; errore?: string } | null>(null)
+  const caricaRapido = async (files: FileList) => {
+    const esiti: string[] = []
+    let giorni = [...dati.robotGiorni], vacche = [...dati.robotVacche]
+    try {
+      for (const f of Array.from(files)) {
+        const letto = leggiFileRobot(await f.text())
+        const robot = [...new Set(letto.mungiture.map((x) => x.robot))]
+        const stalla = dati.stalle.find((s) => s.robot?.nomi?.some((n) => robot.includes(n)))
+        if (!stalla) throw new Error(`${f.name}: non riconosco la stalla dei robot ${robot.join(', ')}. Caricalo nella casella del suo gruppo qui sotto.`)
+        const { giorni: g, vacche: va } = riepiloga(letto.mungiture)
+        const idG = new Set(g.map((x) => x.id)), idV = new Set(va.map((x) => x.id))
+        giorni = [...giorni.filter((x) => !idG.has(x.id)), ...g]
+        vacche = [...vacche.filter((x) => !idV.has(x.id)), ...va]
+        const date = [...new Set(letto.mungiture.map((x) => x.data))].sort()
+        aggiungi('importRobot', { id: nuovoId(), fonte: letto.fonte, nomeFile: f.name, importatoIl: new Date().toISOString(), dal: date[0], al: date[date.length - 1] })
+        const kg = letto.mungiture.reduce((t, x) => t + x.kg, 0)
+        esiti.push(`gruppo ${stalla.gruppoDairyComp ?? stalla.numero}: ${date.length === 1 ? fmtData(date[0]) : `${fmtData(date[0])}–${fmtData(date[date.length - 1])}`}, ${letto.mungiture.length} mungiture, ${Math.round(kg).toLocaleString('it-IT')} kg`)
+      }
+      imposta('robotGiorni', giorni)
+      imposta('robotVacche', vacche)
+      setRapido({ ok: `✓ Salvato – ${esiti.join(' · ')}` })
+    } catch (e) {
+      setRapido({ errore: (e as Error).message })
+    }
+  }
+
   const salva = () => {
     let giorni = [...dati.robotGiorni], vacche = [...dati.robotVacche]
     for (const [idStalla, v] of pronti) {
@@ -78,7 +107,22 @@ export default function CaricaSettimanaPage() {
 
   return (
     <>
-      <PageHeader titolo="Carica la settimana" icona={FileUp} descrizione="Ogni lunedì: i file dei robot con le mungiture della settimana precedente" />
+      <PageHeader titolo="Carica la settimana" icona={FileUp} descrizione="I file dei robot: ogni giorno quello di DelPro del gruppo 1, ogni lunedì quelli della settimana" />
+
+      <section className="card mb-6 border-brand-200">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h2>File del giorno</h2>
+            <p className="mt-0.5 text-sm text-stone-600">Ogni mattina il PC di DelPro prepara in <b>C:\robot</b> il file <b>mungiture_AAAA-MM-GG.csv</b> con le mungiture di ieri del gruppo 1. Caricalo qui: il gruppo si riconosce da solo e si salva subito. Puoi anche sceglierne più di uno.</p>
+          </div>
+          <label className="btn-primary cursor-pointer">
+            <FileUp className="h-4 w-4" />Carica il file
+            <input type="file" multiple accept=".csv,.txt,text/csv" className="hidden" onChange={(e) => { if (e.target.files?.length) void caricaRapido(e.target.files); e.target.value = '' }} />
+          </label>
+        </div>
+        {rapido?.ok && <p className="mt-3 text-sm font-medium text-emerald-700">{rapido.ok}</p>}
+        {rapido?.errore && <p className="mt-3 text-sm text-red-600">{rapido.errore}</p>}
+      </section>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <button className="btn-secondary px-3" onClick={() => { setLunedi(aggiungiGiorni(lunedi, -7)); setScelti({}) }} aria-label="Settimana precedente">‹</button>

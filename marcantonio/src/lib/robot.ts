@@ -105,9 +105,56 @@ function pausaPiuLunga(ore: string[], giornoCompleto: boolean) {
   return { pausaMaxMin: max, pausaDalle: hhmm(dalle) }
 }
 
-/** Riconosce il formato (DeLaval DelPro o Lely Horizon) e legge il file. */
+/**
+ * Export giornaliero letto direttamente dal database DelPro (script esporta_mungiture.ps1 sul PC aziendale):
+ * Data;Ora inizio;Ora fine;Vacca;Nome;Gruppo attuale;Robot;Kg latte;Durata (mm:ss);Incompleta;Stacco;Capezzoli non munti;Codici allarme
+ * Incompleta, stacco e capezzoli non munti sono codici DelPro: diverso da 0 = evento presente.
+ */
+export function leggiDelProDb(testo: string): FileRobot {
+  const linee = testo.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n')
+  const iNomi = linee.findIndex((l) => /kg latte/i.test(l) && /ora inizio/i.test(l))
+  if (iNomi < 0) throw new Error('Non sembra un export giornaliero DelPro (manca la riga con "Kg latte").')
+  const sep = linee[iNomi].includes(';') ? ';' : linee[iNomi].includes('\t') ? '\t' : ','
+  const nomi = separaCsv(linee[iNomi], sep).map((x) => x.toLowerCase())
+  const col = (...alias: string[]) => nomi.findIndex((n) => alias.some((a) => n.startsWith(a)))
+  const c = { data: col('data'), ora: col('ora inizio'), vacca: col('vacca'), gruppo: col('gruppo'), robot: col('robot'), kg: col('kg latte'),
+    durata: col('durata'), incompleta: col('incomplet'), stacco: col('stacco'), capezzoli: col('capezzoli') }
+  if (c.data < 0 || c.ora < 0 || c.vacca < 0 || c.kg < 0) throw new Error('Mancano le colonne principali (data, ora, vacca, kg latte).')
+  const codice = (v: string | undefined) => { const n = Number((v ?? '').trim()); return Number.isFinite(n) && n !== 0 }
+  const mungiture: Mungitura[] = []
+  let scartate = 0
+  for (const l of linee.slice(iNomi + 1)) {
+    if (!l.trim()) continue
+    const r = separaCsv(l, sep)
+    const d = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(r[c.data] ?? '')
+    const o = /^(\d{1,2}):(\d{2})/.exec(r[c.ora] ?? '')
+    if (!d || !o) { scartate++; continue }
+    const durata = (r[c.durata] ?? '').split(':').map(Number)
+    mungiture.push({
+      data: `${d[3]}-${d[2].padStart(2, '0')}-${d[1].padStart(2, '0')}`,
+      ora: `${o[1].padStart(2, '0')}:${o[2]}`,
+      vacca: (r[c.vacca] ?? '').trim(),
+      gruppo: c.gruppo >= 0 ? r[c.gruppo] ?? '' : '',
+      robot: c.robot >= 0 ? r[c.robot] || '—' : '—',
+      azione: 'Mungitura',
+      durataSec: durata.length === 2 && durata.every(Number.isFinite) ? durata[0] * 60 + durata[1] : 0,
+      kg: num(r[c.kg]) ?? 0,
+      kickOff: c.stacco >= 0 && codice(r[c.stacco]),
+      incompleta: c.incompleta >= 0 && codice(r[c.incompleta]),
+      capezzoliNonTrovati: c.capezzoli >= 0 && codice(r[c.capezzoli]),
+      allarmeAmd: false, // i codici allarme di DelPro non indicano quale sia l'allarme
+      separato: false,
+      sangueMax: null,
+    })
+  }
+  if (!mungiture.length) throw new Error('Nessuna mungitura trovata nel file.')
+  return { fonte: 'DeLaval', mungiture, scartate }
+}
+
+/** Riconosce il formato (DeLaval DelPro, export giornaliero dal database DelPro o Lely Horizon) e legge il file. */
 export function leggiFileRobot(testo: string): FileRobot {
   const inizio = testo.replace(/^\uFEFF/, '').slice(0, 3000).toLowerCase()
+  if (inizio.includes('kg latte') && inizio.includes('ora fine')) return leggiDelProDb(testo)
   if (inizio.includes('numero vacca') && inizio.includes('resa di mungitura')) return leggiLely(testo)
   return leggiDeLaval(testo)
 }

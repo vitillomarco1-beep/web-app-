@@ -95,7 +95,14 @@ export default function DashboardPage() {
   // Messe in asciutta della settimana (parto previsto − 60 giorni)
   const asciutte = asciutteDellaSettimana(dati.partiDC[0])
 
+  // File giornaliero DelPro (gruppo 1): promemoria se ieri manca, solo da quando si usa il file giornaliero
+  const usaGiornaliero = dati.importRobot.some((i) => /^mungiture_\d{4}-\d{2}-\d{2}/.test(i.nomeFile))
+  const stallaDelPro = dati.stalle.find((s) => s.robot?.nomi?.includes('VMS1'))
+  const ieri = aggiungiGiorni(isoGiorno(), -1)
+  const ieriMancante = usaGiornaliero && stallaDelPro && !dati.robotGiorni.some((g) => g.data === ieri && stallaDelPro.robot!.nomi!.includes(g.robot))
+
   const cose: Cosa[] = [
+    ...(ieriMancante ? [{ testo: `Carica il file delle mungiture di ieri del gruppo ${stallaDelPro!.gruppoDairyComp ?? 1} (C:\\robot\\mungiture_${ieri}.csv)`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     // protocollo di asciugatura: l'elenco della settimana si dà il lunedì
     ...(giornoSettimana === 1 && asciutte.vacche.length ? [{ testo: `Protocollo di asciugatura – da mettere in asciutta oggi (${ASCIUTTA_GG_DA}–${ASCIUTTA_GG_A} giorni dal parto): ${asciutte.vacche.map((x) => `${x.p.vacca} (${x.giorniAlParto} gg, parto ${fmtData(x.p.dataParto).slice(0, 5)})`).join(', ')}`, link: '/area-riservata/parti', tipo: 'avviso' as const }] : []),
     ...(macello.length ? [{ testo: `Fine carriera, valuta l'invio al macello: ${macello.length === 1 ? 'una vacca non gravida oltre i ' + DIM_FINE_CARRIERA + ' giorni di lattazione produce' : `${macello.length} vacche non gravide oltre i ${DIM_FINE_CARRIERA} giorni di lattazione producono`} quanto mangiano da almeno ${GIORNI_PAREGGIO_MACELLO} giorni (stima) – ${elenco(macello)}`, link: '/area-riservata/alimentazione?scheda=margine', tipo: 'avviso' as const }] : []),
