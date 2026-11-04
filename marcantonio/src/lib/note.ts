@@ -66,7 +66,8 @@ function sequenze(testo: string): { pezzi: string[]; valori: number[]; prima: st
   const out: { pezzi: string[]; valori: number[]; prima: string; dopo: string }[] = []
   let i = 0
   while (i < tok.length) {
-    const val = (t: string) => (/^\d{1,5}$/.test(t) ? Number(t) : parolaNumero(t))
+    // "un"/"una" sono quasi sempre articoli ("una vacca zoppa"), non numeri
+    const val = (t: string) => (/^\d{1,5}$/.test(t) ? Number(t) : /^(un|una|un')$/i.test(t) ? null : parolaNumero(t))
     if (val(tok[i]) === null) { i++; continue }
     const pezzi: string[] = [], valori: number[] = []
     const prima = tok.slice(Math.max(0, i - 2), i).join(' ')
