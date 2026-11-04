@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, ChevronRight, Gauge, Milk, Pill, RotateCw, Syringe, Tag, Upload, type LucideIcon } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { MotivoChip } from '../components/ui'
+import NoteVeloci from '../components/NoteVeloci'
 import BarChart from '../components/BarChart'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, isoGiorno, lunediDi } from '../lib/format'
 import { SOGLIA_FERMO_MIN, daControllare } from '../lib/robot'
@@ -165,6 +166,8 @@ export default function DashboardPage() {
           )}
         </div>
       </section>
+
+      <NoteVeloci />
 
       {/* Cose da fare */}
       <section className="mb-6">

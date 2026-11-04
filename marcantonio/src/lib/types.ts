@@ -249,7 +249,11 @@ export interface Dati {
   vitelliDC: ImportDC[] // ultima lista vitelli di DairyComp
   vaccinazioniVitelli: VaccinazioneVitello[]
   quotazioniClal: QuotazioneClal[]
+  note: NotaVeloce[]
 }
+
+/** Nota veloce dettata dal cruscotto, da riportare poi nella sezione giusta. */
+export interface NotaVeloce { id: string; testo: string; creataIl: string; categoria: string; vacca?: string; fatta?: boolean; fattaIl?: string }
 
 /** Quotazione mensile CLAL (Borsa Merci di Milano), id = nome del prodotto. */
 export interface QuotazioneClal { id: string; nome: string; mese: string /* AAAA-MM */; prezzoT: number /* €/t */; importataIl: string }
