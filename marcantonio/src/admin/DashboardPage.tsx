@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, ChevronRight, Gauge, Milk, Pill, RotateCw, Syringe, Tag, Upload, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronRight, Gauge, Milk, Pill, RotateCw, Bell, Syringe, Tag, Upload, type LucideIcon } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { MotivoChip } from '../components/ui'
 import NoteVeloci from '../components/NoteVeloci'
@@ -18,12 +18,13 @@ import { SETTIMANE_ANTICIPO, vaccinataTutto, nellaSettimana, partiPrevisti, sett
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
 
-type Cosa = { testo: string; link: string; tipo: 'carica' | 'avviso' | 'farmaco' | 'vaccino' }
+type Cosa = { testo: string; link: string; tipo: 'carica' | 'avviso' | 'farmaco' | 'vaccino' | 'promemoria' }
 const STILE_COSA: Record<Cosa['tipo'], { barra: string; icona: string; I: LucideIcon }> = {
   carica: { barra: 'bg-brand-600', icona: 'bg-brand-100 text-brand-700', I: Upload },
   avviso: { barra: 'bg-arancio-500', icona: 'bg-arancio-100 text-arancio-700', I: AlertTriangle },
   farmaco: { barra: 'bg-rose-500', icona: 'bg-rose-100 text-rose-700', I: Pill },
   vaccino: { barra: 'bg-sky-500', icona: 'bg-sky-100 text-sky-700', I: Syringe },
+  promemoria: { barra: 'bg-arancio-500', icona: 'bg-arancio-100 text-arancio-700', I: Bell },
 }
 
 /** Cruscotto "Oggi": solo dati veri (robot, DairyComp, scarichi, farmaci) e le cose da fare. */
@@ -102,7 +103,11 @@ export default function DashboardPage() {
   const ieri = aggiungiGiorni(isoGiorno(), -1)
   const ieriMancante = usaGiornaliero && stallaDelPro && !dati.robotGiorni.some((g) => g.data === ieri && stallaDelPro.robot!.nomi!.includes(g.robot))
 
+  // Promemoria dettati nelle note veloci: compaiono dal giorno indicato finché non si segnano come fatti
+  const promemoria = dati.note.filter((n) => n.promemoria && !n.fatta && n.promemoria <= isoGiorno()).sort((a, b) => a.promemoria!.localeCompare(b.promemoria!))
+
   const cose: Cosa[] = [
+    ...promemoria.map((n) => ({ testo: `Promemoria${n.promemoria! < isoGiorno() ? ` (dal ${fmtData(n.promemoria!).slice(0, 5)})` : ''}: ${n.titolo ?? n.testo}`, link: '/area-riservata', tipo: 'promemoria' as const })),
     ...(ieriMancante ? [{ testo: `Carica il file delle mungiture di ieri del gruppo ${stallaDelPro!.gruppoDairyComp ?? 1} (C:\\robot\\mungiture_${ieri}.csv)`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     // protocollo di asciugatura: l'elenco della settimana si dà il lunedì
     ...(giornoSettimana === 1 && asciutte.vacche.length ? [{ testo: `Protocollo di asciugatura – da mettere in asciutta oggi (${ASCIUTTA_GG_DA}–${ASCIUTTA_GG_A} giorni dal parto): ${asciutte.vacche.map((x) => `${x.p.vacca} (${x.giorniAlParto} gg, parto ${fmtData(x.p.dataParto).slice(0, 5)})`).join(', ')}`, link: '/area-riservata/parti', tipo: 'avviso' as const }] : []),

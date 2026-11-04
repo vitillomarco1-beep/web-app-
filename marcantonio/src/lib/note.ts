@@ -1,3 +1,4 @@
+import { aggiungiGiorni } from './format'
 import type { CasoClinico, Farmaco, Severita, UsoFarmaco } from './types'
 import { costoUnitario } from './salute'
 // Note veloci: argomento e numero della vacca riconosciuti dal testo (anche dettato).
@@ -169,4 +170,58 @@ export function casoDaNota(testo: string, vacca: string, oggi: string, farmaci: 
     ...(usi.length ? { farmaci: usi } : {}),
     note: `Nota dettata: "${testo}"`,
   }
+}
+
+// ---- Promemoria: "ricordami domani di fecondare la vacca 135"
+
+
+const GIORNI_SETT = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato']
+const MESI_IT = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+
+export const ePromemoria = (testo: string) => /\b(ricordami|ricorda(?:mi|re)?|promemoria|non dimenticare|non scordare)\b/i.test(testo)
+
+/** Giorno del promemoria dal testo (oggi se non è indicato) e testo ripulito. */
+export function promemoriaDaTesto(testo: string, oggi: string): { data: string; titolo: string } {
+  const t = testo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const [y, m, d] = oggi.split('-').map(Number)
+  const dow = new Date(y, m - 1, d).getDay()
+  let data = oggi
+  let trovato = ''
+  const num = (x: string) => (/^\d+$/.test(x) ? Number(x) : parolaNumero(x) ?? NaN)
+  let r: RegExpMatchArray | null
+  if ((r = t.match(/\bdopodomani\b/))) { data = aggiungiGiorni(oggi, 2); trovato = r[0] }
+  else if ((r = t.match(/\bdomani\b/))) { data = aggiungiGiorni(oggi, 1); trovato = r[0] }
+  else if ((r = t.match(/\b(?:tra|fra)\s+(\w+)\s+(giorn[oi]|settiman[ae]|mes[ei])\b/))) {
+    const n = num(r[1])
+    if (Number.isFinite(n)) { data = aggiungiGiorni(oggi, n * (r[2].startsWith('settiman') ? 7 : r[2].startsWith('mes') ? 30 : 1)); trovato = r[0] }
+  }
+  else if ((r = t.match(/\b(?:la\s+)?prossima\s+settimana\b/))) { data = aggiungiGiorni(oggi, ((8 - dow) % 7) || 7); trovato = r[0] }
+  else if ((r = t.match(/\b(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?\b/))) {
+    const yy = r[3] ? (r[3].length === 2 ? 2000 + Number(r[3]) : Number(r[3])) : y
+    let cand = `${yy}-${String(r[2]).padStart(2, '0')}-${String(r[1]).padStart(2, '0')}`
+    if (!r[3] && cand < oggi) cand = `${yy + 1}${cand.slice(4)}`
+    data = cand; trovato = r[0]
+  }
+  else if ((r = t.match(new RegExp(`\\b(?:il\\s+)?(\\d{1,2}|\\w+)\\s+(${MESI_IT.join('|')})\\b`)))) {
+    const g = num(r[1]), mese = MESI_IT.indexOf(r[2]) + 1
+    if (Number.isFinite(g) && g >= 1 && g <= 31) {
+      let cand = `${y}-${String(mese).padStart(2, '0')}-${String(g).padStart(2, '0')}`
+      if (cand < oggi) cand = `${y + 1}${cand.slice(4)}`
+      data = cand; trovato = r[0]
+    }
+  }
+  else if ((r = t.match(new RegExp(`\\b(?:il\\s+|la\\s+|questo\\s+|prossimo\\s+)?(${GIORNI_SETT.join('|')})\\b`)))) {
+    const g = GIORNI_SETT.indexOf(r[1])
+    data = aggiungiGiorni(oggi, ((g - dow + 7) % 7) || 7); trovato = r[0]
+  }
+  else if ((r = t.match(/\boggi\b|\bstasera\b|\bdopo\b/))) { trovato = r[0] }
+  // testo del promemoria: tolgo "ricordami", la data e il "di/che" iniziale
+  let titolo = testo
+  titolo = titolo.replace(/\b(ricordami|ricorda(?:mi|re)?|promemoria|non dimenticare|non scordare)\b\s*(?:di|che|:)?\s*/i, '')
+  if (trovato) {
+    const i = titolo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').indexOf(trovato)
+    if (i >= 0) titolo = titolo.slice(0, i) + titolo.slice(i + trovato.length)
+  }
+  titolo = titolo.replace(/^\s*(?:(?:il|la|lo|per)\s+)?(?:di|che|:|,)\s+/i, '').replace(/\s+(?:il|la|lo)\s+(?=di\s)/i, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '')
+  return { data, titolo: titolo ? titolo[0].toUpperCase() + titolo.slice(1) : testo }
 }

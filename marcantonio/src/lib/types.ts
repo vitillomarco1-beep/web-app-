@@ -253,7 +253,7 @@ export interface Dati {
 }
 
 /** Nota veloce dettata dal cruscotto, da riportare poi nella sezione giusta. */
-export interface NotaVeloce { id: string; testo: string; creataIl: string; categoria: string; vacca?: string; fatta?: boolean; fattaIl?: string; casoId?: string /* caso di Salute creato in automatico */ }
+export interface NotaVeloce { id: string; testo: string; creataIl: string; categoria: string; vacca?: string; fatta?: boolean; fattaIl?: string; casoId?: string /* caso di Salute creato in automatico */; promemoria?: string /* AAAA-MM-GG: giorno in cui ricordarla */; titolo?: string /* testo del promemoria senza "ricordami domani di" */ }
 
 /** Quotazione mensile CLAL (Borsa Merci di Milano), id = nome del prodotto. */
 export interface QuotazioneClal { id: string; nome: string; mese: string /* AAAA-MM */; prezzoT: number /* €/t */; importataIl: string }

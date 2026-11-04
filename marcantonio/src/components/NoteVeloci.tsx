@@ -1,11 +1,24 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ChevronRight, Mic, NotebookPen, Trash2, Undo2 } from 'lucide-react'
+import { Bell, Check, ChevronRight, Mic, NotebookPen, Trash2, Undo2 } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { CATEGORIE_NOTE, ALTRO, casoDaNota, categoriaNota, infoCategoria, vaccaNota } from '../lib/note'
+import { CATEGORIE_NOTE, ALTRO, casoDaNota, categoriaNota, ePromemoria, infoCategoria, promemoriaDaTesto, vaccaNota } from '../lib/note'
 import { nomePatologia } from '../lib/salute'
 import { isoGiorno } from '../lib/format'
 import { nuovoId } from '../lib/format'
+
+/** "oggi", "domani", "ven 6/11"… */
+function giornoPromemoria(data: string) {
+  const oggi = isoGiorno()
+  const [y, m, d] = data.split('-').map(Number)
+  const [y0, m0, d0] = oggi.split('-').map(Number)
+  const diff = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y0, m0 - 1, d0)) / 86400000)
+  if (diff === 0) return 'oggi'
+  if (diff === 1) return 'domani'
+  if (diff === -1) return 'da ieri'
+  if (diff < 0) return `dal ${d}/${m}`
+  return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' })
+}
 
 const quando = (iso: string) => {
   const d = new Date(iso)
@@ -19,7 +32,7 @@ export default function NoteVeloci() {
   const { dati, aggiungi, aggiorna, elimina } = useStore()
   const [testo, setTesto] = useState('')
   const [vediFatte, setVediFatte] = useState(false)
-  const aperte = [...dati.note].filter((n) => !n.fatta).sort((a, b) => b.creataIl.localeCompare(a.creataIl))
+  const aperte = [...dati.note].filter((n) => !n.fatta).sort((a, b) => (a.promemoria ?? '9999').localeCompare(b.promemoria ?? '9999') || b.creataIl.localeCompare(a.creataIl))
   const fatte = [...dati.note].filter((n) => n.fatta).sort((a, b) => (b.fattaIl ?? '').localeCompare(a.fattaIl ?? '')).slice(0, 20)
   // animali presenti: lista Mandria, robot, vitelli e lista parti
   const presenti = useMemo(() => new Set([
@@ -29,17 +42,27 @@ export default function NoteVeloci() {
     ...dati.robotVacche.map((v) => v.vacca),
   ]), [dati.mandriaDC, dati.vitelliDC, dati.partiDC, dati.robotVacche])
   const conosciuta = (v?: string) => !!v && (presenti.size === 0 || presenti.has(v))
-  const anteprima = testo.trim() ? { cat: categoriaNota(testo), vacca: vaccaNota(testo, presenti) } : null
+  const prom = testo.trim() && ePromemoria(testo) ? promemoriaDaTesto(testo, isoGiorno()) : null
+  const anteprima = testo.trim() ? { cat: categoriaNota(prom?.titolo ?? testo), vacca: vaccaNota(prom?.titolo ?? testo, presenti) } : null
 
   const [esito, setEsito] = useState<{ testo: string; notaId: string; casoId?: string } | null>(null)
 
   const salva = () => {
     const t = testo.trim()
     if (!t) return
-    const cat = categoriaNota(t).id
-    const vacca = vaccaNota(t, presenti)
     const notaId = nuovoId()
     const ora = new Date().toISOString()
+    // promemoria ("ricordami domani di…"): si salva con il giorno e compare sul cruscotto quel giorno
+    if (ePromemoria(t)) {
+      const p = promemoriaDaTesto(t, isoGiorno())
+      const v = vaccaNota(p.titolo, presenti)
+      aggiungi('note', { id: notaId, testo: t, titolo: p.titolo, promemoria: p.data, creataIl: ora, categoria: categoriaNota(p.titolo).id, ...(v ? { vacca: v } : {}) })
+      setEsito({ testo: `✓ Promemoria per ${giornoPromemoria(p.data)}: ${p.titolo}`, notaId })
+      setTesto('')
+      return
+    }
+    const cat = categoriaNota(t).id
+    const vacca = vaccaNota(t, presenti)
     // salute + numero della vacca: il caso va subito nella sezione Salute
     if (cat === 'salute' && vacca && conosciuta(vacca)) {
       const caso = { ...casoDaNota(t, vacca, isoGiorno(), dati.farmaci), id: nuovoId() }
@@ -82,7 +105,7 @@ export default function NoteVeloci() {
         <h2>Note veloci</h2>
         {aperte.length > 0 && <span className="rounded-full bg-arancio-400 px-2 py-0.5 text-[11px] font-semibold text-brand-900">{aperte.length} da inserire</span>}
       </div>
-      <p className="mt-0.5 text-xs text-stone-500"><Mic className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Tocca la casella e usa il <b>microfono della tastiera</b> per dettare. Il numero si può dire anche a pezzi ("nove sette zero", "nove settanta"). Le note di salute con il numero della vacca vanno <b>subito</b> in Salute (es. "vacca 970 zoppa", "vacca 1072 mastite posteriore sinistro, trattata con 1 tubetto di …"); le altre restano qui.</p>
+      <p className="mt-0.5 text-xs text-stone-500"><Mic className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Usa il <b>microfono della tastiera</b>. "Vacca 970 zoppa" → va subito in Salute · "Ricordami domani di fecondare la vacca 135" → promemoria sul cruscotto · il resto resta qui come nota.</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <textarea className="input min-h-[64px] flex-1" placeholder="Detta o scrivi una nota…" value={testo} onChange={(e) => setTesto(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salva() }} />
@@ -90,7 +113,9 @@ export default function NoteVeloci() {
       </div>
       {anteprima && (
         <p className="mt-1.5 text-xs text-stone-500">
-          {anteprima.cat.id === 'salute' && anteprima.vacca && conosciuta(anteprima.vacca)
+          {prom
+            ? <>Promemoria per <b>{giornoPromemoria(prom.data)}</b>: {prom.titolo}</>
+            : anteprima.cat.id === 'salute' && anteprima.vacca && conosciuta(anteprima.vacca)
             ? <>Verrà inserita subito in <b>Salute</b>: vacca <b>{anteprima.vacca}</b>, <b>{nomePatologia(casoDaNota(testo, anteprima.vacca, '', []).patologia).toLowerCase()}</b></>
             : <>Resterà qui come nota per <b>{anteprima.cat.nome}</b>{anteprima.vacca && <> · vacca <b>{anteprima.vacca}</b>{!conosciuta(anteprima.vacca) && <span className="text-rose-700"> (non trovata in mandria)</span>}</>}</>}
         </p>
@@ -115,14 +140,15 @@ export default function NoteVeloci() {
                       onChange={(e) => aggiorna('note', { ...n, categoria: e.target.value })}>
                       {[...CATEGORIE_NOTE, ALTRO].map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
                     </select>
+                    {n.promemoria && <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${n.promemoria <= isoGiorno() ? 'bg-arancio-100 text-arancio-800' : 'bg-stone-100 text-stone-600'}`}><Bell className="h-3 w-3" />{giornoPromemoria(n.promemoria)}</span>}
                     {n.vacca && <span className="font-semibold text-stone-700">Vacca {n.vacca}</span>}
                     <span className="text-stone-400">{quando(n.creataIl)}</span>
                   </div>
-                  <p className="mt-1 text-sm text-stone-800">{n.testo}</p>
+                  <p className="mt-1 text-sm text-stone-800">{n.titolo ?? n.testo}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {c.id !== 'altro' && <Link to={c.link} className="btn-secondary px-3 py-1.5 text-xs">Vai a {c.nome}<ChevronRight className="h-3.5 w-3.5" /></Link>}
-                  <button className="btn-secondary px-3 py-1.5 text-xs text-emerald-700" onClick={() => aggiorna('note', { ...n, fatta: true, fattaIl: new Date().toISOString() })}><Check className="h-3.5 w-3.5" />Inserita</button>
+                  {c.id !== 'altro' && !n.promemoria && <Link to={c.link} className="btn-secondary px-3 py-1.5 text-xs">Vai a {c.nome}<ChevronRight className="h-3.5 w-3.5" /></Link>}
+                  <button className="btn-secondary px-3 py-1.5 text-xs text-emerald-700" onClick={() => aggiorna('note', { ...n, fatta: true, fattaIl: new Date().toISOString() })}><Check className="h-3.5 w-3.5" />{n.promemoria ? 'Fatto' : 'Inserita'}</button>
                   <button className="text-stone-300 hover:text-rose-600" aria-label="Elimina nota" onClick={() => elimina('note', n.id)}><Trash2 className="h-4 w-4" /></button>
                 </div>
               </li>
