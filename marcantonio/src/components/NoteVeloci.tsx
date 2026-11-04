@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ChevronRight, Mic, NotebookPen, Trash2, Undo2 } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { CATEGORIE_NOTE, ALTRO, categoriaNota, infoCategoria, vaccaNota } from '../lib/note'
+import { CATEGORIE_NOTE, ALTRO, casoDaNota, categoriaNota, infoCategoria, vaccaNota } from '../lib/note'
+import { nomePatologia } from '../lib/salute'
+import { isoGiorno } from '../lib/format'
 import { nuovoId } from '../lib/format'
 
 const quando = (iso: string) => {
@@ -21,11 +23,46 @@ export default function NoteVeloci() {
   const fatte = [...dati.note].filter((n) => n.fatta).sort((a, b) => (b.fattaIl ?? '').localeCompare(a.fattaIl ?? '')).slice(0, 20)
   const anteprima = testo.trim() ? { cat: categoriaNota(testo), vacca: vaccaNota(testo) } : null
 
+  const [esito, setEsito] = useState<{ testo: string; notaId: string; casoId?: string } | null>(null)
+
   const salva = () => {
     const t = testo.trim()
     if (!t) return
-    aggiungi('note', { id: nuovoId(), testo: t, creataIl: new Date().toISOString(), categoria: categoriaNota(t).id, ...(vaccaNota(t) ? { vacca: vaccaNota(t) } : {}) })
+    const cat = categoriaNota(t).id
+    const vacca = vaccaNota(t)
+    const notaId = nuovoId()
+    const ora = new Date().toISOString()
+    // salute + numero della vacca: il caso va subito nella sezione Salute
+    if (cat === 'salute' && vacca) {
+      const caso = { ...casoDaNota(t, vacca, isoGiorno(), dati.farmaci), id: nuovoId() }
+      aggiungi('casi', caso)
+      for (const u of caso.farmaci ?? []) {
+        const f = dati.farmaci.find((x) => x.id === u.farmacoId)
+        if (f) aggiorna('farmaci', { ...f, giacenza: Math.round((f.giacenza - u.quantita) * 1000) / 1000 })
+      }
+      aggiungi('note', { id: notaId, testo: t, creataIl: ora, categoria: cat, vacca, fatta: true, fattaIl: ora, casoId: caso.id })
+      const farm = (caso.farmaci ?? []).map((u) => `${u.quantita} ${dati.farmaci.find((f) => f.id === u.farmacoId)?.nome}`).join(', ')
+      setEsito({ testo: `✓ Inserita in Salute: vacca ${vacca}, ${nomePatologia(caso.patologia).toLowerCase()}${caso.quarti?.length ? ` (${caso.quarti.join(', ')})` : ''}${farm ? ` · farmaci: ${farm} (scaricati dal magazzino)` : ''}`, notaId, casoId: caso.id })
+    } else {
+      aggiungi('note', { id: notaId, testo: t, creataIl: ora, categoria: cat, ...(vacca ? { vacca } : {}) })
+      setEsito(cat === 'salute' ? { testo: 'Nota salvata: manca il numero della vacca, quindi resta qui sotto da inserire.', notaId } : null)
+    }
     setTesto('')
+  }
+
+  /** Annulla l'ultimo inserimento automatico: toglie il caso, restituisce i farmaci, elimina la nota. */
+  const annulla = () => {
+    if (!esito) return
+    const caso = esito.casoId ? dati.casi.find((c) => c.id === esito.casoId) : undefined
+    if (caso) {
+      for (const u of caso.farmaci ?? []) {
+        const f = dati.farmaci.find((x) => x.id === u.farmacoId)
+        if (f) aggiorna('farmaci', { ...f, giacenza: Math.round((f.giacenza + u.quantita) * 1000) / 1000 })
+      }
+      elimina('casi', caso.id)
+    }
+    elimina('note', esito.notaId)
+    setEsito(null)
   }
 
   return (
@@ -35,14 +72,25 @@ export default function NoteVeloci() {
         <h2>Note veloci</h2>
         {aperte.length > 0 && <span className="rounded-full bg-arancio-400 px-2 py-0.5 text-[11px] font-semibold text-brand-900">{aperte.length} da inserire</span>}
       </div>
-      <p className="mt-0.5 text-xs text-stone-500"><Mic className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Tocca la casella e usa il <b>microfono della tastiera</b> per dettare. Es.: "vacca 1072 mastite posteriore sinistro, trattata con un tubetto".</p>
+      <p className="mt-0.5 text-xs text-stone-500"><Mic className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Tocca la casella e usa il <b>microfono della tastiera</b> per dettare. Le note di salute con il numero della vacca vanno <b>subito</b> in Salute (es. "vacca 970 zoppa", "vacca 1072 mastite posteriore sinistro, trattata con 1 tubetto di …"); le altre restano qui.</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <textarea className="input min-h-[64px] flex-1" placeholder="Detta o scrivi una nota…" value={testo} onChange={(e) => setTesto(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salva() }} />
         <button className="btn-primary sm:self-stretch" onClick={salva} disabled={!testo.trim()}>Salva nota</button>
       </div>
       {anteprima && (
-        <p className="mt-1.5 text-xs text-stone-500">Andrà in <b>{anteprima.cat.nome}</b>{anteprima.vacca && <> · vacca <b>{anteprima.vacca}</b></>}</p>
+        <p className="mt-1.5 text-xs text-stone-500">
+          {anteprima.cat.id === 'salute' && anteprima.vacca
+            ? <>Verrà inserita subito in <b>Salute</b>: vacca <b>{anteprima.vacca}</b>, <b>{nomePatologia(casoDaNota(testo, anteprima.vacca, '', []).patologia).toLowerCase()}</b></>
+            : <>Resterà qui come nota per <b>{anteprima.cat.nome}</b>{anteprima.vacca && <> · vacca <b>{anteprima.vacca}</b></>}</>}
+        </p>
+      )}
+      {esito && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <span className="min-w-0 flex-1">{esito.testo}</span>
+          {esito.casoId && <Link to="/area-riservata/salute" className="font-semibold underline">Apri</Link>}
+          <button className="font-semibold text-stone-600 underline" onClick={annulla}>Annulla</button>
+        </div>
       )}
 
       {aperte.length > 0 && (
