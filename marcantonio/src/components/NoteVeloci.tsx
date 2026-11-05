@@ -150,18 +150,18 @@ export default function NoteVeloci() {
         <h2>Note veloci</h2>
         {aperte.length > 0 && <span className="rounded-full bg-arancio-400 px-2 py-0.5 text-[11px] font-semibold text-brand-900">{aperte.length} da inserire</span>}
       </div>
-      <p className="mt-0.5 text-xs text-stone-500">Premi il <b>microfono</b> e parla: la nota si salva da sola quando smetti. "Vacca 970 zoppa" → va subito in Salute · "Ricordami domani di fecondare la vacca 135" → promemoria sul cruscotto · il resto resta qui come nota.</p>
+      <p className="mt-0.5 text-xs text-stone-500">{micBloccato ? <>Tocca il riquadro, detta con il <b>🎤 della tastiera</b> e premi Salva nota.</> : <>Premi il <b>microfono</b> e parla: la nota si salva da sola quando smetti.</>} "Vacca 970 zoppa" → va subito in Salute · "Ricordami domani di fecondare la vacca 135" → promemoria sul cruscotto · il resto resta qui come nota.</p>
       <div className="mt-3 flex items-stretch gap-2">
-        <button type="button" onClick={ascolta} aria-label={inAscolto ? 'Ferma' : 'Parla'} title={inAscolto ? 'Sto ascoltando… tocca per fermare' : 'Tocca e parla'}
+        {!micBloccato && <button type="button" onClick={ascolta} aria-label={inAscolto ? 'Ferma' : 'Parla'} title={inAscolto ? 'Sto ascoltando… tocca per fermare' : 'Tocca e parla'}
           className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-2xl text-white shadow-sm transition ${inAscolto ? 'animate-pulse bg-rose-600' : 'bg-brand-700 hover:bg-brand-800'}`}>
           <Mic className="h-7 w-7" />
-        </button>
-        <textarea ref={campo} className="input min-h-[64px] flex-1" placeholder={inAscolto ? 'Sto ascoltando…' : micBloccato ? 'Tocca il microfono della tastiera e parla…' : 'Premi il microfono e parla, oppure scrivi…'} value={testo} onChange={(e) => setTesto(e.target.value)}
+        </button>}
+        <textarea ref={campo} className="input min-h-[64px] flex-1" placeholder={inAscolto ? 'Sto ascoltando…' : micBloccato ? 'Tocca qui e detta con il 🎤 della tastiera…' : 'Premi il microfono e parla, oppure scrivi…'} value={testo} onChange={(e) => setTesto(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salva() }} />
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         {micErrore ? <p className="text-xs text-rose-700">{micErrore}</p>
-          : micBloccato ? <p className="text-xs text-stone-500">Qui il microfono dell'app è bloccato: detta con il 🎤 della tastiera, poi "Salva nota".</p> : <span />}
+          : <span />}
         <button className="btn-primary" onClick={() => salva()} disabled={!testo.trim()}>Salva nota</button>
       </div>
       {anteprima && (
