@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Check, ChevronRight, Mic, NotebookPen, Trash2, Undo2 } from 'lucide-react'
+import { Bell, Check, ChevronRight, Mic, NotebookPen, Square, Trash2, Undo2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { CATEGORIE_NOTE, ALTRO, casoDaNota, categoriaNota, ePromemoria, infoCategoria, promemoriaDaTesto, vaccaNota } from '../lib/note'
 import { nomePatologia } from '../lib/salute'
@@ -45,10 +45,49 @@ export default function NoteVeloci() {
   const prom = testo.trim() && ePromemoria(testo) ? promemoriaDaTesto(testo, isoGiorno()) : null
   const anteprima = testo.trim() ? { cat: categoriaNota(prom?.titolo ?? testo), vacca: vaccaNota(prom?.titolo ?? testo, presenti) } : null
 
+  // ---- Microfono: riconoscimento vocale del browser (italiano); alla fine del parlato la nota si salva da sola
+  const [inAscolto, setInAscolto] = useState(false)
+  const [micErrore, setMicErrore] = useState('')
+  const riconoscitore = useRef<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const ascolta = () => {
+    if (inAscolto) { riconoscitore.current?.stop(); return }
+    const w = window as any // eslint-disable-line @typescript-eslint/no-explicit-any
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SR) { setMicErrore('Questo browser non riconosce la voce: usa il microfono della tastiera (sul telefono) e poi "Salva nota".'); return }
+    setMicErrore('')
+    const r = new SR()
+    r.lang = 'it-IT'
+    r.interimResults = true
+    r.continuous = false
+    r.maxAlternatives = 1
+    let finale = ''
+    const prima = testo.trim()
+    r.onresult = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      let parziale = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finale += e.results[i][0].transcript
+        else parziale += e.results[i][0].transcript
+      }
+      setTesto([prima, (finale + parziale).trim()].filter(Boolean).join(' '))
+    }
+    r.onerror = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      setMicErrore(e.error === 'not-allowed' || e.error === 'service-not-allowed'
+        ? 'Il microfono non è consentito qui. Consenti il microfono al browser oppure usa il microfono della tastiera e poi "Salva nota".'
+        : e.error === 'no-speech' ? 'Non ho sentito niente: riprova.' : 'Riconoscimento vocale non riuscito: riprova o scrivi la nota.')
+    }
+    r.onend = () => {
+      setInAscolto(false)
+      const testoFinale = [prima, finale.trim()].filter(Boolean).join(' ')
+      if (finale.trim()) salva(testoFinale)
+    }
+    riconoscitore.current = r
+    try { r.start(); setInAscolto(true) } catch { setMicErrore('Non riesco ad avviare il microfono: riprova.') }
+  }
+
   const [esito, setEsito] = useState<{ testo: string; notaId: string; casoId?: string } | null>(null)
 
-  const salva = () => {
-    const t = testo.trim()
+  const salva = (daSalvare?: string) => {
+    const t = (daSalvare ?? testo).trim()
     if (!t) return
     const notaId = nuovoId()
     const ora = new Date().toISOString()
@@ -105,11 +144,18 @@ export default function NoteVeloci() {
         <h2>Note veloci</h2>
         {aperte.length > 0 && <span className="rounded-full bg-arancio-400 px-2 py-0.5 text-[11px] font-semibold text-brand-900">{aperte.length} da inserire</span>}
       </div>
-      <p className="mt-0.5 text-xs text-stone-500"><Mic className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Usa il <b>microfono della tastiera</b>. "Vacca 970 zoppa" → va subito in Salute · "Ricordami domani di fecondare la vacca 135" → promemoria sul cruscotto · il resto resta qui come nota.</p>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <textarea className="input min-h-[64px] flex-1" placeholder="Detta o scrivi una nota…" value={testo} onChange={(e) => setTesto(e.target.value)}
+      <p className="mt-0.5 text-xs text-stone-500">Premi il <b>microfono</b> e parla: la nota si salva da sola quando smetti. "Vacca 970 zoppa" → va subito in Salute · "Ricordami domani di fecondare la vacca 135" → promemoria sul cruscotto · il resto resta qui come nota.</p>
+      <div className="mt-3 flex items-stretch gap-2">
+        <button type="button" onClick={ascolta} aria-label={inAscolto ? 'Ferma' : 'Parla'} title={inAscolto ? 'Sto ascoltando… tocca per fermare' : 'Tocca e parla'}
+          className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-2xl text-white shadow-sm transition ${inAscolto ? 'animate-pulse bg-rose-600' : 'bg-brand-700 hover:bg-brand-800'}`}>
+          {inAscolto ? <Square className="h-6 w-6" fill="currentColor" /> : <Mic className="h-7 w-7" />}
+        </button>
+        <textarea className="input min-h-[64px] flex-1" placeholder={inAscolto ? 'Sto ascoltando…' : 'Premi il microfono e parla, oppure scrivi…'} value={testo} onChange={(e) => setTesto(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salva() }} />
-        <button className="btn-primary sm:self-stretch" onClick={salva} disabled={!testo.trim()}>Salva nota</button>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        {micErrore ? <p className="text-xs text-rose-700">{micErrore}</p> : <span />}
+        <button className="btn-primary" onClick={() => salva()} disabled={!testo.trim()}>Salva nota</button>
       </div>
       {anteprima && (
         <p className="mt-1.5 text-xs text-stone-500">
