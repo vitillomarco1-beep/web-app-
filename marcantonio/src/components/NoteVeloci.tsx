@@ -49,11 +49,17 @@ export default function NoteVeloci() {
   const [inAscolto, setInAscolto] = useState(false)
   const [micErrore, setMicErrore] = useState('')
   const riconoscitore = useRef<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const campo = useRef<HTMLTextAreaElement>(null)
+  // se il microfono è bloccato (come dentro claude.ai) il pulsante apre la tastiera per dettare
+  const [micBloccato, setMicBloccato] = useState(() => { try { return localStorage.getItem('marcantonio:mic-bloccato') === '1' } catch { return false } })
+  const blocca = () => { setMicBloccato(true); try { localStorage.setItem('marcantonio:mic-bloccato', '1') } catch { /* niente */ } }
+  const apriTastiera = () => { setMicErrore(''); campo.current?.focus() }
   const ascolta = () => {
-    if (inAscolto) { riconoscitore.current?.stop(); return }
+    if (inAscolto) { riconoscitore.current?.abort?.(); riconoscitore.current?.stop(); setInAscolto(false); return }
+    if (micBloccato) { apriTastiera(); return }
     const w = window as any // eslint-disable-line @typescript-eslint/no-explicit-any
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition
-    if (!SR) { setMicErrore('Questo browser non riconosce la voce: usa il microfono della tastiera (sul telefono) e poi "Salva nota".'); return }
+    if (!SR) { blocca(); apriTastiera(); return }
     setMicErrore('')
     const r = new SR()
     r.lang = 'it-IT'
@@ -71,9 +77,9 @@ export default function NoteVeloci() {
       setTesto([prima, (finale + parziale).trim()].filter(Boolean).join(' '))
     }
     r.onerror = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      setMicErrore(e.error === 'not-allowed' || e.error === 'service-not-allowed'
-        ? 'Il microfono non è consentito qui. Consenti il microfono al browser oppure usa il microfono della tastiera e poi "Salva nota".'
-        : e.error === 'no-speech' ? 'Non ho sentito niente: riprova.' : 'Riconoscimento vocale non riuscito: riprova o scrivi la nota.')
+      setInAscolto(false)
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { blocca(); apriTastiera(); return }
+      setMicErrore(e.error === 'no-speech' ? 'Non ho sentito niente: riprova.' : 'Riconoscimento vocale non riuscito: riprova o scrivi la nota.')
     }
     r.onend = () => {
       setInAscolto(false)
@@ -81,7 +87,7 @@ export default function NoteVeloci() {
       if (finale.trim()) salva(testoFinale)
     }
     riconoscitore.current = r
-    try { r.start(); setInAscolto(true) } catch { setMicErrore('Non riesco ad avviare il microfono: riprova.') }
+    try { r.start(); setInAscolto(true) } catch { setInAscolto(false); blocca(); apriTastiera() }
   }
 
   const [esito, setEsito] = useState<{ testo: string; notaId: string; casoId?: string } | null>(null)
@@ -150,11 +156,12 @@ export default function NoteVeloci() {
           className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-2xl text-white shadow-sm transition ${inAscolto ? 'animate-pulse bg-rose-600' : 'bg-brand-700 hover:bg-brand-800'}`}>
           <Mic className="h-7 w-7" />
         </button>
-        <textarea className="input min-h-[64px] flex-1" placeholder={inAscolto ? 'Sto ascoltando…' : 'Premi il microfono e parla, oppure scrivi…'} value={testo} onChange={(e) => setTesto(e.target.value)}
+        <textarea ref={campo} className="input min-h-[64px] flex-1" placeholder={inAscolto ? 'Sto ascoltando…' : micBloccato ? 'Tocca il microfono della tastiera e parla…' : 'Premi il microfono e parla, oppure scrivi…'} value={testo} onChange={(e) => setTesto(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salva() }} />
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        {micErrore ? <p className="text-xs text-rose-700">{micErrore}</p> : <span />}
+        {micErrore ? <p className="text-xs text-rose-700">{micErrore}</p>
+          : micBloccato ? <p className="text-xs text-stone-500">Qui il microfono dell'app è bloccato: detta con il 🎤 della tastiera, poi "Salva nota".</p> : <span />}
         <button className="btn-primary" onClick={() => salva()} disabled={!testo.trim()}>Salva nota</button>
       </div>
       {anteprima && (
