@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Check, ChevronRight, Mic, NotebookPen, Square, Trash2, Undo2 } from 'lucide-react'
+import { Bell, Check, ChevronRight, Mic, NotebookPen, Trash2, Undo2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { CATEGORIE_NOTE, ALTRO, casoDaNota, categoriaNota, ePromemoria, infoCategoria, promemoriaDaTesto, vaccaNota } from '../lib/note'
 import { nomePatologia } from '../lib/salute'
@@ -148,7 +148,7 @@ export default function NoteVeloci() {
       <div className="mt-3 flex items-stretch gap-2">
         <button type="button" onClick={ascolta} aria-label={inAscolto ? 'Ferma' : 'Parla'} title={inAscolto ? 'Sto ascoltando… tocca per fermare' : 'Tocca e parla'}
           className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-2xl text-white shadow-sm transition ${inAscolto ? 'animate-pulse bg-rose-600' : 'bg-brand-700 hover:bg-brand-800'}`}>
-          {inAscolto ? <Square className="h-6 w-6" fill="currentColor" /> : <Mic className="h-7 w-7" />}
+          <Mic className="h-7 w-7" />
         </button>
         <textarea className="input min-h-[64px] flex-1" placeholder={inAscolto ? 'Sto ascoltando…' : 'Premi il microfono e parla, oppure scrivi…'} value={testo} onChange={(e) => setTesto(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salva() }} />
