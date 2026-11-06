@@ -118,6 +118,9 @@ export default function FertilitaPage() {
       {/* ---- Confronto tra le stalle */}
       {perStalla.length > 1 && <Confronto righe={[...perStalla.map((x) => ({ nome: `Stalla ${x.st.numero}`, f: x.f, attiva: vista === x.st.id })), { nome: 'Mandria', f: tot, attiva: vista === 'tutte' }]} />}
 
+      {/* ---- Manze, primipare, pluripare (sempre su tutta la mandria) */}
+      <Categorie righe={perCategoria(lista)} />
+
       {!sel && <>
       {/* ---- Manze */}
       <h2 className="mb-3 mt-8">Manze <span className="text-base font-normal text-stone-500">· {f.manzeGravide} gravide su {f.manze}</span></h2>
@@ -193,9 +196,6 @@ export default function FertilitaPage() {
           </table>
         </div>
       </section>}
-
-      {/* ---- Manze, primipare, pluripare */}
-      {!sel && <Categorie righe={perCategoria(lista)} />}
 
       <p className="mt-6 text-xs text-stone-500">
         Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultimo calore, GLAT, GDNAS, UTOR). Per le gravide l’ultimo calore è quello della fecondazione andata a buon fine, quindi parto → concepimento = giorni di lattazione − GUCA;
@@ -286,9 +286,9 @@ function Categorie({ righe }: { righe: IndiciCategoria[] }) {
     </tr>
   )
   return (
-    <section className="card mt-8">
+    <section className="card mt-6">
       <h2>Manze, primipare e pluripare</h2>
-      <p className="mt-0.5 text-xs text-stone-500">Dove conviene lavorare. Manze: tutte quelle con almeno una fecondazione segnata, a qualsiasi età (e le gravide). Primipare e pluripare comprese le asciutte. Colori rispetto agli obiettivi delle vacche (per le manze gli obiettivi sono più alti: concepimento ≥ 50%, fecondazioni per gravidanza ≤ 1,8).</p>
+      <p className="mt-0.5 text-xs text-stone-500">Dove conviene lavorare, sempre su tutta la mandria. Manze: tutte quelle con almeno una fecondazione segnata, a qualsiasi età (e le gravide). Primipare e pluripare comprese le asciutte. Colori rispetto agli obiettivi delle vacche (per le manze gli obiettivi sono più alti: concepimento ≥ 50%, fecondazioni per gravidanza ≤ 1,8).</p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b text-xs uppercase tracking-wide text-stone-500">
