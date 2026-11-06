@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Baby, BarChart3, Dna, Syringe, Camera, FileUp, HeartPulse, Pill, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
@@ -8,6 +8,7 @@ import Logo from '../components/Logo'
 import { useAuth } from '../lib/auth'
 import { useStore } from '../lib/store'
 import { AttivaArchivio, EtichettaArchivio } from '../components/StatoArchivio'
+import { correggiGuca } from '../lib/dairycomp'
 
 interface Voce { to: string; label: string; icona: LucideIcon; end?: boolean; badge?: number }
 
@@ -21,6 +22,13 @@ export default function AdminLayout() {
   const location = useLocation()
   const [altroAperto, setAltroAperto] = useState(false)
   const nonLetti = dati.messaggi.filter((m) => !m.letto).length
+  // liste Mandria vecchie: GUCA (giorni dall'ultimo calore) era finito nei giorni di gravidanza
+  const { imposta } = useStore()
+  useEffect(() => {
+    const l = dati.mandriaDC[0]
+    const c = l && correggiGuca(l)
+    if (c) imposta('mandriaDC', [c])
+  }, [dati.mandriaDC, imposta])
 
   // Sezioni raggruppate per argomento: poche voci, nomi semplici
   const gruppi: { titolo?: string; voci: Voce[] }[] = collaboratore

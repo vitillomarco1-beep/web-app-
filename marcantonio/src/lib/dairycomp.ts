@@ -105,6 +105,8 @@ export function numero(v: string | undefined): number | null {
 export function costruisciAnimali(f: FileLetto, m: Partial<Record<Campo, number>>): AnimaleDC[] {
   const usate = new Set(Object.values(m))
   const valore = (r: string[], c: Campo) => (m[c] === undefined ? undefined : r[m[c]!])
+  const gucaComeGravidanza = m.giorniGravidanza !== undefined && norm(f.intestazioni[m.giorniGravidanza] ?? '') === 'GUCA'
+  if (gucaComeGravidanza) usate.delete(m.giorniGravidanza!)
   return f.righe
     .map((r) => {
       const extra: Record<string, number | string> = {}
@@ -125,7 +127,8 @@ export function costruisciAnimali(f: FileLetto, m: Partial<Record<Campo, number>
         cellule: numero(valore(r, 'cellule')),
         scs: numero(valore(r, 'scs')),
         codiceRiproduttivo: valore(r, 'codiceRiproduttivo')?.trim() || null,
-        giorniGravidanza: numero(valore(r, 'giorniGravidanza')),
+        // GUCA (giorni dall'ultimo calore) non è la gravidanza: se è stato abbinato lì resta tra le altre colonne
+        giorniGravidanza: gucaComeGravidanza ? null : numero(valore(r, 'giorniGravidanza')),
         dataPartoPrevista: valore(r, 'dataParto')?.trim() || null,
         giorniVita: numero(valore(r, 'giorniVita')),
         dataNascita: valore(r, 'dataNascita')?.trim() || null,
@@ -197,7 +200,7 @@ export function riepilogo(animali: AnimaleDC[]): Riepilogo {
 /** Nomi leggibili delle colonne DairyComp più comuni (le altre restano con la sigla). */
 const ETICHETTE: Record<string, string> = {
   MEDSE: 'Media settimanale (kg)',
-  NF: 'Fecondazioni (NF)', NFEC: 'Fecondazioni (NFEC)', GUCA: 'GUCA (giorni)', UTOR: 'Ultimo toro',
+  NF: 'Fecondazioni (NF)', NFEC: 'Fecondazioni (NFEC)', GUCA: 'Giorni dall’ultimo calore', UTOR: 'Ultimo toro',
   MATR: 'Matricola', ETA: 'Età (anni-mesi)', PPR: 'Parto previsto', DASPR: 'Asciutta prevista',
   SOML2: 'Somma L1P–L3P (kg)',
   L1P: 'L1P (kg)', L2P: 'L2P (kg)', L3P: 'L3P (kg)',
@@ -260,3 +263,9 @@ export const ultimoImport = (imp: ImportDC[]) => [...imp].sort((a, b) => b.data.
 /** Import più recente con data ≤ alla data indicata. */
 export const importAllaData = (imp: ImportDC[], data: string) =>
   [...imp].filter((i) => i.data <= data).sort((a, b) => b.data.localeCompare(a.data))[0]
+
+/** Liste Mandria caricate prima della correzione: GUCA era finito nei giorni di gravidanza. */
+export function correggiGuca(lista: ImportDC): ImportDC | null {
+  if (!/GUCA/i.test(lista.nomeFile) || lista.animali.some((a) => a.extra?.GUCA !== undefined)) return null
+  return { ...lista, animali: lista.animali.map((a) => ({ ...a, giorniGravidanza: null, extra: { ...(a.extra ?? {}), ...(a.giorniGravidanza != null ? { GUCA: a.giorniGravidanza } : {}) } })) }
+}

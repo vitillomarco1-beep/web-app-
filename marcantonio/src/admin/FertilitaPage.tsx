@@ -60,7 +60,7 @@ export default function FertilitaPage() {
         righe: righe.map((r) => [r.a.id, r.a.gruppo ?? '', r.a.lattazione ?? '', r.nota, '']),
       })
       const blob = await creaPdf('Fertilità – lista per il veterinario', `Lista DairyComp del ${fmtData(f.data)}`, [
-        sez('Da visitare per gravidanza', `fecondate da almeno ${GG_DIAGNOSI} giorni, senza diagnosi`, f.daVisitare),
+        sez('Da visitare per gravidanza', `fecondate, ultimo calore da almeno ${GG_DIAGNOSI} giorni, senza diagnosi`, f.daVisitare),
         sez('Vacche vuote oltre i ' + DIM_VUOTA_PROBLEMA + ' giorni', 'non gravide: da controllare', f.vuoteProblema),
         sez('Manze da fecondare', `oltre ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi, non ancora fecondate`, f.manzeDaFecondare),
       ].filter((s) => s.righe.length), 'Scrivere l’esito nella colonna a destra e riportarlo poi in DairyComp.')
@@ -113,15 +113,15 @@ export default function FertilitaPage() {
       <h2 className="mb-3 mt-8">Da fare</h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <Lista titolo="Da visitare per gravidanza" icona={Stethoscope} tono="text-sky-700" righe={f.daVisitare} vuoto="Nessuna fecondata da controllare."
-          spiega={`Fecondate da almeno ${GG_DIAGNOSI} giorni e ancora senza diagnosi: ecografia.`} aperta />
+          spiega={`Fecondate, senza diagnosi, con l’ultimo calore ad almeno ${GG_DIAGNOSI} giorni: ecografia.`} aperta />
         <Lista titolo="Osservare il ritorno in calore" icona={Repeat} tono="text-violet-700" righe={f.ritornoCalore} vuoto="Nessuna in questa finestra."
-          spiega={`Fecondate da ${RITORNO_CALORE.da}–${RITORNO_CALORE.a} giorni: se tornano in calore vanno rifecondate.`} aperta />
+          spiega={`Fecondate con l’ultimo calore ${RITORNO_CALORE.da}–${RITORNO_CALORE.a} giorni fa: se non sono gravide tornano in calore adesso.`} aperta />
         <Lista titolo="Da fecondare" icona={Sprout} tono="text-arancio-700" righe={f.daFecondare} vuoto="Nessuna vacca vuota da fecondare."
           spiega={`Oltre i ${PERIODO_ATTESA} giorni dal parto, vuote e non ancora gravide.`} />
         <Lista titolo={`Vuote oltre i ${DIM_VUOTA_PROBLEMA} giorni`} icona={Timer} tono="text-rose-700" righe={f.vuoteProblema} vuoto="Nessuna."
           spiega="Non gravide oltre i 150 giorni di lattazione: visita, protocollo o decisione sulla carriera." />
         <Lista titolo="Manze da fecondare" icona={Sprout} tono="text-arancio-700" righe={f.manzeDaFecondare} vuoto="Nessuna manza in ritardo."
-          spiega={`Manze oltre i ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi non ancora fecondate (controlla il gruppo: alcune potrebbero essere destinate alla vendita).`} />
+          spiega={`Manze oltre i ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi non ancora fecondate `} />
         <Lista titolo="Non fecondare" icona={Dna} tono="text-stone-600" righe={f.nonFecondare} vuoto="Nessuna." spiega="Animali segnati in DairyComp come da non fecondare." />
       </div>
 
@@ -175,9 +175,9 @@ export default function FertilitaPage() {
       </section>
 
       <p className="mt-6 text-xs text-stone-500">
-        Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultima fecondazione, GLAT, GDNAS, UTOR). Parto → concepimento = giorni di lattazione − giorni dall’ultima fecondazione delle gravide;
+        Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultimo calore, GLAT, GDNAS, UTOR). Per le gravide l’ultimo calore è quello della fecondazione andata a buon fine, quindi parto → concepimento = giorni di lattazione − GUCA;
         interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta).
-        È una fotografia del giorno della lista; gli obiettivi sono valori di riferimento indicativi.
+        Il gruppo 11 (animali da carne) non è contato. È una fotografia del giorno della lista; gli obiettivi sono valori di riferimento indicativi.
       </p>
     </>
   )
