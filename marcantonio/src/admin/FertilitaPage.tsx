@@ -149,17 +149,17 @@ export default function FertilitaPage() {
       {f.tori.length > 0 && (
         <section className="card mt-8">
           <h2>Tori</h2>
-          <p className="mt-0.5 text-xs text-stone-500">Esito dell’ultima fecondazione di ogni animale (le fecondate ancora senza diagnosi non sono contate). Con pochi animali il tasso è solo indicativo.</p>
+          <p className="mt-0.5 text-xs text-stone-500">Gravidanze in corso per toro e fecondazioni ancora in attesa di diagnosi. Il tasso di concepimento per toro non si può calcolare: la lista ha solo l’ultimo toro, e le fecondazioni non riuscite con un toro spariscono quando la vacca viene rifecondata con un altro. Per quello serve il riepilogo fecondazioni per toro di DairyComp.</p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-stone-500"><th className="py-2 pr-3">Toro</th><th className="px-3 text-right">Fecondazioni</th><th className="px-3 text-right">Gravide</th><th className="pl-3 text-right">Concepimento</th></tr></thead>
+              <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-stone-500"><th className="py-2 pr-3">Toro</th><th className="px-3 text-right">Vacche gravide</th><th className="px-3 text-right">Manze gravide</th><th className="pl-3 text-right">In attesa di diagnosi</th></tr></thead>
               <tbody>
                 {f.tori.map((t) => (
-                  <tr key={t.toro} className="border-b border-stone-100 last:border-0">
+                  <tr key={t.toro} className="border-b border-stone-100 last:border-0 tabular-nums">
                     <td className="py-1.5 pr-3 font-medium">{t.toro}</td>
-                    <td className="px-3 text-right tabular-nums">{t.fecondazioni}</td>
-                    <td className="px-3 text-right tabular-nums">{t.gravide}</td>
-                    <td className={`pl-3 text-right tabular-nums ${t.fecondazioni < 5 ? 'text-stone-400' : ''}`}>{pct(t.tasso)}%</td>
+                    <td className="px-3 text-right">{t.vacche || '—'}</td>
+                    <td className="px-3 text-right">{t.manze || '—'}</td>
+                    <td className="pl-3 text-right text-stone-500">{t.inAttesa || '—'}</td>
                   </tr>
                 ))}
               </tbody>

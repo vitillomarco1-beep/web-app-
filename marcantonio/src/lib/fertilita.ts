@@ -105,7 +105,7 @@ export interface IndiciFertilita {
   vuoteProblema: RigaLista[] // vuote oltre 150 giorni
   nonFecondare: RigaLista[]
   manzeDaFecondare: RigaLista[]
-  tori: { toro: string; gravide: number; fecondazioni: number; tasso: number | null }[]
+  tori: { toro: string; vacche: number; manze: number; inAttesa: number }[] // gravidanze in corso e fecondazioni in attesa, per ultimo toro
 }
 
 /** `gruppi`: solo gli animali di questi gruppi DairyComp (per esempio quelli di una stalla). */
@@ -148,18 +148,21 @@ export function calcolaFertilita(lista: ImportDC, gruppi?: number[]): IndiciFert
   const manzeDaFecondare = ord(manze.filter((a) => statoRipro(a) === 'manza' && (a.giorniVita ?? 0) >= ETA_FECONDAZIONE_MANZE)
     .map((a) => ({ a, nota: `${Math.round((a.giorniVita ?? 0) / GG_MESE)} mesi` })), (a) => a.giorniVita ?? 0)
 
-  // tori: esito dell'ultima fecondazione (gravida = riuscita; vuota / non fecondare dopo la fecondazione = non riuscita)
-  const perToro = new Map<string, { gravide: number; fecondazioni: number }>()
+  // tori: la lista ha solo l'ultimo toro, quindi non si può calcolare il tasso di concepimento per toro
+  // (le fecondazioni fallite con un toro spariscono se la vacca viene rifecondata con un altro).
+  // Dato sicuro: per le gravide l'ultimo toro è quello della gravidanza; per le fecondate, quello in attesa di diagnosi.
+  const perToro = new Map<string, { vacche: number; manze: number; inAttesa: number }>()
   for (const a of tutti) {
     const t = toro(a), s = statoRipro(a)
-    if (!t || fecondazioni(a) < 1 || s === 'fecondata' || s === 'maschio' || s === 'altro') continue
-    const r = perToro.get(t) ?? { gravide: 0, fecondazioni: 0 }
-    r.fecondazioni++
-    if (s === 'gravida') r.gravide++
+    if (!t || (s !== 'gravida' && s !== 'fecondata')) continue
+    const r = perToro.get(t) ?? { vacche: 0, manze: 0, inAttesa: 0 }
+    if (s === 'fecondata') r.inAttesa++
+    else if (a.lattazione === 0) r.manze++
+    else r.vacche++
     perToro.set(t, r)
   }
-  const tori = [...perToro.entries()].map(([t, r]) => ({ toro: t, ...r, tasso: quota(r.gravide, r.fecondazioni) }))
-    .sort((a, b) => b.fecondazioni - a.fecondazioni || a.toro.localeCompare(b.toro))
+  const tori = [...perToro.entries()].map(([t, r]) => ({ toro: t, ...r }))
+    .sort((a, b) => b.vacche + b.manze - a.vacche - a.manze || b.inAttesa - a.inAttesa || a.toro.localeCompare(b.toro))
 
   const am = media(aperti)
   return {
