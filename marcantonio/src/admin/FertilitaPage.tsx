@@ -19,7 +19,7 @@ const COLORE_STATO: Record<StatoRipro, string> = {
 
 /** Fertilità: indici calcolati dalla lista completa di DairyComp caricata in Mandria. */
 export default function FertilitaPage() {
-  const { dati, aggiungi } = useStore()
+  const { dati, aggiungi, aggiorna } = useStore()
   const lista = dati.mandriaDC[0]
   const adatta = listaAdatta(lista)
   const tot = useMemo(() => (lista && adatta.ok ? calcolaFertilita(lista) : null), [lista, adatta.ok])
@@ -32,9 +32,14 @@ export default function FertilitaPage() {
   const [pdf, setPdf] = useState<'' | 'in corso' | 'errore'>('')
 
   // una riga di storico per ogni lista: così si vede l'andamento nel tempo
+  // (la riga della lista attuale si ricalcola se il modo di calcolare è cambiato)
   useEffect(() => {
-    if (tot && !dati.storicoFertilita.some((s) => s.id === tot.data)) aggiungi('storicoFertilita', riassuntoStorico(tot))
-  }, [tot, dati.storicoFertilita, aggiungi])
+    if (!tot) return
+    const r = riassuntoStorico(tot)
+    const es = dati.storicoFertilita.find((s) => s.id === r.id)
+    if (!es) aggiungi('storicoFertilita', r)
+    else if ((Object.keys(r) as (keyof typeof r)[]).some((k) => (es[k] ?? null) !== (r[k] ?? null))) aggiorna('storicoFertilita', r)
+  }, [tot, dati.storicoFertilita, aggiungi, aggiorna])
 
   if (!lista || !f || !tot) {
     return (
