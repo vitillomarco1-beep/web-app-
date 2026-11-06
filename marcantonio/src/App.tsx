@@ -22,6 +22,7 @@ import SalutePage from './admin/SalutePage'
 import FarmaciPage from './admin/FarmaciPage'
 import PartiPage from './admin/PartiPage'
 import VitelliPage from './admin/VitelliPage'
+import FertilitaPage from './admin/FertilitaPage'
 import CaricaSettimanaPage from './admin/CaricaSettimanaPage'
 import { RichiedeAccesso } from './lib/auth'
 import type { ReactNode } from 'react'
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="farmaci" element={T(<FarmaciPage />)} />
         <Route path="parti" element={T(<PartiPage />)} />
         <Route path="vitelli" element={T(<VitelliPage />)} />
+        <Route path="fertilita" element={T(<FertilitaPage />)} />
         <Route path="margine" element={<Navigate to="/area-riservata/alimentazione?scheda=margine" replace />} />
         <Route path="carica" element={T(<CaricaSettimanaPage />)} />
         <Route path="mandria" element={T(<MandriaPage />)} />

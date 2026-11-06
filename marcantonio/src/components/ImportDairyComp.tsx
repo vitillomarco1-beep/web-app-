@@ -4,6 +4,7 @@ import { Modale } from './ui'
 import { CAMPI, abbinaColonne, costruisciAnimali, leggiFile, perGruppo, type Campo, type FileLetto } from '../lib/dairycomp'
 import { fmt0, fmt1, isoGiorno, nuovoId } from '../lib/format'
 import { applicaGruppiRobot } from '../lib/gruppi'
+import { calcolaFertilita, listaAdatta, riassuntoStorico } from '../lib/fertilita'
 
 const MAX_IMPORT = 120 // fotografie conservate nel browser (con il servizio online: nessun limite)
 
@@ -58,7 +59,13 @@ export default function ImportDairyComp({ onChiudi, onImportato, destinazione = 
     if (!daImportare.length) { setErrore('Nessuna vacca da importare: seleziona almeno un gruppo.'); return }
     if (perMandria) {
       const id = nuovoId()
-      imposta('mandriaDC', [{ id, data, importatoIl: new Date().toISOString(), nomeFile, animali: daImportare }])
+      const nuova = { id, data, importatoIl: new Date().toISOString(), nomeFile, animali: daImportare }
+      imposta('mandriaDC', [nuova])
+      // storico degli indici di fertilità (una riga per data)
+      if (listaAdatta(nuova).ok) {
+        const r = riassuntoStorico(calcolaFertilita(nuova))
+        if (dati.storicoFertilita.some((x) => x.id === r.id)) aggiorna('storicoFertilita', r); else aggiungi('storicoFertilita', r)
+      }
       if (aggiornaLatte) salvaPerLatte(animali.filter((a) => a.gruppo !== null && gruppiStalle.has(a.gruppo)))
       onImportato(id)
       return

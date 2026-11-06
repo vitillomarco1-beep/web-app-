@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Baby, BarChart3, Syringe, Camera, FileUp, HeartPulse, Pill, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
+  Baby, BarChart3, Dna, Syringe, Camera, FileUp, HeartPulse, Pill, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
   Settings, Tag, Truck, Wheat, X, type LucideIcon,
 } from 'lucide-react'
 import Logo from '../components/Logo'
@@ -30,6 +30,7 @@ export default function AdminLayout() {
         { titolo: 'Stalla', voci: [
           { to: `${R}/alimentazione`, label: 'Alimentazione', icona: Wheat },
           { to: `${R}/mandria`, label: 'Mandria', icona: Tag },
+          { to: `${R}/fertilita`, label: 'Fertilità', icona: Dna },
           { to: `${R}/salute`, label: 'Salute', icona: HeartPulse },
           { to: `${R}/farmaci`, label: 'Farmaci', icona: Pill },
           { to: `${R}/parti`, label: 'Parti e vaccini', icona: Baby },

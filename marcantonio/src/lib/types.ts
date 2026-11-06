@@ -250,7 +250,11 @@ export interface Dati {
   vaccinazioniVitelli: VaccinazioneVitello[]
   quotazioniClal: QuotazioneClal[]
   note: NotaVeloce[]
+  storicoFertilita: StoricoFertilita[] // indici di fertilità, una riga per lista Mandria caricata
 }
+
+/** Indici di fertilità di una lista Mandria (id = data della lista). */
+export interface StoricoFertilita { id: string; data: string; vacche: number; gravidePct: number | null; gravideA150: number | null; giorniAperti: number | null; serviziPerGravidanza: number | null; tassoConcepimento: number | null; primaFecondazione: number | null; etaPrimoParto: number | null }
 
 /** Nota veloce dettata dal cruscotto, da riportare poi nella sezione giusta. */
 export interface NotaVeloce { id: string; testo: string; creataIl: string; categoria: string; vacca?: string; fatta?: boolean; fattaIl?: string; casoId?: string /* caso di Salute creato in automatico */; promemoria?: string /* AAAA-MM-GG: giorno in cui ricordarla */; titolo?: string /* testo del promemoria senza "ricordami domani di" */ }

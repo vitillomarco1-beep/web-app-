@@ -192,7 +192,7 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 
   return {
-    robotGiorni: [], robotVacche: [], importRobot: [], mandriaDC: [], nomiGruppi: [], casi: [], parametri: [], farmaci: [], partiDC: [], vaccinazioni: [], ingredienti: [], razioni: [], analisiPmr: [], vitelliDC: [], vaccinazioniVitelli: [], quotazioniClal: [], note: [],
+    robotGiorni: [], robotVacche: [], importRobot: [], mandriaDC: [], nomiGruppi: [], casi: [], parametri: [], farmaci: [], partiDC: [], vaccinazioni: [], ingredienti: [], razioni: [], analisiPmr: [], vitelliDC: [], vaccinazioniVitelli: [], quotazioniClal: [], note: [], storicoFertilita: [],
     importDC,
     stalle,
     scarichi,
@@ -217,4 +217,4 @@ export function datiDimostrativi(oggi = isoGiorno()): Dati {
   }
 }
 
-export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], mandriaDC: [], nomiGruppi: [], casi: [], parametri: [], farmaci: [], robotGiorni: [], robotVacche: [], importRobot: [], messaggi: [], partiDC: [], vaccinazioni: [], ingredienti: [], razioni: [], analisiPmr: [], vitelliDC: [], vaccinazioniVitelli: [], quotazioniClal: [], note: [] }
+export const DATI_VUOTI: Dati = { capi: [], mungiture: [], analisi: [], consegne: [], lavorazioni: [], uscite: [], stalle: [], scarichi: [], verifiche: [], importDC: [], mandriaDC: [], nomiGruppi: [], casi: [], parametri: [], farmaci: [], robotGiorni: [], robotVacche: [], importRobot: [], messaggi: [], partiDC: [], vaccinazioni: [], ingredienti: [], razioni: [], analisiPmr: [], vitelliDC: [], vaccinazioniVitelli: [], quotazioniClal: [], note: [], storicoFertilita: [] }
