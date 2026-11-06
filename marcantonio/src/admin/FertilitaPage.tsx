@@ -145,7 +145,6 @@ export default function FertilitaPage() {
           spiega="Non gravide oltre i 150 giorni di lattazione: visita, protocollo o decisione sulla carriera." />
         {!sel && <Lista titolo="Manze da fecondare" icona={Sprout} tono="text-arancio-700" righe={f.manzeDaFecondare} vuoto="Nessuna manza in ritardo."
           spiega={`Manze oltre i ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi non ancora fecondate.`} />}
-        <Lista titolo="Non fecondare" icona={Dna} tono="text-stone-600" righe={f.nonFecondare} vuoto="Nessuna." spiega="Animali segnati in DairyComp come da non fecondare." />
       </div>
 
       {/* ---- Tori */}
@@ -199,7 +198,7 @@ export default function FertilitaPage() {
 
       <p className="mt-6 text-xs text-stone-500">
         Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultimo calore, GLAT, GDNAS, UTOR). Per le gravide l’ultimo calore è quello della fecondazione andata a buon fine, quindi parto → concepimento = giorni di lattazione − GUCA;
-        interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta) e non conta le vacche “non fecondare”.
+        interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta) Gli animali “non fecondare” sono esclusi da tutti gli indici.
         Il gruppo 11 (animali da carne) non è contato. Nelle stalle ci sono solo le vacche in lattazione del gruppo collegato alla stalla: asciutte e manze sono contate solo in “Tutta la mandria”. È una fotografia del giorno della lista; gli obiettivi sono valori di riferimento indicativi.
       </p>
     </>

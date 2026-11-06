@@ -110,7 +110,8 @@ export interface IndiciFertilita {
   tori: { toro: string; vacche: number; manze: number; inAttesa: number }[] // gravidanze in corso e fecondazioni in attesa, per ultimo toro
 }
 
-const contato = (a: AnimaleDC) => a.gruppo === null || !GRUPPI_ESCLUSI.includes(a.gruppo)
+/** Contati negli indici: fuori il gruppo 11 (carne) e gli animali da non fecondare (destinati alla riforma). */
+const contato = (a: AnimaleDC) => (a.gruppo === null || !GRUPPI_ESCLUSI.includes(a.gruppo)) && statoRipro(a) !== 'nonFecondare'
 
 /** `gruppi`: solo gli animali di questi gruppi DairyComp (per esempio quelli di una stalla). */
 export function calcolaFertilita(lista: ImportDC, gruppi?: number[]): IndiciFertilita {
