@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarClock, ChevronDown, Dna, FileDown, Loader2, Repeat, Sprout, Stethoscope, Timer, Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
@@ -7,7 +7,7 @@ import { fmt0, fmt1, fmtData } from '../lib/format'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import {
   DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
-  calcolaFertilita, giudizio, listaAdatta, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
+  calcolaFertilita, giudizio, listaAdatta, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
 
 const pct = (v: number | null) => (v === null ? '—' : fmt0(v * 100))
@@ -194,6 +194,9 @@ export default function FertilitaPage() {
         </div>
       </section>}
 
+      {/* ---- Manze, primipare, pluripare */}
+      {!sel && <Categorie righe={perCategoria(lista)} />}
+
       <p className="mt-6 text-xs text-stone-500">
         Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultimo calore, GLAT, GDNAS, UTOR). Per le gravide l’ultimo calore è quello della fecondazione andata a buon fine, quindi parto → concepimento = giorni di lattazione − GUCA;
         interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta).
@@ -263,6 +266,42 @@ function Confronto({ righe }: { righe: { nome: string; f: IndiciFertilita; attiv
                 })}
               </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function Categorie({ righe }: { righe: IndiciCategoria[] }) {
+  const [manze, ...vacche] = righe
+  const cella = (k: ChiaveObiettivo | null, v: number | null, testo: string) => {
+    const g = k ? giudizio(k, v) : null
+    return <td className={`px-2 text-right font-semibold ${g ? TESTO_GIUDIZIO[g] : v === null ? 'text-stone-400' : 'text-stone-700'}`}>{testo}</td>
+  }
+  const riga = (nome: string, f: (r: IndiciCategoria, manza: boolean) => [ChiaveObiettivo | null, number | null, string]) => (
+    <tr className="border-b border-stone-100 last:border-0 tabular-nums">
+      <td className="py-1.5 pr-3 text-stone-700">{nome}</td>
+      {[manze, ...vacche].map((r, i) => { const [k, v, t] = f(r, i === 0); return <Fragment key={r.nome}>{cella(k, v, t)}</Fragment> })}
+    </tr>
+  )
+  return (
+    <section className="card mt-8">
+      <h2>Manze, primipare e pluripare</h2>
+      <p className="mt-0.5 text-xs text-stone-500">Dove conviene lavorare. Manze: solo quelle in età da fecondare (oltre i {Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi) o già fecondate. Primipare e pluripare comprese le asciutte. Colori rispetto agli obiettivi delle vacche (per le manze gli obiettivi sono più alti: concepimento ≥ 50%, fecondazioni per gravidanza ≤ 1,8).</p>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="border-b text-xs uppercase tracking-wide text-stone-500">
+            <th className="py-2 pr-3 text-left font-semibold">Indice</th>
+            {righe.map((r) => <th key={r.nome} className="px-2 text-right font-semibold">{r.nome}<span className="block text-[10px] font-normal normal-case">{r.n} animali</span></th>)}
+          </tr></thead>
+          <tbody>
+            {riga('Gravide', (r, m) => [m ? null : 'gravidePct', r.gravidePct, `${pct(r.gravidePct)}%`])}
+            {riga('Parto → concepimento (manze: età al concepimento)', (r, m) => [m ? null : 'giorniAperti', r.giorniAperti,
+              r.giorniAperti === null ? '—' : m ? `${fmt1(r.giorniAperti / 30.44)} mesi` : `${fmt0(r.giorniAperti)} gg`])}
+            {riga('Fecondazioni per gravidanza', (r, m) => [m ? 'serviziManze' : 'serviziPerGravidanza', r.serviziPerGravidanza, r.serviziPerGravidanza === null ? '—' : fmt1(r.serviziPerGravidanza)])}
+            {riga('Tasso di concepimento', (r, m) => [m ? 'tassoManze' : 'tassoConcepimento', r.tassoConcepimento, `${pct(r.tassoConcepimento)}%`])}
+            {riga('Gravide alla 1ª fecondazione', (r, m) => [m ? 'tassoManze' : 'primaFecondazione', r.primaFecondazione, `${pct(r.primaFecondazione)}%`])}
           </tbody>
         </table>
       </div>

@@ -108,9 +108,11 @@ export interface IndiciFertilita {
   tori: { toro: string; vacche: number; manze: number; inAttesa: number }[] // gravidanze in corso e fecondazioni in attesa, per ultimo toro
 }
 
+const contato = (a: AnimaleDC) => a.gruppo === null || !GRUPPI_ESCLUSI.includes(a.gruppo)
+
 /** `gruppi`: solo gli animali di questi gruppi DairyComp (per esempio quelli di una stalla). */
 export function calcolaFertilita(lista: ImportDC, gruppi?: number[]): IndiciFertilita {
-  const tutti = lista.animali.filter((a) => (a.gruppo === null || !GRUPPI_ESCLUSI.includes(a.gruppo)) && (!gruppi || (a.gruppo !== null && gruppi.includes(a.gruppo))))
+  const tutti = lista.animali.filter((a) => contato(a) && (!gruppi || (a.gruppo !== null && gruppi.includes(a.gruppo))))
   const vacche = tutti.filter(eVacca)
   const manze = tutti.filter(eManza)
   const conta = new Map<StatoRipro, number>()
@@ -232,3 +234,36 @@ export const riassuntoStorico = (f: IndiciFertilita) => ({
   id: f.data, data: f.data, vacche: f.vacche, gravidePct: f.gravidePct, gravideA150: f.gravideA150, giorniAperti: f.giorniAperti,
   serviziPerGravidanza: f.serviziPerGravidanza, tassoConcepimento: f.tassoConcepimento, primaFecondazione: f.primaFecondazione, etaPrimoParto: f.etaPrimoParto,
 })
+
+export interface IndiciCategoria {
+  nome: string
+  n: number // animali contati (manze: solo quelle in età da fecondare o già fecondate)
+  gravidePct: number | null
+  giorniAperti: number | null // vacche: parto → concepimento; manze: età al concepimento in giorni
+  serviziPerGravidanza: number | null
+  tassoConcepimento: number | null
+  primaFecondazione: number | null
+}
+
+/** Confronto manze / primipare / pluripare: dove conviene lavorare. */
+export function perCategoria(lista: ImportDC): IndiciCategoria[] {
+  const tutti = lista.animali.filter((a) => contato(a) && !eMaschio(a))
+  const manze = tutti.filter((a) => a.lattazione === 0 && (statoRipro(a) !== 'manza' || (a.giorniVita ?? 0) >= ETA_FECONDAZIONE_MANZE) && statoRipro(a) !== 'nonFecondare')
+  const cat = (nome: string, animali: AnimaleDC[], manza: boolean): IndiciCategoria => {
+    const grav = animali.filter((a) => statoRipro(a) === 'gravida')
+    const c = concepimento(animali)
+    const giorni = grav.map((a) => {
+      const g = giorniUltimoCalore(a)
+      if (g === null || g <= 0 || g > GESTAZIONE) return null
+      if (manza) return a.giorniVita != null && a.giorniVita - g > 200 ? a.giorniVita - g : null
+      return a.dim !== null && a.dim - g >= 20 ? a.dim - g : null
+    }).filter((x): x is number => x !== null)
+    return { nome, n: animali.length, gravidePct: quota(grav.length, animali.length), giorniAperti: media(giorni),
+      serviziPerGravidanza: media(grav.map(fecondazioni).filter((n) => n > 0)), tassoConcepimento: c.tasso, primaFecondazione: c.primaFec }
+  }
+  return [
+    cat('Manze', manze, true),
+    cat('Primipare', tutti.filter((a) => a.lattazione === 1), false),
+    cat('Pluripare', tutti.filter((a) => (a.lattazione ?? 0) >= 2), false),
+  ]
+}
