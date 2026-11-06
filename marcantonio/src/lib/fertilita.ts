@@ -14,8 +14,8 @@ export const DIM_VUOTA_PROBLEMA = 150
 export const GG_DIAGNOSI = 30
 /** Finestra in cui osservare il ritorno in calore (un ciclo dura circa 21 giorni). */
 export const RITORNO_CALORE = { da: 18, a: 24 }
-/** Età (giorni) da cui una manza va fecondata (circa 13 mesi). */
-export const ETA_FECONDAZIONE_MANZE = 396
+/** Età (giorni) da cui una manza va fecondata (12 mesi). */
+export const ETA_FECONDAZIONE_MANZE = 365
 /** Gruppi esclusi dagli indici: il gruppo 11 sono animali da carne. */
 export const GRUPPI_ESCLUSI = [11]
 const GG_MESE = 30.44
