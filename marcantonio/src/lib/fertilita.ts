@@ -61,13 +61,15 @@ export const NOMI_STATO: Record<StatoRipro, string> = {
 const media = (v: number[]) => (v.length ? v.reduce((s, x) => s + x, 0) / v.length : null)
 const quota = (a: number, b: number) => (b > 0 ? a / b : null)
 
-/** Concepimento: fecondazioni con esito noto e gravidanze ottenute (l'ultima fecondazione di una "fecondata" è ancora senza esito). */
+/** Concepimento: fecondazioni con esito noto e gravidanze ottenute (l'ultima fecondazione di una "fecondata" è ancora senza esito).
+ *  Le "non fecondare" sono escluse. */
 function concepimento(animali: AnimaleDC[]) {
   let gravidanze = 0, servizi = 0, primaOk = 0, primaNote = 0
   for (const a of animali) {
     const n = fecondazioni(a)
     if (n < 1) continue
     const s = statoRipro(a)
+    if (s === 'nonFecondare') continue // destinate alla riforma: non contano nel tasso (come se fossero uscite)
     if (s === 'gravida') { gravidanze++; servizi += n; primaNote++; if (n === 1) primaOk++ }
     else if (s === 'fecondata') { servizi += n - 1; if (n >= 2) primaNote++ }
     else { servizi += n; primaNote++ }

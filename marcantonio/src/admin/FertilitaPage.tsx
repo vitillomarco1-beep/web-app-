@@ -199,7 +199,7 @@ export default function FertilitaPage() {
 
       <p className="mt-6 text-xs text-stone-500">
         Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultimo calore, GLAT, GDNAS, UTOR). Per le gravide l’ultimo calore è quello della fecondazione andata a buon fine, quindi parto → concepimento = giorni di lattazione − GUCA;
-        interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta).
+        interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta) e non conta le vacche “non fecondare”.
         Il gruppo 11 (animali da carne) non è contato. Nelle stalle ci sono solo le vacche in lattazione del gruppo collegato alla stalla: asciutte e manze sono contate solo in “Tutta la mandria”. È una fotografia del giorno della lista; gli obiettivi sono valori di riferimento indicativi.
       </p>
     </>
