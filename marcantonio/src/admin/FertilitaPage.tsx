@@ -288,7 +288,7 @@ function Categorie({ righe }: { righe: IndiciCategoria[] }) {
   return (
     <section className="card mt-8">
       <h2>Manze, primipare e pluripare</h2>
-      <p className="mt-0.5 text-xs text-stone-500">Dove conviene lavorare. Manze: solo quelle in età da fecondare (oltre i {Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi) o già fecondate. Primipare e pluripare comprese le asciutte. Colori rispetto agli obiettivi delle vacche (per le manze gli obiettivi sono più alti: concepimento ≥ 50%, fecondazioni per gravidanza ≤ 1,8).</p>
+      <p className="mt-0.5 text-xs text-stone-500">Dove conviene lavorare. Manze: tutte quelle con almeno una fecondazione segnata, a qualsiasi età (e le gravide). Primipare e pluripare comprese le asciutte. Colori rispetto agli obiettivi delle vacche (per le manze gli obiettivi sono più alti: concepimento ≥ 50%, fecondazioni per gravidanza ≤ 1,8).</p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b text-xs uppercase tracking-wide text-stone-500">

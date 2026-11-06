@@ -237,7 +237,7 @@ export const riassuntoStorico = (f: IndiciFertilita) => ({
 
 export interface IndiciCategoria {
   nome: string
-  n: number // animali contati (manze: solo quelle in età da fecondare o già fecondate)
+  n: number // animali contati (manze: solo quelle con almeno una fecondazione)
   gravidePct: number | null
   giorniAperti: number | null // vacche: parto → concepimento; manze: età al concepimento in giorni
   serviziPerGravidanza: number | null
@@ -248,7 +248,8 @@ export interface IndiciCategoria {
 /** Confronto manze / primipare / pluripare: dove conviene lavorare. */
 export function perCategoria(lista: ImportDC): IndiciCategoria[] {
   const tutti = lista.animali.filter((a) => contato(a) && !eMaschio(a))
-  const manze = tutti.filter((a) => a.lattazione === 0 && (statoRipro(a) !== 'manza' || (a.giorniVita ?? 0) >= ETA_FECONDAZIONE_MANZE) && statoRipro(a) !== 'nonFecondare')
+  // manze: tutte quelle con almeno una fecondazione segnata (alcune si fecondano già a 11 mesi), più le gravide
+  const manze = tutti.filter((a) => a.lattazione === 0 && (fecondazioni(a) >= 1 || statoRipro(a) === 'gravida'))
   const cat = (nome: string, animali: AnimaleDC[], manza: boolean): IndiciCategoria => {
     const grav = animali.filter((a) => statoRipro(a) === 'gravida')
     const c = concepimento(animali)
