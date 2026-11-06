@@ -7,7 +7,7 @@ import { fmt0, fmt1, fmtData } from '../lib/format'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import {
   DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
-  calcolaFertilita, giudizio, listaAdatta, riassuntoStorico, type ChiaveObiettivo, type RigaLista, type StatoRipro,
+  calcolaFertilita, giudizio, listaAdatta, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
 
 const pct = (v: number | null) => (v === null ? '—' : fmt0(v * 100))
@@ -22,15 +22,21 @@ export default function FertilitaPage() {
   const { dati, aggiungi } = useStore()
   const lista = dati.mandriaDC[0]
   const adatta = listaAdatta(lista)
-  const f = useMemo(() => (lista && adatta.ok ? calcolaFertilita(lista) : null), [lista, adatta.ok])
+  const tot = useMemo(() => (lista && adatta.ok ? calcolaFertilita(lista) : null), [lista, adatta.ok])
+  // le stalle collegate a un gruppo DairyComp, per vedere gli indici stalla per stalla
+  const stalle = useMemo(() => dati.stalle.filter((x) => x.gruppoDairyComp !== undefined).sort((a, b) => a.numero - b.numero), [dati.stalle])
+  const perStalla = useMemo(() => (lista && adatta.ok ? stalle.map((st) => ({ st, f: calcolaFertilita(lista, [st.gruppoDairyComp!]) })) : []), [lista, adatta.ok, stalle])
+  const [vista, setVista] = useState<string>('tutte')
+  const sel = perStalla.find((x) => x.st.id === vista)
+  const f = sel?.f ?? tot
   const [pdf, setPdf] = useState<'' | 'in corso' | 'errore'>('')
 
   // una riga di storico per ogni lista: così si vede l'andamento nel tempo
   useEffect(() => {
-    if (f && !dati.storicoFertilita.some((s) => s.id === f.data)) aggiungi('storicoFertilita', riassuntoStorico(f))
-  }, [f, dati.storicoFertilita, aggiungi])
+    if (tot && !dati.storicoFertilita.some((s) => s.id === tot.data)) aggiungi('storicoFertilita', riassuntoStorico(tot))
+  }, [tot, dati.storicoFertilita, aggiungi])
 
-  if (!lista || !f) {
+  if (!lista || !f || !tot) {
     return (
       <>
         <PageHeader titolo="Fertilità" icona={Dna} descrizione="Indici riproduttivi dalla lista di DairyComp" />
@@ -59,12 +65,12 @@ export default function FertilitaPage() {
         titolo: `${titolo}  (${righe.length})`, sottotitolo, colonne: ['Animale', 'Gruppo', 'Latt.', 'Note', 'Esito'],
         righe: righe.map((r) => [r.a.id, r.a.gruppo ?? '', r.a.lattazione ?? '', r.nota, '']),
       })
-      const blob = await creaPdf('Fertilità – lista per il veterinario', `Lista DairyComp del ${fmtData(f.data)}`, [
+      const blob = await creaPdf('Fertilità – lista per il veterinario', `${sel ? `Stalla ${sel.st.numero} · ` : ''}Lista DairyComp del ${fmtData(f.data)}`, [
         sez('Da visitare per gravidanza', `fecondate, ultimo calore da almeno ${GG_DIAGNOSI} giorni, senza diagnosi`, f.daVisitare),
         sez('Vacche vuote oltre i ' + DIM_VUOTA_PROBLEMA + ' giorni', 'non gravide: da controllare', f.vuoteProblema),
         sez('Manze da fecondare', `oltre ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi, non ancora fecondate`, f.manzeDaFecondare),
       ].filter((s) => s.righe.length), 'Scrivere l’esito nella colonna a destra e riportarlo poi in DairyComp.')
-      const esito = await scarica(blob, `fertilita-veterinario-${f.data}.pdf`)
+      const esito = await scarica(blob, `fertilita-veterinario-${sel ? `stalla${sel.st.numero}-` : ''}${f.data}.pdf`)
       setPdf(esito === 'errore' ? 'errore' : '')
     } catch { setPdf('errore') }
   }
@@ -77,8 +83,17 @@ export default function FertilitaPage() {
         azioni={<button className="btn-primary" onClick={scaricaPdf} disabled={pdf === 'in corso'}>{pdf === 'in corso' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Lista per il veterinario</button>} />
       {pdf === 'errore' && <p className="-mt-3 mb-4 text-sm text-red-600">Non sono riuscito a creare il PDF. Riprova.</p>}
 
+      {stalle.length > 0 && (
+        <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Mandria o stalla">
+          {[{ id: 'tutte', label: 'Tutta la mandria' }, ...stalle.map((st) => ({ id: st.id, label: `Stalla ${st.numero}` }))].map((v) => (
+            <button key={v.id} type="button" role="tab" aria-selected={vista === v.id} onClick={() => setVista(v.id)}
+              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${vista === v.id ? 'border-brand-700 bg-brand-700 text-white' : 'border-stone-300 bg-white text-stone-600 hover:border-brand-400'}`}>{v.label}</button>
+          ))}
+        </div>
+      )}
+
       {/* ---- Vacche */}
-      <h2 className="mb-3">Vacche <span className="text-base font-normal text-stone-500">· {f.vacche} tra lattazione e asciutta</span></h2>
+      <h2 className="mb-3">{sel ? `Stalla ${sel.st.numero}` : 'Vacche'} <span className="text-base font-normal text-stone-500">· {sel ? `${f.vacche} vacche in lattazione (gruppo ${sel.st.gruppoDairyComp})` : `${f.vacche} tra lattazione e asciutta`}</span></h2>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {tile('gravidePct', 'Vacche gravide', pct(f.gravidePct), '%', Dna)}
         {tile('gravideA150', `Gravide a ${DIM_VUOTA_PROBLEMA} giorni`, pct(f.gravideA150), '%', CalendarClock, `su ${f.oltre150} vacche oltre ${DIM_VUOTA_PROBLEMA} gg`)}
@@ -100,6 +115,10 @@ export default function FertilitaPage() {
         </div>
       </div>
 
+      {/* ---- Confronto tra le stalle */}
+      {perStalla.length > 1 && <Confronto righe={[...perStalla.map((x) => ({ nome: `Stalla ${x.st.numero}`, f: x.f, attiva: vista === x.st.id })), { nome: 'Mandria', f: tot, attiva: vista === 'tutte' }]} />}
+
+      {!sel && <>
       {/* ---- Manze */}
       <h2 className="mb-3 mt-8">Manze <span className="text-base font-normal text-stone-500">· {f.manzeGravide} gravide su {f.manze}</span></h2>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -108,6 +127,7 @@ export default function FertilitaPage() {
         {tile('serviziManze', 'Fecondazioni per gravidanza', f.serviziManze === null ? '—' : fmt1(f.serviziManze), undefined, Repeat, 'manze gravide')}
         {tile('tassoManze', 'Tasso di concepimento', pct(f.tassoManze), '%', Sprout, 'manze')}
       </div>
+      </>}
 
       {/* ---- Liste di lavoro */}
       <h2 className="mb-3 mt-8">Da fare</h2>
@@ -120,8 +140,8 @@ export default function FertilitaPage() {
           spiega={`Oltre i ${PERIODO_ATTESA} giorni dal parto, vuote e non ancora gravide.`} />
         <Lista titolo={`Vuote oltre i ${DIM_VUOTA_PROBLEMA} giorni`} icona={Timer} tono="text-rose-700" righe={f.vuoteProblema} vuoto="Nessuna."
           spiega="Non gravide oltre i 150 giorni di lattazione: visita, protocollo o decisione sulla carriera." />
-        <Lista titolo="Manze da fecondare" icona={Sprout} tono="text-arancio-700" righe={f.manzeDaFecondare} vuoto="Nessuna manza in ritardo."
-          spiega={`Manze oltre i ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi non ancora fecondate `} />
+        {!sel && <Lista titolo="Manze da fecondare" icona={Sprout} tono="text-arancio-700" righe={f.manzeDaFecondare} vuoto="Nessuna manza in ritardo."
+          spiega={`Manze oltre i ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi non ancora fecondate.`} />}
         <Lista titolo="Non fecondare" icona={Dna} tono="text-stone-600" righe={f.nonFecondare} vuoto="Nessuna." spiega="Animali segnati in DairyComp come da non fecondare." />
       </div>
 
@@ -149,7 +169,7 @@ export default function FertilitaPage() {
       )}
 
       {/* ---- Andamento */}
-      <section className="card mt-8">
+      {!sel && <section className="card mt-8">
         <h2>Andamento</h2>
         <p className="mt-0.5 text-xs text-stone-500">Una riga per ogni lista Mandria caricata: caricandola ogni lunedì si vede come cambiano gli indici.</p>
         <div className="mt-3 overflow-x-auto">
@@ -172,12 +192,12 @@ export default function FertilitaPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </section>}
 
       <p className="mt-6 text-xs text-stone-500">
         Come si calcola: dalla lista Mandria (RIPRO, NFEC, GUCA = giorni dall’ultimo calore, GLAT, GDNAS, UTOR). Per le gravide l’ultimo calore è quello della fecondazione andata a buon fine, quindi parto → concepimento = giorni di lattazione − GUCA;
         interparto previsto = quello + 280 giorni. Il tasso di concepimento conta le fecondazioni con esito noto (l’ultima di una fecondata in attesa di diagnosi non conta).
-        Il gruppo 11 (animali da carne) non è contato. È una fotografia del giorno della lista; gli obiettivi sono valori di riferimento indicativi.
+        Il gruppo 11 (animali da carne) non è contato. Nelle stalle ci sono solo le vacche in lattazione del gruppo collegato alla stalla: asciutte e manze sono contate solo in “Tutta la mandria”. È una fotografia del giorno della lista; gli obiettivi sono valori di riferimento indicativi.
       </p>
     </>
   )
@@ -205,6 +225,47 @@ function Lista({ titolo, spiega, righe, vuoto, icona: I, tono, aperta = false }:
           ))}
         </ul>
       ))}
+    </section>
+  )
+}
+
+type ChiaveConfronto = 'gravidePct' | 'gravideA150' | 'giorniAperti' | 'interparto' | 'serviziPerGravidanza' | 'tassoConcepimento' | 'primaFecondazione'
+const RIGHE_CONFRONTO: { k: ChiaveConfronto; nome: string; fmt: (v: number | null) => string }[] = [
+  { k: 'gravidePct', nome: 'Vacche gravide', fmt: (v) => `${pct(v)}%` },
+  { k: 'gravideA150', nome: `Gravide a ${DIM_VUOTA_PROBLEMA} giorni`, fmt: (v) => `${pct(v)}%` },
+  { k: 'giorniAperti', nome: 'Parto → concepimento', fmt: (v) => (v === null ? '—' : `${fmt0(v)} gg`) },
+  { k: 'interparto', nome: 'Interparto previsto', fmt: (v) => (v === null ? '—' : `${fmt0(v)} gg`) },
+  { k: 'serviziPerGravidanza', nome: 'Fecondazioni per gravidanza', fmt: (v) => (v === null ? '—' : fmt1(v)) },
+  { k: 'tassoConcepimento', nome: 'Tasso di concepimento', fmt: (v) => `${pct(v)}%` },
+  { k: 'primaFecondazione', nome: 'Gravide alla 1ª fecondazione', fmt: (v) => `${pct(v)}%` },
+]
+const TESTO_GIUDIZIO = { buono: 'text-emerald-700', medio: 'text-arancio-700', scarso: 'text-rose-700' }
+
+function Confronto({ righe }: { righe: { nome: string; f: IndiciFertilita; attiva: boolean }[] }) {
+  return (
+    <section className="card mt-6">
+      <h2>Confronto tra le stalle</h2>
+      <p className="mt-0.5 text-xs text-stone-500">Verde nella norma, arancio da migliorare, rosso lontano dall’obiettivo. Nelle stalle solo le vacche in lattazione; in “Mandria” anche le asciutte.</p>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="border-b text-xs uppercase tracking-wide text-stone-500">
+            <th className="py-2 pr-3 text-left font-semibold">Indice</th>
+            {righe.map((r) => <th key={r.nome} className={`px-2 text-right font-semibold ${r.attiva ? 'text-brand-800' : ''}`}>{r.nome}<span className="block text-[10px] font-normal normal-case">{r.f.vacche} vacche</span></th>)}
+          </tr></thead>
+          <tbody>
+            {RIGHE_CONFRONTO.map((x) => (
+              <tr key={x.k} className="border-b border-stone-100 last:border-0 tabular-nums">
+                <td className="py-1.5 pr-3 text-stone-700">{x.nome}</td>
+                {righe.map((r) => {
+                  const v = r.f[x.k]
+                  const g = giudizio(x.k, v)
+                  return <td key={r.nome} className={`px-2 text-right font-semibold ${g ? TESTO_GIUDIZIO[g] : 'text-stone-400'} ${r.attiva ? 'bg-brand-50/60' : ''}`}>{x.fmt(v)}</td>
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

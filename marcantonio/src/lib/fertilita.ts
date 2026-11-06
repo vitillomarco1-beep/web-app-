@@ -108,8 +108,9 @@ export interface IndiciFertilita {
   tori: { toro: string; gravide: number; fecondazioni: number; tasso: number | null }[]
 }
 
-export function calcolaFertilita(lista: ImportDC): IndiciFertilita {
-  const tutti = lista.animali.filter((a) => a.gruppo === null || !GRUPPI_ESCLUSI.includes(a.gruppo))
+/** `gruppi`: solo gli animali di questi gruppi DairyComp (per esempio quelli di una stalla). */
+export function calcolaFertilita(lista: ImportDC, gruppi?: number[]): IndiciFertilita {
+  const tutti = lista.animali.filter((a) => (a.gruppo === null || !GRUPPI_ESCLUSI.includes(a.gruppo)) && (!gruppi || (a.gruppo !== null && gruppi.includes(a.gruppo))))
   const vacche = tutti.filter(eVacca)
   const manze = tutti.filter(eManza)
   const conta = new Map<StatoRipro, number>()
