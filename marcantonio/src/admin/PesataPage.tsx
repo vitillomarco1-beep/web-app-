@@ -3,7 +3,7 @@ import { useStore } from '../lib/store'
 import type { Turno } from '../lib/types'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
 import { parseKg, scarichiDaPesate } from '../lib/pesate'
-import { chiaveFoto, comprimiFoto, eliminaFoto, salvaFoto } from '../lib/fotoStore'
+import { chiaveFoto, comprimiFoto, eliminaFoto, leggiFoto, salvaFoto } from '../lib/fotoStore'
 import { leggiPesate } from '../lib/lettorePesate'
 
 interface FotoPesata {
@@ -14,6 +14,19 @@ interface FotoPesata {
   letto: boolean // compilato dalla lettura automatica
   nota?: string
   scattataIl: number // ms, dall'orario del file
+}
+
+// Bozza della pesata in corso: tra una foto e l'altra passano anche 20 minuti, il telefono si blocca
+// e il browser può ricaricare la pagina. Foto (IndexedDB) e numeri (localStorage) restano sul telefono.
+const CHIAVE_BOZZA = 'marcantonio:pesata-bozza'
+const DURATA_BOZZA_MS = 8 * 3600 * 1000 // oltre un giro di carro la bozza non serve più
+const fotoBozza = (id: string) => `bozza:${id}`
+interface Bozza { data: string; turno: Turno; turnoToccato: boolean; aggiornataIl: number; foto: Omit<FotoPesata, 'blob' | 'url'>[] }
+function leggiBozza(): Bozza | null {
+  try { return JSON.parse(localStorage.getItem(CHIAVE_BOZZA) || 'null') } catch { return null }
+}
+function scriviBozza(b: Bozza | null) {
+  try { if (b) localStorage.setItem(CHIAVE_BOZZA, JSON.stringify(b)); else localStorage.removeItem(CHIAVE_BOZZA) } catch { /* storage bloccato */ }
 }
 
 /** Turno suggerito dall'orario: prima delle 13 mattina, dopo sera. */
@@ -39,6 +52,36 @@ export default function PesataPage() {
   // libera le anteprime quando non servono più
   useEffect(() => () => foto.forEach((f) => URL.revokeObjectURL(f.url)), []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- bozza: si riprende all'apertura, si aggiorna a ogni modifica
+  const [ripresa, setRipresa] = useState<number | null>(null)
+  const pronta = useRef(false)
+  useEffect(() => {
+    (async () => {
+      const b = leggiBozza()
+      if (b && Date.now() - b.aggiornataIl < DURATA_BOZZA_MS && b.foto.length) {
+        const recuperate: FotoPesata[] = []
+        for (const f of b.foto) {
+          const blob = await leggiFoto(fotoBozza(f.id)).catch(() => undefined)
+          if (blob) recuperate.push({ ...f, blob, url: URL.createObjectURL(blob) })
+        }
+        if (recuperate.length) {
+          setFoto(recuperate); setData(b.data); setTurno(b.turno); setTurnoToccato(b.turnoToccato)
+          setRipresa(Math.min(...recuperate.map((f) => f.scattataIl)))
+          const daLeggere = recuperate.filter((f) => !f.kg && !f.nota)
+          if (daLeggere.length) leggi(daLeggere)
+        }
+      } else if (b) {
+        for (const f of b.foto) await eliminaFoto(fotoBozza(f.id)).catch(() => undefined)
+        scriviBozza(null)
+      }
+      pronta.current = true
+    })()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!pronta.current) return
+    scriviBozza(foto.length ? { data, turno, turnoToccato, aggiornataIl: Date.now(), foto: foto.map(({ blob: _b, url: _u, ...resto }) => resto) } : null)
+  }, [foto, data, turno, turnoToccato])
+
   // Le pesate si ordinano dalla più pesante alla più leggera: il carro si svuota durante il giro.
   const ordinate = useMemo(() => {
     const tutteLette = foto.length === nFoto && foto.every((f) => parseKg(f.kg) !== null)
@@ -55,7 +98,9 @@ export default function PesataPage() {
     const nuove: FotoPesata[] = []
     for (const f of scelti) {
       const blob = await comprimiFoto(f)
-      nuove.push({ id: nuovoId(), blob, url: URL.createObjectURL(blob), kg: '', letto: false, scattataIl: f.lastModified || Date.now() })
+      const id = nuovoId()
+      await salvaFoto(fotoBozza(id), blob).catch(() => undefined)
+      nuove.push({ id, blob, url: URL.createObjectURL(blob), kg: '', letto: false, scattataIl: f.lastModified || Date.now() })
     }
     const tutte = [...foto, ...nuove]
     setFoto(tutte)
@@ -91,6 +136,7 @@ export default function PesataPage() {
   const rimuovi = (id: string) => {
     const f = foto.find((x) => x.id === id)
     if (f) URL.revokeObjectURL(f.url)
+    void eliminaFoto(fotoBozza(id)).catch(() => undefined)
     setFoto(foto.filter((x) => x.id !== id))
   }
 
@@ -111,8 +157,10 @@ export default function PesataPage() {
     for (let i = 0; i < 6; i++) await eliminaFoto(chiaveFoto(data, turno, i))
     for (let i = 0; i < ordinate.length; i++) await salvaFoto(chiaveFoto(data, turno, i), ordinate[i].blob)
     setSalvata({ data, turno, kg: kgStalle.map((k) => k!) })
-    foto.forEach((f) => URL.revokeObjectURL(f.url))
+    foto.forEach((f) => { URL.revokeObjectURL(f.url); void eliminaFoto(fotoBozza(f.id)).catch(() => undefined) })
     setFoto([])
+    scriviBozza(null)
+    setRipresa(null)
     setTurnoToccato(false)
   }
 
@@ -163,6 +211,10 @@ export default function PesataPage() {
       </div>
       {giaPresenti.length > 0 && (
         <p className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-800">! Per questo turno ci sono già scarichi registrati: salvando verranno sostituiti.</p>
+      )}
+
+      {ripresa !== null && foto.length > 0 && foto.length < nFoto && (
+        <p className="mt-3 rounded-md bg-sky-50 p-2 text-xs text-sky-800">Ripresa la pesata iniziata alle {new Date(ripresa).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}: scatta la foto {foto.length + 1}.</p>
       )}
 
       {/* Foto */}
