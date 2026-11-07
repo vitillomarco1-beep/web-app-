@@ -4,7 +4,7 @@ import type { Turno } from '../lib/types'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
 import { parseKg, scarichiDaPesate } from '../lib/pesate'
 import { chiaveFoto, comprimiFoto, eliminaFoto, salvaFoto } from '../lib/fotoStore'
-import { leggiPesate, letturaAutomaticaAttiva } from '../lib/lettorePesate'
+import { leggiPesate } from '../lib/lettorePesate'
 
 interface FotoPesata {
   id: string
@@ -67,18 +67,19 @@ export default function PesataPage() {
       if (giorno <= oggi) setData(giorno)
       setTurno(turnoDaOra(t0))
     }
-    if (letturaAutomaticaAttiva && nuove.length) leggi(nuove, tutte)
+    if (nuove.length) leggi(nuove)
   }
 
-  const leggi = async (daLeggere: FotoPesata[], tutte: FotoPesata[]) => {
+  const leggi = async (daLeggere: FotoPesata[]) => {
     setLettura('in corso')
     setErroreLettura('')
     try {
       const risultati = await leggiPesate(daLeggere.map((f) => f.blob))
       const perId = new Map(daLeggere.map((f, i) => [f.id, risultati[i]]))
-      setFoto(tutte.map((f) => {
+      // dallo stato più recente: nel frattempo potrebbero essere state aggiunte altre foto o scritto un numero
+      setFoto((attuali) => attuali.map((f) => {
         const r = perId.get(f.id)
-        return r ? { ...f, kg: r.kg === null ? f.kg : String(r.kg), letto: r.kg !== null, nota: r.nota } : f
+        return r && !(f.kg && !f.letto) ? { ...f, kg: r.kg === null ? f.kg : String(r.kg), letto: r.kg !== null, nota: r.nota } : f
       }))
       setLettura('ferma')
     } catch (e) {
@@ -143,7 +144,7 @@ export default function PesataPage() {
       <h1 className="text-2xl font-bold">Pesata del carro</h1>
       <p className="mt-1 text-sm text-stone-600">
         Fotografa il display {nFoto} volte: carico totale, dopo la stalla {numeri.slice(0, -1).join(', poi dopo la stalla ')}.
-        {letturaAutomaticaAttiva ? ' I numeri vengono letti in automatico.' : ' Poi scrivi il numero sotto ogni foto.'}
+        {' I numeri si leggono in automatico dalla foto: controlla solo che siano giusti.'}
       </p>
 
       {/* Quando */}
@@ -177,7 +178,7 @@ export default function PesataPage() {
                   <button type="button" className="text-xs text-red-600" onClick={() => rimuovi(f.id)}>Rimuovi</button>
                 </div>
                 <label className="mt-1 flex items-center gap-2">
-                  <input className="input text-right text-lg font-semibold tabular-nums" inputMode="decimal" placeholder="kg" aria-label={`kg ${ruolo}`}
+                  <input className="input text-right text-lg font-semibold tabular-nums" inputMode="decimal" placeholder={lettura === 'in corso' && !f.kg ? 'lettura…' : 'kg'} aria-label={`kg ${ruolo}`}
                     value={f.kg} onChange={(e) => setFoto(foto.map((x) => (x.id === f.id ? { ...x, kg: e.target.value.replace(/[^\d.,]/g, ''), letto: false } : x)))} />
                   <span className="text-sm text-stone-500">kg</span>
                 </label>
@@ -197,7 +198,7 @@ export default function PesataPage() {
           </div>
         )}
         {lettura === 'in corso' && <p className="text-center text-sm text-stone-500">Lettura dei numeri in corso…</p>}
-        {lettura === 'errore' && <p className="text-sm text-amber-800">Lettura automatica non riuscita ({erroreLettura}): scrivi i numeri a mano.</p>}
+        {lettura === 'errore' && <p className="text-sm text-amber-800">Lettura automatica non riuscita ({erroreLettura}). Scrivi i numeri a mano o <button type="button" className="underline" onClick={() => leggi(foto.filter((x) => !x.kg))}>riprova</button>.</p>}
       </div>
 
       {/* Riepilogo */}
