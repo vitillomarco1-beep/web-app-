@@ -9,7 +9,8 @@ import {
   DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
   calcolaFertilita, giudizio, listaAdatta, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
-import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
+import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, perGruppo, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
+import { nomeAutomaticoGruppo, perGruppo as animaliPerGruppo } from '../lib/dairycomp'
 
 const pct = (v: number | null) => (v === null ? '—' : fmt0(v * 100))
 const TONO: Record<'buono' | 'medio' | 'scarso', Tono> = { buono: 'verde', medio: 'arancio', scarso: 'rosso' }
@@ -52,6 +53,15 @@ export default function FertilitaPage() {
     const g = sel?.st.gruppoDairyComp
     return storicoDiagnosi(aggiornaFoto(base, fotoDaLista(lista)), g === undefined ? undefined : (gr) => gr === g)
   }, [lista, adatta.ok, dati.fotoRipro, sel])
+
+  // nome di un gruppo come in Mandria (nome dato a mano, oppure automatico dagli animali che contiene)
+  const nomeGruppo = (g: number) => {
+    const scelto = dati.nomiGruppi.find((x) => x.id === String(g))?.nome
+    if (scelto) return scelto
+    const animali = lista ? animaliPerGruppo(lista.animali).find(([k]) => k === g)?.[1] ?? [] : []
+    const st = dati.stalle.find((x) => x.gruppoDairyComp === g)
+    return nomeAutomaticoGruppo(animali, st?.numero, g)
+  }
 
   if (!lista || !f || !tot) {
     return (
@@ -133,7 +143,7 @@ export default function FertilitaPage() {
       </div>
 
       {/* ---- Diagnosi di gravidanza tra due liste */}
-      <Diagnosi confronti={diagnosi} stalla={sel ? sel.st.numero : null} />
+      <Diagnosi confronti={diagnosi} stalla={sel ? sel.st.numero : null} nomeGruppo={nomeGruppo} />
 
       {/* ---- Confronto tra le stalle */}
       {perStalla.length > 1 && <Confronto righe={[...perStalla.map((x) => ({ nome: `Stalla ${x.st.numero}`, f: x.f, attiva: vista === x.st.id })), { nome: 'Mandria', f: tot, attiva: vista === 'tutte' }]} />}
@@ -332,7 +342,7 @@ function Chip({ e }: { e: Esito }) {
   return <span className="inline-flex items-baseline gap-1 rounded-full bg-stone-100 px-2.5 py-0.5 text-sm tabular-nums" title={`gruppo ${e.gruppo}${e.lattazione === 0 ? ', manza' : `, lattazione ${e.lattazione}`}`}><b>{e.vacca}</b>{e.nota && <span className="text-xs text-stone-500">{e.nota}</span>}</span>
 }
 
-function Diagnosi({ confronti, stalla }: { confronti: ConfrontoDiagnosi[]; stalla: number | null }) {
+function Diagnosi({ confronti, stalla, nomeGruppo }: { confronti: ConfrontoDiagnosi[]; stalla: number | null; nomeGruppo: (g: number) => string }) {
   const [c] = confronti
   if (!c) {
     return (
@@ -369,6 +379,32 @@ function Diagnosi({ confronti, stalla }: { confronti: ConfrontoDiagnosi[]; stall
           </li>
         ))}
       </ul>
+      {stalla === null && perGruppo(c).length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <h3 className="text-sm font-semibold text-stone-700">Per gruppo · lista del {fmtData(c.a)}</h3>
+          <table className="mt-1 w-full text-sm">
+            <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-stone-500">
+              <th className="py-2 pr-3">Gruppo</th><th className="px-2 text-right">Positive</th><th className="px-2 text-right">Negative</th><th className="px-2 text-right">% positive</th><th className="px-2 text-right">Tornate in calore</th><th className="px-2 text-right">Perse</th><th className="pl-2 text-right">In attesa</th>
+            </tr></thead>
+            <tbody>
+              {perGruppo(c).map((r) => {
+                const q = r.positive + r.negative ? r.positive / (r.positive + r.negative) : null
+                return (
+                  <tr key={r.gruppo} className="border-b border-stone-100 last:border-0 tabular-nums">
+                    <td className="py-1.5 pr-3"><b>{r.gruppo}</b> <span className="text-xs text-stone-500">{nomeGruppo(r.gruppo)}</span></td>
+                    <td className="px-2 text-right">{r.positive || '—'}</td>
+                    <td className="px-2 text-right">{r.negative || '—'}</td>
+                    <td className="px-2 text-right font-semibold">{q === null ? '—' : `${pct(q)}%`}</td>
+                    <td className="px-2 text-right">{r.rifecondate || '—'}</td>
+                    <td className="px-2 text-right">{r.perse || '—'}</td>
+                    <td className="pl-2 text-right text-stone-500">{r.inAttesa || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
       {confronti.length > 1 && (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">

@@ -45,13 +45,14 @@ export interface ConfrontoDiagnosi {
   negative: Esito[] // fecondata → vuota o non fecondare, senza nuova fecondazione
   rifecondate: Esito[] // una fecondazione in più: tornata in calore
   inAttesa: number // ancora fecondate senza diagnosi
+  attese: Esito[]
   perse: Esito[] // gravida → non più gravida (escluso il parto)
   gravidePrima: number // gravide nella foto precedente (per la quota di perse)
 }
 
 /** Confronta due foto; `filtro` sceglie gli animali per gruppo e lattazione della foto attuale (o precedente se uscito). */
 export function confronta(prima: FotoRipro, dopo: FotoRipro, filtro: (gruppo: number, lattazione: number) => boolean = () => true): ConfrontoDiagnosi {
-  const r: ConfrontoDiagnosi = { da: prima.data, a: dopo.data, positive: [], negative: [], rifecondate: [], inAttesa: 0, perse: [], gravidePrima: 0 }
+  const r: ConfrontoDiagnosi = { da: prima.data, a: dopo.data, positive: [], negative: [], rifecondate: [], inAttesa: 0, attese: [], perse: [], gravidePrima: 0 }
   for (const [vacca, [s0, n0, g0, l0]] of Object.entries(prima.animali)) {
     const ora = dopo.animali[vacca]
     if (!ora) continue // uscita dall'allevamento
@@ -62,7 +63,7 @@ export function confronta(prima: FotoRipro, dopo: FotoRipro, filtro: (gruppo: nu
       if (s1 === 'gravida') r.positive.push(e)
       else if (n1 > n0) r.rifecondate.push({ ...e, nota: `${n1}ª fecondazione` })
       else if (s1 === 'vuota' || s1 === 'nonFecondare') r.negative.push(e)
-      else if (s1 === 'fecondata') r.inAttesa++
+      else if (s1 === 'fecondata') { r.inAttesa++; r.attese.push(e) }
     } else if (s0 === 'gravida' && !prima.parziale) {
       r.gravidePrima++
       const partorita = l1 > l0 || s1 === 'attesa'
@@ -83,4 +84,18 @@ export function storicoDiagnosi(foto: FotoRipro[], filtro?: (gruppo: number, lat
 export const quotaPositive = (c: { positive: unknown[]; negative: unknown[] }) => {
   const d = c.positive.length + c.negative.length
   return d ? c.positive.length / d : null
+}
+
+export interface RigaGruppo { gruppo: number; positive: number; negative: number; rifecondate: number; perse: number; inAttesa: number }
+
+/** Lo stesso confronto diviso per gruppo DairyComp (gruppo della lista attuale). */
+export function perGruppo(c: ConfrontoDiagnosi): RigaGruppo[] {
+  const m = new Map<number, RigaGruppo>()
+  const riga = (g: number) => m.get(g) ?? m.set(g, { gruppo: g, positive: 0, negative: 0, rifecondate: 0, perse: 0, inAttesa: 0 }).get(g)!
+  c.positive.forEach((e) => riga(e.gruppo).positive++)
+  c.negative.forEach((e) => riga(e.gruppo).negative++)
+  c.rifecondate.forEach((e) => riga(e.gruppo).rifecondate++)
+  c.perse.forEach((e) => riga(e.gruppo).perse++)
+  c.attese.forEach((e) => riga(e.gruppo).inAttesa++)
+  return [...m.values()].sort((a, b) => a.gruppo - b.gruppo)
 }
