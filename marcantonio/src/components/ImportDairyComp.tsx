@@ -5,6 +5,7 @@ import { CAMPI, abbinaColonne, costruisciAnimali, leggiFile, perGruppo, type Cam
 import { fmt0, fmt1, isoGiorno, nuovoId } from '../lib/format'
 import { applicaGruppiRobot } from '../lib/gruppi'
 import { calcolaFertilita, listaAdatta, riassuntoStorico } from '../lib/fertilita'
+import { aggiornaFoto, fotoDaLista } from '../lib/diagnosi'
 
 const MAX_IMPORT = 120 // fotografie conservate nel browser (con il servizio online: nessun limite)
 
@@ -66,6 +67,7 @@ export default function ImportDairyComp({ onChiudi, onImportato, destinazione = 
         const r = riassuntoStorico(calcolaFertilita(nuova))
         if (dati.storicoFertilita.some((x) => x.id === r.id)) aggiorna('storicoFertilita', r); else aggiungi('storicoFertilita', r)
       }
+      if (listaAdatta(nuova).ok) imposta('fotoRipro', aggiornaFoto(dati.fotoRipro, fotoDaLista(nuova)))
       if (aggiornaLatte) salvaPerLatte(animali.filter((a) => a.gruppo !== null && gruppiStalle.has(a.gruppo)))
       onImportato(id)
       return

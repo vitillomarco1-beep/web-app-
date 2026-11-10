@@ -9,6 +9,7 @@ import {
   DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
   calcolaFertilita, giudizio, listaAdatta, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
+import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
 
 const pct = (v: number | null) => (v === null ? '—' : fmt0(v * 100))
 const TONO: Record<'buono' | 'medio' | 'scarso', Tono> = { buono: 'verde', medio: 'arancio', scarso: 'rosso' }
@@ -19,7 +20,7 @@ const COLORE_STATO: Record<StatoRipro, string> = {
 
 /** Fertilità: indici calcolati dalla lista completa di DairyComp caricata in Mandria. */
 export default function FertilitaPage() {
-  const { dati, aggiungi, aggiorna } = useStore()
+  const { dati, aggiungi, aggiorna, imposta } = useStore()
   const lista = dati.mandriaDC[0]
   const adatta = listaAdatta(lista)
   const tot = useMemo(() => (lista && adatta.ok ? calcolaFertilita(lista) : null), [lista, adatta.ok])
@@ -40,6 +41,17 @@ export default function FertilitaPage() {
     if (!es) aggiungi('storicoFertilita', r)
     else if ((Object.keys(r) as (keyof typeof r)[]).some((k) => (es[k] ?? null) !== (r[k] ?? null))) aggiorna('storicoFertilita', r)
   }, [tot, dati.storicoFertilita, aggiungi, aggiorna])
+
+  // foto dello stato riproduttivo di ogni lista: confrontando due liste si ricavano le diagnosi
+  useEffect(() => {
+    if (lista && adatta.ok && !dati.fotoRipro.some((x) => x.id === lista.data)) imposta('fotoRipro', aggiornaFoto(dati.fotoRipro, fotoDaLista(lista)))
+  }, [lista, adatta.ok, dati.fotoRipro, imposta])
+  const diagnosi = useMemo(() => {
+    if (!lista || !adatta.ok) return []
+    const base = dati.fotoRipro.some((x) => x.id === FOTO_INIZIALE.id) || dati.fotoRipro.some((x) => x.data < FOTO_INIZIALE.data) ? dati.fotoRipro : [FOTO_INIZIALE, ...dati.fotoRipro]
+    const g = sel?.st.gruppoDairyComp
+    return storicoDiagnosi(aggiornaFoto(base, fotoDaLista(lista)), g === undefined ? undefined : (gr) => gr === g)
+  }, [lista, adatta.ok, dati.fotoRipro, sel])
 
   if (!lista || !f || !tot) {
     return (
@@ -119,6 +131,9 @@ export default function FertilitaPage() {
           </ul>
         </div>
       </div>
+
+      {/* ---- Diagnosi di gravidanza tra due liste */}
+      <Diagnosi confronti={diagnosi} stalla={sel ? sel.st.numero : null} />
 
       {/* ---- Confronto tra le stalle */}
       {perStalla.length > 1 && <Confronto righe={[...perStalla.map((x) => ({ nome: `Stalla ${x.st.numero}`, f: x.f, attiva: vista === x.st.id })), { nome: 'Mandria', f: tot, attiva: vista === 'tutte' }]} />}
@@ -309,6 +324,81 @@ function Categorie({ righe }: { righe: IndiciCategoria[] }) {
           </tbody>
         </table>
       </div>
+    </section>
+  )
+}
+
+function Chip({ e }: { e: Esito }) {
+  return <span className="inline-flex items-baseline gap-1 rounded-full bg-stone-100 px-2.5 py-0.5 text-sm tabular-nums" title={`gruppo ${e.gruppo}${e.lattazione === 0 ? ', manza' : `, lattazione ${e.lattazione}`}`}><b>{e.vacca}</b>{e.nota && <span className="text-xs text-stone-500">{e.nota}</span>}</span>
+}
+
+function Diagnosi({ confronti, stalla }: { confronti: ConfrontoDiagnosi[]; stalla: number | null }) {
+  const [c] = confronti
+  if (!c) {
+    return (
+      <section className="card mt-6">
+        <h2>Diagnosi positive</h2>
+        <p className="mt-1 text-sm text-stone-500">Servono due liste Mandria di lunedì diversi: dal prossimo caricamento qui compaiono le diagnosi della settimana.</p>
+      </section>
+    )
+  }
+  const q = quotaPositive(c)
+  const d = c.positive.length + c.negative.length
+  const tot = confronti.reduce((t, x) => ({ p: t.p + x.positive.length, n: t.n + x.negative.length, r: t.r + x.rifecondate.length, perse: t.perse + x.perse.length }), { p: 0, n: 0, r: 0, perse: 0 })
+  const righe: { nome: string; tono: string; el: Esito[] }[] = [
+    { nome: 'Positive', tono: 'text-emerald-700', el: c.positive },
+    { nome: 'Negative', tono: 'text-rose-700', el: c.negative },
+    { nome: 'Tornate in calore e rifecondate', tono: 'text-arancio-700', el: c.rifecondate },
+    { nome: 'Gravidanze perse', tono: 'text-rose-700', el: c.perse },
+  ]
+  return (
+    <section className="card mt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2>Diagnosi positive{stalla !== null ? ` · stalla ${stalla}` : ''}</h2>
+        <span className="text-xs text-stone-500">lista del {fmtData(c.a)} confrontata con quella del {fmtData(c.da)}</span>
+      </div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="font-serif text-4xl font-bold tabular-nums text-stone-900">{q === null ? '—' : `${pct(q)}%`}</span>
+        <span className="text-sm text-stone-600">{d ? `${c.positive.length} positive su ${d} diagnosi` : 'nessuna diagnosi tra queste due liste'}{c.inAttesa ? ` · ${c.inAttesa} fecondate ancora in attesa` : ''}</span>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {righe.filter((r) => r.el.length).map((r) => (
+          <li key={r.nome} className="flex flex-wrap items-center gap-2">
+            <span className={`w-full shrink-0 text-sm font-semibold sm:w-48 ${r.tono}`}>{r.nome} ({r.el.length})</span>
+            {r.el.map((e) => <Chip key={e.vacca} e={e} />)}
+          </li>
+        ))}
+      </ul>
+      {confronti.length > 1 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-stone-500">
+              <th className="py-2 pr-3">Lista del</th><th className="px-2 text-right">Positive</th><th className="px-2 text-right">Negative</th><th className="px-2 text-right">% positive</th><th className="px-2 text-right">Tornate in calore</th><th className="pl-2 text-right">Perse</th>
+            </tr></thead>
+            <tbody>
+              {confronti.map((x) => (
+                <tr key={x.a} className="border-b border-stone-100 last:border-0 tabular-nums">
+                  <td className="py-1.5 pr-3">{fmtData(x.a)}</td>
+                  <td className="px-2 text-right">{x.positive.length}</td>
+                  <td className="px-2 text-right">{x.negative.length}</td>
+                  <td className="px-2 text-right font-semibold">{quotaPositive(x) === null ? '—' : `${pct(quotaPositive(x))}%`}</td>
+                  <td className="px-2 text-right">{x.rifecondate.length}</td>
+                  <td className="pl-2 text-right">{x.perse.length}</td>
+                </tr>
+              ))}
+              <tr className="font-semibold tabular-nums">
+                <td className="py-1.5 pr-3">Totale</td>
+                <td className="px-2 text-right">{tot.p}</td>
+                <td className="px-2 text-right">{tot.n}</td>
+                <td className="px-2 text-right">{tot.p + tot.n ? `${pct(tot.p / (tot.p + tot.n))}%` : '—'}</td>
+                <td className="px-2 text-right">{tot.r}</td>
+                <td className="pl-2 text-right">{tot.perse}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-3 text-xs text-stone-500">Fecondate nella lista precedente: positive se ora sono gravide, negative se ora sono vuote; con una fecondazione in più sono tornate in calore. "Perse" = gravide che non lo sono più senza aver partorito. Manze comprese; gruppo 11 escluso.</p>
     </section>
   )
 }

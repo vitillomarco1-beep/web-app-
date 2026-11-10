@@ -251,7 +251,11 @@ export interface Dati {
   quotazioniClal: QuotazioneClal[]
   note: NotaVeloce[]
   storicoFertilita: StoricoFertilita[] // indici di fertilità, una riga per lista Mandria caricata
+  fotoRipro: FotoRipro[] // stato riproduttivo di ogni lista Mandria, per ricavare le diagnosi tra due liste
 }
+
+/** Stato riproduttivo di ogni animale in una lista Mandria: [stato, fecondazioni, gruppo, lattazione]. id = data della lista. */
+export interface FotoRipro { id: string; data: string; parziale?: boolean /* solo le fecondate */; animali: Record<string, [import('./fertilita').StatoRipro, number, number, number]> }
 
 /** Indici di fertilità di una lista Mandria (id = data della lista). */
 export interface StoricoFertilita { id: string; data: string; vacche: number; gravidePct: number | null; gravideA150: number | null; giorniAperti: number | null; serviziPerGravidanza: number | null; tassoConcepimento: number | null; primaFecondazione: number | null; etaPrimoParto: number | null }
