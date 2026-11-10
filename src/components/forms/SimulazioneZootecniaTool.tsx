@@ -25,9 +25,11 @@ import {
 } from '../../lib/metanoEnterico'
 import {
   BO_RIFERIMENTO,
+  SISTEMI_STOCCAGGIO,
   TECNICHE_SPANDIMENTO,
   calcolaGestioneReflui,
   calcolaTdnMedioDieta,
+  type SistemaStoccaggio,
   type TecnicaSpandimento,
 } from '../../lib/gestioneReflui'
 import { calcolaThiMensile, formattaThi } from '../../lib/thi'
@@ -560,10 +562,9 @@ export default function SimulazioneZootecniaTool({
   }
 
   const gestioneReflui = sim.gestioneReflui ?? {
-    sistemaStoccaggio: 'liquido' as const,
+    sistemaStoccaggio: 'liquido_senza_crosta' as const,
+    temperaturaMediaAnnuaC: 15,
     durataStoccaggioMesi: 6,
-    fasciaClimatica: 'temperata' as const,
-    crostaNaturale: false,
     azotoEscretoKgAnno: 0,
     tecnicaSpandimento: 'spaglio' as const,
   }
@@ -576,13 +577,16 @@ export default function SimulazioneZootecniaTool({
     digeribilitaPercento,
     boM3PerKgVs: boUsato,
     fonteBo: boRiferimento?.fonte ?? null,
+    tipologiaAllevamento,
     sistemaStoccaggio: gestioneReflui.sistemaStoccaggio,
+    temperaturaMediaAnnuaC: gestioneReflui.temperaturaMediaAnnuaC,
     durataStoccaggioMesi: gestioneReflui.durataStoccaggioMesi,
-    fasciaClimatica: gestioneReflui.fasciaClimatica,
-    crostaNaturale: gestioneReflui.crostaNaturale,
+    miscelazioneAttivaLettiera: gestioneReflui.miscelazioneAttivaLettiera,
     azotoEscretoKgAnno: gestioneReflui.azotoEscretoKgAnno,
     tecnicaSpandimento: gestioneReflui.tecnicaSpandimento,
     mcfManualePercento: gestioneReflui.mcfManualePercento,
+    fracGasMsStoccaggioManualePercento: gestioneReflui.fracGasMsStoccaggioManualePercento,
+    fracLossMsManualePercento: gestioneReflui.fracLossMsManualePercento,
     fracGasmManualePercento: gestioneReflui.fracGasmManualePercento,
   })
 
@@ -1087,68 +1091,75 @@ export default function SimulazioneZootecniaTool({
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
-                    <label className="text-[11px] text-stone-500">Sistema di stoccaggio</label>
+                    <label className="text-[11px] text-stone-500">Sistema di gestione del refluo</label>
                     <select
                       className="input !py-1 text-xs"
                       value={gestioneReflui.sistemaStoccaggio}
                       onChange={(e) =>
                         aggiornaGestioneReflui({
-                          sistemaStoccaggio: e.target.value as 'liquido' | 'solido',
+                          sistemaStoccaggio: e.target.value as SistemaStoccaggio,
                         })
                       }
                     >
-                      <option value="liquido">Liquido (vasca/lagone)</option>
-                      <option value="solido">Solido (letame palabile)</option>
+                      {(Object.keys(SISTEMI_STOCCAGGIO) as SistemaStoccaggio[]).map((k) => (
+                        <option key={k} value={k}>
+                          {SISTEMI_STOCCAGGIO[k]}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  {gestioneReflui.sistemaStoccaggio === 'liquido' && (
-                    <>
-                      <div>
-                        <label className="text-[11px] text-stone-500">
-                          Durata media di stoccaggio (mesi)
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.5"
-                          className="input !py-1 text-xs"
-                          value={gestioneReflui.durataStoccaggioMesi}
-                          onChange={(e) =>
-                            aggiornaGestioneReflui({ durataStoccaggioMesi: num(e.target.value) })
-                          }
-                        />
-                        <p className="mt-1 text-[11px] text-stone-400">
-                          Nelle zone vulnerabili ai nitrati lo spandimento è vietato nei mesi
-                          invernali (Direttiva Nitrati): la permanenza reale in vasca è spesso più
-                          lunga del minimo tecnico — inserisci il valore realistico del cliente.
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-stone-500">Fascia climatica media annua</label>
-                        <select
-                          className="input !py-1 text-xs"
-                          value={gestioneReflui.fasciaClimatica}
-                          onChange={(e) =>
-                            aggiornaGestioneReflui({
-                              fasciaClimatica: e.target.value as 'fredda' | 'temperata' | 'calda',
-                            })
-                          }
-                        >
-                          <option value="fredda">Fredda (≤15°C)</option>
-                          <option value="temperata">Temperata (15-25°C)</option>
-                          <option value="calda">Calda (&gt;25°C)</option>
-                        </select>
-                      </div>
-                      <label className="flex items-center gap-1.5 text-[11px] text-stone-600">
-                        <input
-                          type="checkbox"
-                          className="h-3.5 w-3.5 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
-                          checked={gestioneReflui.crostaNaturale}
-                          onChange={(e) => aggiornaGestioneReflui({ crostaNaturale: e.target.checked })}
-                        />
-                        Si forma una crosta naturale in superficie
+                  <div>
+                    <label className="text-[11px] text-stone-500">Temperatura media annua (°C)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="input !py-1 text-xs"
+                      value={gestioneReflui.temperaturaMediaAnnuaC}
+                      onChange={(e) =>
+                        aggiornaGestioneReflui({ temperaturaMediaAnnuaC: num(e.target.value) })
+                      }
+                    />
+                    <p className="mt-1 text-[11px] text-stone-400">
+                      Determina il MCF secondo la Tabella 10.17 IPCC — valore esatto, non a fasce.
+                    </p>
+                  </div>
+                  {(gestioneReflui.sistemaStoccaggio === 'fessurato' ||
+                    gestioneReflui.sistemaStoccaggio === 'lettiera_profonda') && (
+                    <div>
+                      <label className="text-[11px] text-stone-500">
+                        Durata media di stoccaggio (mesi)
                       </label>
-                    </>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        className="input !py-1 text-xs"
+                        value={gestioneReflui.durataStoccaggioMesi}
+                        onChange={(e) =>
+                          aggiornaGestioneReflui({ durataStoccaggioMesi: num(e.target.value) })
+                        }
+                      />
+                      <p className="mt-1 text-[11px] text-stone-400">
+                        Sotto/sopra 1 mese cambia molto il MCF per questo sistema (Tabella 10.17).
+                        Nelle zone vulnerabili ai nitrati lo spandimento è vietato nei mesi invernali
+                        (Direttiva Nitrati): la permanenza reale è spesso più lunga del minimo
+                        tecnico.
+                      </p>
+                    </div>
+                  )}
+                  {gestioneReflui.sistemaStoccaggio === 'lettiera_profonda' && (
+                    <label className="flex items-center gap-1.5 text-[11px] text-stone-600">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+                        checked={gestioneReflui.miscelazioneAttivaLettiera ?? false}
+                        onChange={(e) =>
+                          aggiornaGestioneReflui({ miscelazioneAttivaLettiera: e.target.checked })
+                        }
+                      />
+                      Mescolazione attiva della lettiera (altrimenti nessuna mescolazione — EF3 più
+                      basso)
+                    </label>
                   )}
                 </div>
 
@@ -1249,7 +1260,70 @@ export default function SimulazioneZootecniaTool({
                       {formatTCO2(risultatoReflui.n2oDirettoTCO2eq)} t CO2eq
                     </span>
                   </div>
-                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oDiretto}</p>
+                  <p className="mt-0.5 text-stone-500">
+                    {risultatoReflui.formulaN2oDiretto} — {risultatoReflui.fonteEf3}
+                  </p>
+                </div>
+
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">
+                    Azoto volatilizzato durante lo stoccaggio (FracGasMS, Tabella 10.22)
+                  </p>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oIndirettoStoccaggio}</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      className="input !py-1 w-32 text-xs"
+                      placeholder="manuale"
+                      value={gestioneReflui.fracGasMsStoccaggioManualePercento ?? ''}
+                      onChange={(e) =>
+                        aggiornaGestioneReflui({
+                          fracGasMsStoccaggioManualePercento: e.target.value === '' ? undefined : num(e.target.value),
+                        })
+                      }
+                    />
+                    <span className="text-[11px] text-stone-400">
+                      % — lascia vuoto per usare la Tabella 10.22 (dove disponibile)
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-md bg-forest-50 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-stone-700">N2O indiretto da stoccaggio (EF4 = 0,01)</p>
+                    <span className="font-semibold text-stone-800">
+                      {formatTCO2(risultatoReflui.n2oIndirettoStoccaggioTCO2eq)} t CO2eq
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-stone-50 p-2">
+                  <p className="text-stone-600">
+                    Azoto disponibile per lo spandimento (dopo le perdite di stoccaggio, Tabella
+                    10.23)
+                  </p>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaNDisponibile}</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      className="input !py-1 w-32 text-xs"
+                      placeholder="manuale"
+                      value={gestioneReflui.fracLossMsManualePercento ?? ''}
+                      onChange={(e) =>
+                        aggiornaGestioneReflui({
+                          fracLossMsManualePercento: e.target.value === '' ? undefined : num(e.target.value),
+                        })
+                      }
+                    />
+                    <span className="text-[11px] text-stone-400">
+                      % — lascia vuoto per usare la Tabella 10.23 (dove disponibile)
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -1269,17 +1343,17 @@ export default function SimulazioneZootecniaTool({
                   </select>
                 </div>
                 <div className="rounded-md bg-stone-50 p-2">
-                  <p className="text-stone-600">Azoto volatilizzato allo spandimento (FracGASM)</p>
+                  <p className="text-stone-600">Azoto volatilizzato allo spandimento (FracGASM, Cap. 11)</p>
                   <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaFracGasm}</p>
                 </div>
                 <div className="rounded-md bg-forest-50 p-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-stone-700">N2O indiretto da spandimento (EF4 = 0,01)</p>
                     <span className="font-semibold text-stone-800">
-                      {formatTCO2(risultatoReflui.n2oIndirettoTCO2eq)} t CO2eq
+                      {formatTCO2(risultatoReflui.n2oIndirettoSpandimentoTCO2eq)} t CO2eq
                     </span>
                   </div>
-                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oIndiretto}</p>
+                  <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oIndirettoSpandimento}</p>
                 </div>
 
                 <div className="rounded-lg bg-amber-600 p-3 text-white">

@@ -266,14 +266,21 @@ export interface SimulazioneZootecnia {
    * indirette) dai reflui zootecnici, dallo stoccaggio allo spandimento — si
    * veda lib/gestioneReflui.ts. */
   gestioneReflui?: {
-    sistemaStoccaggio: 'liquido' | 'solido'
+    /** Sistema di gestione del refluo — si veda lib/gestioneReflui.ts,
+     * SistemaStoccaggio, per l'elenco completo (Tabella 10.18 IPCC). */
+    sistemaStoccaggio: import('./lib/gestioneReflui').SistemaStoccaggio
+    /** Temperatura media annua (°C) del luogo di stoccaggio — determina il
+     * MCF per i sistemi a gradiente continuo (Tabella 10.17 IPCC). */
+    temperaturaMediaAnnuaC: number
     /** Durata media di permanenza in stoccaggio prima dello spandimento —
-     * spesso più lunga di quanto tecnicamente necessario per via dei divieti
-     * invernali di spandimento nelle zone vulnerabili ai nitrati. */
+     * rilevante solo per fessurato/lettiera profonda (sotto/sopra 1 mese,
+     * Tabella 10.17), ma spesso più lunga di quanto tecnicamente necessario
+     * per via dei divieti invernali di spandimento nelle zone vulnerabili ai
+     * nitrati. */
     durataStoccaggioMesi: number
-    fasciaClimatica: 'fredda' | 'temperata' | 'calda'
-    /** Solo per il liquido: presenza di una crosta naturale in superficie. */
-    crostaNaturale: boolean
+    /** Solo per la lettiera profonda: mescolazione attiva (EF3 più alto,
+     * Tabella 10.21) invece che senza mescolazione (il caso più comune). */
+    miscelazioneAttivaLettiera?: boolean
     /** Azoto escreto dalla mandria, kg N/anno — spesso già disponibile dal
      * Piano di Utilizzazione Agronomica in zona vulnerabile ai nitrati. */
     azotoEscretoKgAnno: number
@@ -281,6 +288,16 @@ export interface SimulazioneZootecnia {
     digeribilitaManualePercento?: number
     boManualeM3PerKgVs?: number
     mcfManualePercento?: number
+    /** Frazione di azoto volatilizzata durante lo STOCCAGGIO (Tabella 10.22
+     * IPCC) — manuale, per le combinazioni tipologia/sistema non coperte
+     * dalla tabella. */
+    fracGasMsStoccaggioManualePercento?: number
+    /** Frazione totale di azoto persa durante lo STOCCAGGIO — volatilizzazione
+     * + lisciviazione + ruscellamento (Tabella 10.23 IPCC) — manuale, per le
+     * combinazioni non coperte dalla tabella. */
+    fracLossMsManualePercento?: number
+    /** Frazione di azoto volatilizzata allo SPANDIMENTO in campo (Cap. 11
+     * IPCC, non Tabella 10.22) — manuale. */
     fracGasmManualePercento?: number
   }
   /** Temperatura e umidità relativa media mensile, per calcolare il THI
