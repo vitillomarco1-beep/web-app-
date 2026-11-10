@@ -7,7 +7,7 @@ import { fmt0, fmt1, fmtData } from '../lib/format'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import {
   DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
-  calcolaFertilita, giudizio, listaAdatta, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
+  calcolaFertilita, giudizio, listaAdatta, statoRipro, GRUPPI_ESCLUSI, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
 import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, perGruppo, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
 import { nomeAutomaticoGruppo, perGruppo as animaliPerGruppo } from '../lib/dairycomp'
@@ -62,6 +62,10 @@ export default function FertilitaPage() {
     const st = dati.stalle.find((x) => x.gruppoDairyComp === g)
     return nomeAutomaticoGruppo(animali, st?.numero, g)
   }
+
+  // vacche "non fecondare" della vista attuale: non entrano negli indici, ma vanno dette
+  const escluseNF = lista ? lista.animali.filter((a) => (a.lattazione ?? 0) >= 1 && statoRipro(a) === 'nonFecondare' && a.gruppo !== null && !GRUPPI_ESCLUSI.includes(a.gruppo)
+    && (sel ? a.gruppo === sel.st.gruppoDairyComp : true)).length : 0
 
   if (!lista || !f || !tot) {
     return (
@@ -120,7 +124,7 @@ export default function FertilitaPage() {
       )}
 
       {/* ---- Vacche */}
-      <h2 className="mb-3">{sel ? `Stalla ${sel.st.numero}` : 'Vacche'} <span className="text-base font-normal text-stone-500">· {sel ? `${f.vacche} vacche in lattazione (gruppo ${sel.st.gruppoDairyComp})` : `${f.vacche} tra lattazione e asciutta`}</span></h2>
+      <h2 className="mb-3">{sel ? `Stalla ${sel.st.numero}` : 'Vacche'} <span className="text-base font-normal text-stone-500">· {sel ? `${f.vacche} vacche in lattazione (gruppo ${sel.st.gruppoDairyComp})` : `${f.vacche} tra lattazione e asciutta`}{escluseNF ? `, più ${escluseNF} "non fecondare" escluse dal calcolo` : ''}</span></h2>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {tile('gravidePct', 'Vacche gravide', pct(f.gravidePct), '%', Dna)}
         {tile('gravideA150', `Gravide a ${DIM_VUOTA_PROBLEMA} giorni`, pct(f.gravideA150), '%', CalendarClock, `su ${f.oltre150} vacche oltre ${DIM_VUOTA_PROBLEMA} gg`)}
