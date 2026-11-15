@@ -29,6 +29,7 @@ import {
   TECNICHE_SPANDIMENTO,
   calcolaGestioneReflui,
   calcolaTdnMedioDieta,
+  normalizzaGestioneReflui,
   type SistemaStoccaggio,
   type TecnicaSpandimento,
 } from '../../lib/gestioneReflui'
@@ -561,7 +562,9 @@ export default function SimulazioneZootecniaTool({
     onChange({ ...sim, razioneMiscelata: { ...razioneMiscelata, ...patch } })
   }
 
-  const gestioneReflui = sim.gestioneReflui ?? {
+  const gestioneReflui = (normalizzaGestioneReflui(
+    sim.gestioneReflui as Record<string, unknown> | undefined,
+  ) as typeof sim.gestioneReflui) ?? {
     sistemaStoccaggio: 'liquido_senza_crosta' as const,
     temperaturaMediaAnnuaC: 15,
     durataStoccaggioMesi: 6,

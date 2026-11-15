@@ -241,14 +241,32 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
     setDati({ ...dati, indiciCarne: { ...dati.indiciCarne, [key]: value } })
   }
 
-  const struttureMandria = dati.struttureMandria ?? {
-    animaliLattazione: 0,
-    animaliAsciutta: 0,
-    manze12MesiParto: 0,
-    manzette6_12Mesi: 0,
-    vitelli0_3Mesi: 0,
-    vitelli3_6Mesi: 0,
-  }
+  // Migrazione dal vecchio formato (prima della divisione dei vitelli in 0-3/3-6
+  // mesi): un calcolo salvato con la versione precedente aveva un unico
+  // vitelli0_6Mesi. Si riversa per intero su vitelli3_6Mesi (l'EF non nullo) invece
+  // che su vitelli0_3Mesi (EF=0), per non sottostimare in automatico le emissioni —
+  // modificabile manualmente appena il pannello si apre.
+  const struttureMandriaSalvate = dati.struttureMandria as
+    | (typeof dati.struttureMandria & { vitelli0_6Mesi?: number })
+    | undefined
+  const struttureMandria =
+    struttureMandriaSalvate != null && struttureMandriaSalvate.vitelli0_6Mesi != null
+      ? {
+          animaliLattazione: struttureMandriaSalvate.animaliLattazione,
+          animaliAsciutta: struttureMandriaSalvate.animaliAsciutta,
+          manze12MesiParto: struttureMandriaSalvate.manze12MesiParto,
+          manzette6_12Mesi: struttureMandriaSalvate.manzette6_12Mesi,
+          vitelli0_3Mesi: 0,
+          vitelli3_6Mesi: struttureMandriaSalvate.vitelli0_6Mesi,
+        }
+      : (struttureMandriaSalvate ?? {
+          animaliLattazione: 0,
+          animaliAsciutta: 0,
+          manze12MesiParto: 0,
+          manzette6_12Mesi: 0,
+          vitelli0_3Mesi: 0,
+          vitelli3_6Mesi: 0,
+        })
   const totaleStruttureMandria =
     struttureMandria.animaliLattazione +
     struttureMandria.animaliAsciutta +

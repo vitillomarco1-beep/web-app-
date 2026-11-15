@@ -267,6 +267,17 @@ export function determinaMcfPercento(
     }
     case 'avicolo_lettiera':
       return { mcfPercento: 1.5, formula: 'Lettiera avicola → MCF = 1,5% (fisso, IPCC 2006, Tabella 10.17).' }
+    default: {
+      // Sistema non riconosciuto (es. dato salvato con una versione precedente dello
+      // strumento, prima che questo elenco esistesse): non deve mai mandare in crash il
+      // calcolo. Si usa il valore più diffuso (liquido senza crosta) come ripiego
+      // dichiarato, invece di un errore silenzioso o di un crash dell'intero pannello.
+      const v = valoreDaGradiente19Punti(temperaturaC, LIQUIDO_SENZA_CROSTA_GRADIENTE)
+      return {
+        mcfPercento: v,
+        formula: `Sistema di gestione non riconosciuto ("${sistema}", probabilmente da un calcolo salvato con una versione precedente dello strumento) — usato come ripiego il valore del liquido senza crosta, ${n(temperaturaC)}°C → MCF = ${v}%. Seleziona di nuovo il sistema corretto qui sopra.`,
+      }
+    }
   }
 }
 
@@ -290,7 +301,16 @@ export function calcolaEf3(sistema: SistemaStoccaggio, miscelazioneAttivaLettier
     const ef3 = miscelazioneAttivaLettiera ? 0.07 : 0.01
     return { ef3, fonte: `IPCC 2006, Tabella 10.21, lettiera profonda (${miscelazioneAttivaLettiera ? 'con' : 'senza'} mescolazione attiva).` }
   }
-  return { ef3: tabella[sistema], fonte: `IPCC 2006, Tabella 10.21, ${SISTEMI_STOCCAGGIO[sistema]}.` }
+  const ef3 = tabella[sistema]
+  if (ef3 == null) {
+    // Sistema non riconosciuto (dato salvato con una versione precedente): ripiego
+    // dichiarato sul valore del liquido senza crosta, mai un crash o un NaN silenzioso.
+    return {
+      ef3: tabella.liquido_senza_crosta,
+      fonte: `Sistema di gestione non riconosciuto ("${sistema}"): usato come ripiego l'EF3 del liquido senza crosta. Seleziona di nuovo il sistema corretto qui sopra.`,
+    }
+  }
+  return { ef3, fonte: `IPCC 2006, Tabella 10.21, ${SISTEMI_STOCCAGGIO[sistema]}.` }
 }
 
 /** FracGasMS (%) — azoto che volatilizza come NH3/NOx DURANTE LO STOCCAGGIO,
@@ -402,6 +422,42 @@ export function calcolaTdnMedioDieta(righe: RigaDietaTdnInput[]): RisultatoTdnDi
     righeConTdn.map((r) => `${n(r.ssTAnno)}×${n(r.tdnPercento ?? 0)}`).join(' + ') +
     ` ⁄ ${n(ssConTdn)} = ${n(tdnPercento)} % (copre ${n(quotaCopertaPercento)}% della sostanza secca totale)`
   return { tdnPercento, quotaCopertaPercento, formula }
+}
+
+/** Converte il vecchio formato di gestioneReflui (prima della riscrittura su
+ * Tabella 10.17/10.18 IPCC: sistemaStoccaggio limitato a 'liquido'|'solido',
+ * fasciaClimatica a 3 bande, crostaNaturale separata) nel formato attuale,
+ * così i calcoli zootecnia salvati con una versione precedente dello
+ * strumento restano apribili e modificabili invece di mandare in crash il
+ * pannello (si veda determinaMcfPercento/calcolaEf3 per la stessa cautela
+ * quando il dato non viene proprio migrato). Se il dato è già nel formato
+ * attuale, lo restituisce invariato. */
+export function normalizzaGestioneReflui(
+  dato: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (dato == null) return dato
+  const formatoVecchio = typeof dato.fasciaClimatica === 'string' || dato.sistemaStoccaggio === 'liquido'
+  if (!formatoVecchio) return dato
+
+  const fasciaClimatica = dato.fasciaClimatica as 'fredda' | 'temperata' | 'calda' | undefined
+  const temperaturaMediaAnnuaC =
+    typeof dato.temperaturaMediaAnnuaC === 'number'
+      ? dato.temperaturaMediaAnnuaC
+      : fasciaClimatica === 'fredda'
+        ? 10
+        : fasciaClimatica === 'calda'
+          ? 28
+          : 18
+
+  const sistemaStoccaggio: SistemaStoccaggio =
+    dato.sistemaStoccaggio === 'liquido'
+      ? dato.crostaNaturale
+        ? 'liquido_con_crosta'
+        : 'liquido_senza_crosta'
+      : (dato.sistemaStoccaggio as SistemaStoccaggio)
+
+  const { fasciaClimatica: _fasciaClimatica, crostaNaturale: _crostaNaturale, ...resto } = dato
+  return { ...resto, sistemaStoccaggio, temperaturaMediaAnnuaC }
 }
 
 export interface InputGestioneReflui {
