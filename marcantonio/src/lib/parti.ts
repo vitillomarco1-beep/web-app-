@@ -82,7 +82,22 @@ export const VACCINI_PREPARTO = [
   { id: 'rotavec', nome: 'Bovilis Rotavec Corona', breve: 'Rotavec', cerca: 'rotavec', doseMl: 2, mlConf: 10, dosiConf: 5 },
   { id: 'cryptium', nome: 'Bovilis Cryptium', breve: 'Cryptium', cerca: 'cryptium', doseMl: 2, mlConf: 40, dosiConf: 20 },
 ] as const
-export type VaccinoPreparto = (typeof VACCINI_PREPARTO)[number]
+export interface VaccinoPreparto { id: string; nome: string; breve: string; cerca: string; doseMl: number; mlConf: number; dosiConf: number }
+
+/** Cryptium anche a circa 60 giorni dal parto: una dose da 2 ml sottocute, lista del martedì. */
+export const CRYPTIUM_60: VaccinoPreparto = { id: 'cryptium60', nome: 'Bovilis Cryptium (60 giorni dal parto)', breve: 'Cryptium 60 gg', cerca: 'cryptium', doseMl: 2, mlConf: 40, dosiConf: 20 }
+export const CRYPTIUM60_GG_DA = 58
+export const CRYPTIUM60_GG_A = 65
+
+/** Animali da vaccinare con il Cryptium dei 60 giorni nel martedì della settimana (vacche e manze). */
+export function cryptium60DellaSettimana(parti: PartoPrevisto[], oggi = isoGiorno(), spostamento = 0) {
+  const martedi = aggiungiGiorni(lunediDi(oggi), 1 + 7 * spostamento)
+  const animali = parti
+    .map((p) => ({ p, giorniAlParto: giorniTra(martedi, p.dataParto) }))
+    .filter((x) => x.giorniAlParto >= CRYPTIUM60_GG_DA && x.giorniAlParto <= CRYPTIUM60_GG_A)
+    .sort((x, y) => x.giorniAlParto - y.giorniAlParto)
+  return { martedi, animali }
+}
 
 /** Farmaco del magazzino corrispondente al vaccino (cercato per nome). */
 export const farmacoDelVaccino = <F extends { nome: string }>(farmaci: F[], v: VaccinoPreparto) =>

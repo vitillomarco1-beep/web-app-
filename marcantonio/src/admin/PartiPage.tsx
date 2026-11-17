@@ -5,7 +5,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
-import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, asciutteDellaSettimana, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
+import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, CRYPTIUM_60, CRYPTIUM60_GG_A, CRYPTIUM60_GG_DA, asciutteDellaSettimana, cryptium60DellaSettimana, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
 
 const giornoSett = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
@@ -50,6 +50,10 @@ export default function PartiPage() {
     const dosiMagazzino = f ? Math.max(0, Math.floor(f.giacenza / doseInUnita(f.unita, v))) : null
     return { v, f, servono, dosiMagazzino, confezioni: Math.ceil(servono / v.dosiConf) }
   })
+  // Cryptium dei 60 giorni: stesso martedì della lista pre-parto (le frecce spostano entrambe)
+  const c60 = cryptium60DellaSettimana(parti, oggi, spostamento)
+  const c60Mancano = c60.animali.filter((x) => !fatte.has(idVaccinazione(x.p, CRYPTIUM_60.id))).length
+  const c60Farmaco = farmacoDelVaccino(dati.farmaci, CRYPTIUM_60)
   const prossime = Array.from({ length: 8 }, (_, i) => {
     const s = settimanaVaccinazioni(oggi, 0, i)
     return { ...s, n: parti.filter((p) => nellaSettimana(p, s)).length }
@@ -109,7 +113,9 @@ export default function PartiPage() {
 
   const testo = () =>
     [`Vaccinazioni pre-parto (${VACCINI_PREPARTO.map((v) => v.breve).join(' + ')}) – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
-      ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)].join('\n')
+      ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`),
+      ...(c60.animali.length ? ['', `Cryptium 60 giorni dal parto, ${CRYPTIUM_60.doseMl} ml sottocute – martedì ${fmtData(c60.martedi)} (${c60.animali.length} animali)`,
+        ...c60.animali.map(({ p, giorniAlParto }) => `${p.vacca}  –  ${giorniAlParto} giorni al parto  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)] : [])].join('\n')
   const scaricaPdf = async () => {
     setPdf(true)
     try {
@@ -117,7 +123,12 @@ export default function PartiPage() {
         titolo: `Vacche da vaccinare (${daVaccinare.length})`,
         colonne: ['Vacca', 'Parto previsto', 'Categoria', 'Gruppo', 'Gg gravid.', ...VACCINI_PREPARTO.map((v) => v.breve)],
         righe: daVaccinare.map((p) => [p.vacca, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo === null ? '' : isCloseUp(p.gruppo) ? `${p.gruppo} close up` : p.gruppo, p.giorniGravidanzaOggi ?? '', ...VACCINI_PREPARTO.map((v) => (fatte.has(idVaccinazione(p, v.id)) ? 'fatto' : ''))]),
-      }])
+      }, ...(c60.animali.length ? [{
+        titolo: `Cryptium 60 giorni dal parto (${c60.animali.length})`,
+        sottotitolo: `Martedì ${fmtData(c60.martedi)} · animali a ${CRYPTIUM60_GG_DA}–${CRYPTIUM60_GG_A} giorni dal parto previsto · ${CRYPTIUM_60.doseMl} ml sottocute`,
+        colonne: ['Vacca', 'Gg al parto', 'Parto previsto', 'Categoria', 'Gruppo', 'Fatto'],
+        righe: c60.animali.map(({ p, giorniAlParto }) => [p.vacca, giorniAlParto, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo ?? '', fatte.has(idVaccinazione(p, CRYPTIUM_60.id)) ? 'fatto' : '']),
+      }] : [])])
       await scarica(blob, `vaccinazioni-preparto-${sett.da}.pdf`)
     } finally { setPdf(false) }
   }
@@ -164,8 +175,8 @@ export default function PartiPage() {
               <div className="flex items-center gap-2 print:hidden">
                 <button className="btn-secondary px-3" aria-label="Settimana precedente" onClick={() => setSpostamento((s) => s - 1)}><ChevronLeft className="h-4 w-4" /></button>
                 <button className="btn-secondary px-3" aria-label="Settimana successiva" onClick={() => setSpostamento((s) => s + 1)}><ChevronRight className="h-4 w-4" /></button>
-                <button className="btn-secondary" onClick={copia} disabled={!daVaccinare.length}>{copiato ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copiato ? 'Copiata' : 'Copia lista'}</button>
-                <button className="btn-primary" onClick={scaricaPdf} disabled={!daVaccinare.length || pdf}>{pdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
+                <button className="btn-secondary" onClick={copia} disabled={!daVaccinare.length && !c60.animali.length}>{copiato ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copiato ? 'Copiata' : 'Copia lista'}</button>
+                <button className="btn-primary" onClick={scaricaPdf} disabled={(!daVaccinare.length && !c60.animali.length) || pdf}>{pdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
               </div>
             </div>
 
@@ -240,6 +251,46 @@ export default function PartiPage() {
               </div>
             </div>
           )}
+
+          <div className="card mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2>Cryptium a 60 giorni dal parto</h2>
+                <p className="mt-0.5 text-sm text-stone-500">Martedì <b>{fmtData(c60.martedi)}</b> · vacche e manze a {CRYPTIUM60_GG_DA}–{CRYPTIUM60_GG_A} giorni dal parto previsto · {CRYPTIUM_60.doseMl} ml sottocute · {c60Mancano} da fare su {c60.animali.length}</p>
+              </div>
+              <span className="text-sm text-stone-500">
+                {c60Farmaco ? <>In magazzino: {Math.max(0, Math.floor(c60Farmaco.giacenza / doseInUnita(c60Farmaco.unita, CRYPTIUM_60)))} dosi</> : <>Cryptium non è nel magazzino Farmaci</>}
+              </span>
+            </div>
+            {c60.animali.length === 0 ? <p className="mt-3 text-sm text-stone-500">Nessun animale a {CRYPTIUM60_GG_DA}–{CRYPTIUM60_GG_A} giorni dal parto questo martedì.</p> : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="table">
+                  <thead><tr><th>Vacca</th><th className="text-right">Gg al parto</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th>Vaccino</th></tr></thead>
+                  <tbody>
+                    {c60.animali.map(({ p, giorniAlParto }) => {
+                      const ok = fatte.has(idVaccinazione(p, CRYPTIUM_60.id))
+                      return (
+                        <tr key={`${p.vacca}|${p.dataParto}`} className={ok ? 'bg-emerald-50/60' : ''}>
+                          <td className="font-semibold">{p.vacca}</td>
+                          <td className="text-right tabular-nums">{giorniAlParto}</td>
+                          <td className="whitespace-nowrap">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400">(stimata)</span>}</td>
+                          <td>{categoriaParto(p.lattazione)}</td>
+                          <td>{etichettaGr(p.gruppo)}</td>
+                          <td>
+                            <button type="button" onClick={() => segna(p, CRYPTIUM_60)} aria-pressed={ok}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${ok ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-stone-300 bg-white text-stone-600 hover:border-brand-400'}`}>
+                              {ok ? <Check className="h-3.5 w-3.5" /> : <Syringe className="h-3.5 w-3.5" />}{CRYPTIUM_60.breve}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-stone-500">Le frecce in alto spostano anche questa lista. Coincide con la messa in asciutta del lunedì (58–64 giorni dal parto): si può fare insieme.</p>
+          </div>
 
           <AsciutteCard />
 
