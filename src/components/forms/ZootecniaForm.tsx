@@ -520,6 +520,7 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
         regione={regioneCliente}
         numeroCapiMedio={dati.numeroCapiMedio}
         struttureMandria={dati.struttureMandria}
+        pratiche={dati.pratiche}
       />
 
       <div className="card">

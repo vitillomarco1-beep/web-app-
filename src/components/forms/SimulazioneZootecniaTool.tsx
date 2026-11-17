@@ -34,7 +34,12 @@ import {
   type TecnicaSpandimento,
 } from '../../lib/gestioneReflui'
 import { calcolaThiMensile, formattaThi } from '../../lib/thi'
-import { calcolaPotenzialeMitigazione } from '../../lib/praticheMitigazione'
+import {
+  TARGET_UE_RIDUZIONE_PERCENTO_2040,
+  TARGET_UE_FONTE,
+  calcolaPotenzialeMitigazione,
+  calcolaProgressoTargetUe2040,
+} from '../../lib/praticheMitigazione'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
 import { formatTCO2 } from '../../lib/format'
 
@@ -65,6 +70,11 @@ interface Props {
    * se presente, raffina il Tier 1 per bovini da latte — si veda
    * lib/metanoEnterico.ts, calcolaMetanoEntericoTier1PerStruttura. */
   struttureMandria?: DatiZootecnia['struttureMandria']
+  /** Pratiche di mitigazione segnate come adottate nella checklist aziendale
+   * (descrizione aziendale): usate per il monitoraggio rispetto all'obiettivo
+   * UE non vincolante del 16% al 2040 — si veda lib/praticheMitigazione.ts,
+   * calcolaProgressoTargetUe2040. */
+  pratiche?: DatiZootecnia['pratiche']
 }
 
 function simulazioneVuota(tipologia: TipologiaAllevamento): SimulazioneZootecnia {
@@ -363,6 +373,7 @@ export default function SimulazioneZootecniaTool({
   regione,
   numeroCapiMedio,
   struttureMandria,
+  pratiche,
 }: Props) {
   const [aperto, setAperto] = useState(false)
   const [apertoAnalisiLatte, setApertoAnalisiLatte] = useState(false)
@@ -598,6 +609,11 @@ export default function SimulazioneZootecniaTool({
   }
 
   const righeMitigazione = calcolaPotenzialeMitigazione(risultatoMetanoSelezionato.ch4TCO2eq, risultatoReflui.ch4TCO2eq)
+  const progressoTargetUe = calcolaProgressoTargetUe2040(
+    pratiche,
+    risultatoMetanoSelezionato.ch4TCO2eq,
+    risultatoReflui.ch4TCO2eq,
+  )
 
   const climaThiMensile = sim.climaThiMensile ?? climaThiVuoto()
   const risultatoThi = calcolaThiMensile(climaThiMensile)
@@ -1433,6 +1449,37 @@ export default function SimulazioneZootecniaTool({
                   Costo negativo = risparmio/ricavo netto stimato (es. digestione anaerobica con
                   valorizzazione energetica del biogas), non un costo da sostenere.
                 </p>
+
+                <div
+                  className={`rounded-md border p-2 ${progressoTargetUe.raggiungeTarget ? 'border-forest-300 bg-forest-50' : 'border-amber-300 bg-amber-50'}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-stone-700">
+                      📊 Monitoraggio — obiettivo UE −{TARGET_UE_RIDUZIONE_PERCENTO_2040}% al 2040
+                      (non vincolante)
+                    </p>
+                    <span
+                      className={`shrink-0 font-semibold ${progressoTargetUe.raggiungeTarget ? 'text-forest-700' : 'text-amber-700'}`}
+                    >
+                      {n(progressoTargetUe.riduzioneStimataPercento)}%
+                    </span>
+                  </div>
+                  <p className="mt-1 text-stone-500">{progressoTargetUe.formula}</p>
+                  {progressoTargetUe.pratichenonQuantificateAdottate.length > 0 && (
+                    <p className="mt-1 text-stone-400">
+                      Hai segnato come adottate anche altre pratiche (
+                      {progressoTargetUe.pratichenonQuantificateAdottate.join(', ')}) che il report
+                      CONCITO non quantifica con un intervallo di riduzione consolidato: non entrano
+                      in questa stima, non perché inefficaci.
+                    </p>
+                  )}
+                  <p className="mt-1 text-stone-400">
+                    Stima basata solo sulle pratiche quantificate (3-NOP/Bovaer, digestione
+                    anaerobica) segnate come adottate nella checklist della descrizione aziendale, al
+                    valore medio dell'intervallo CONCITO. <strong>Non è una verifica di conformità</strong>:
+                    {' '}{TARGET_UE_FONTE}
+                  </p>
+                </div>
               </div>
             )}
           </div>
