@@ -44,7 +44,13 @@ export default function MargineSezione({ onVaiRazioni }: { onVaiRazioni: () => v
           ))}
         </div>
         <select className="input !w-auto" value={sett} onChange={(e) => setSett(e.target.value)} aria-label="Settimana">
-          {settimane.map((s) => <option key={s} value={s}>Settimana {fmtData(s)} – {fmtData(aggiungiGiorni(s, 6))}</option>)}
+          {settimane.map((s) => {
+            // stalle con dati robot in quella settimana, per trovare subito le settimane complete
+            const fine = aggiungiGiorni(s, 6)
+            const conDati = dati.stalle.filter((st) => dati.robotGiorni.some((g) => g.completo && g.data >= s && g.data <= fine && (st.robot?.nomi ?? []).includes(g.robot)))
+            const nota = conDati.length === dati.stalle.length ? 'tutte le stalle' : conDati.length ? `solo stalla ${conDati.map((x) => x.numero).join(' e ')}` : 'nessuna stalla'
+            return <option key={s} value={s}>Settimana {fmtData(s)} – {fmtData(fine)} · {nota}</option>
+          })}
         </select>
       </div>
       {vista === 'lattazione' ? <Lattazione m={m} /> : <Aziendale m={m} />}
