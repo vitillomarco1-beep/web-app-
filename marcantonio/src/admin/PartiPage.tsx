@@ -3,7 +3,7 @@ import { Baby, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, FileDown, F
 import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
-import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile } from '../lib/dairycomp'
+import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile, matricole } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
 import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, CRYPTIUM_60, CRYPTIUM60_GG_A, CRYPTIUM60_GG_DA, asciutteDellaSettimana, cryptium60DellaSettimana, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
 
@@ -35,6 +35,10 @@ export default function PartiPage() {
     const gruppi = new Map((mandria?.animali ?? []).map((a) => [a.id, a.gruppo]))
     return partiPrevisti(lista, oggi).map((p) => (p.gruppo === null && gruppi.has(p.vacca) ? { ...p, gruppo: gruppi.get(p.vacca) ?? null } : p))
   }, [lista, oggi, mandria])
+  // matricola dalla lista Mandria (colonna MATR), se c'è
+  const matr = useMemo(() => matricole(dati.mandriaDC[0], lista), [dati.mandriaDC, lista])
+  const conMatr = matr.size > 0
+  const mt = (v: string) => matr.get(v) ?? ''
   const nomeGr = (g: number | null) => (g === null ? null : isCloseUp(g) ? `gruppo ${g} · close up` : `gruppo ${g}`)
   const etichettaGr = (g: number | null) =>
     g === null ? '—' : isCloseUp(g)
@@ -113,21 +117,21 @@ export default function PartiPage() {
 
   const testo = () =>
     [`Vaccinazioni pre-parto (${VACCINI_PREPARTO.map((v) => v.breve).join(' + ')}) – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
-      ...daVaccinare.map((p) => `${p.vacca}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`),
+      ...daVaccinare.map((p) => `${p.vacca}${mt(p.vacca) ? ` (${mt(p.vacca)})` : ''}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`),
       ...(c60.animali.length ? ['', `Cryptium 60 giorni dal parto, ${CRYPTIUM_60.doseMl} ml sottocute – martedì ${fmtData(c60.martedi)} (${c60.animali.length} animali)`,
-        ...c60.animali.map(({ p, giorniAlParto }) => `${p.vacca}  –  ${giorniAlParto} giorni al parto  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)] : [])].join('\n')
+        ...c60.animali.map(({ p, giorniAlParto }) => `${p.vacca}${mt(p.vacca) ? ` (${mt(p.vacca)})` : ''}  –  ${giorniAlParto} giorni al parto  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)] : [])].join('\n')
   const scaricaPdf = async () => {
     setPdf(true)
     try {
       const blob = await creaPdf('Vaccinazioni pre-parto', `Parti previsti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} · ${VACCINI_PREPARTO.map((v) => `${v.nome} ${v.doseMl} ml`).join(' + ')}`, [{
         titolo: `Vacche da vaccinare (${daVaccinare.length})`,
-        colonne: ['Vacca', 'Parto previsto', 'Categoria', 'Gruppo', 'Gg gravid.', ...VACCINI_PREPARTO.map((v) => v.breve)],
-        righe: daVaccinare.map((p) => [p.vacca, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo === null ? '' : isCloseUp(p.gruppo) ? `${p.gruppo} close up` : p.gruppo, p.giorniGravidanzaOggi ?? '', ...VACCINI_PREPARTO.map((v) => (fatte.has(idVaccinazione(p, v.id)) ? 'fatto' : ''))]),
+        colonne: ['Vacca', ...(conMatr ? ['Matricola'] : []), 'Parto previsto', 'Categoria', 'Gruppo', 'Gg gravid.', ...VACCINI_PREPARTO.map((v) => v.breve)],
+        righe: daVaccinare.map((p) => [p.vacca, ...(conMatr ? [mt(p.vacca)] : []), `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo === null ? '' : isCloseUp(p.gruppo) ? `${p.gruppo} close up` : p.gruppo, p.giorniGravidanzaOggi ?? '', ...VACCINI_PREPARTO.map((v) => (fatte.has(idVaccinazione(p, v.id)) ? 'fatto' : ''))]),
       }, ...(c60.animali.length ? [{
         titolo: `Cryptium 60 giorni dal parto (${c60.animali.length})`,
         sottotitolo: `Martedì ${fmtData(c60.martedi)} · animali a ${CRYPTIUM60_GG_DA}–${CRYPTIUM60_GG_A} giorni dal parto previsto · ${CRYPTIUM_60.doseMl} ml sottocute`,
-        colonne: ['Vacca', 'Gg al parto', 'Parto previsto', 'Categoria', 'Gruppo', 'Fatto'],
-        righe: c60.animali.map(({ p, giorniAlParto }) => [p.vacca, giorniAlParto, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo ?? '', fatte.has(idVaccinazione(p, CRYPTIUM_60.id)) ? 'fatto' : '']),
+        colonne: ['Vacca', ...(conMatr ? ['Matricola'] : []), 'Gg al parto', 'Parto previsto', 'Categoria', 'Gruppo', 'Fatto'],
+        righe: c60.animali.map(({ p, giorniAlParto }) => [p.vacca, ...(conMatr ? [mt(p.vacca)] : []), giorniAlParto, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo ?? '', fatte.has(idVaccinazione(p, CRYPTIUM_60.id)) ? 'fatto' : '']),
       }] : [])])
       await scarica(blob, `vaccinazioni-preparto-${sett.da}.pdf`)
     } finally { setPdf(false) }
@@ -190,7 +194,7 @@ export default function PartiPage() {
                   return (
                     <li key={`${p.vacca}|${p.dataParto}`} className={`rounded-lg px-2 py-3 ${ok ? 'bg-emerald-50/60' : ''}`}>
                       <div className="flex items-center gap-3">
-                        <span className="w-14 text-lg font-bold text-brand-900">{p.vacca}</span>
+                        <span className="min-w-[3.5rem] shrink-0 text-lg font-bold text-brand-900">{p.vacca}{mt(p.vacca) && <span className="block text-[10px] font-normal tabular-nums text-stone-500">{mt(p.vacca)}</span>}</span>
                         <span className="min-w-0 flex-1 text-sm">
                           <span className="block font-medium">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400">(stimata)</span>}</span>
                           <span className="block text-xs text-stone-500">{categoriaParto(p.lattazione)}{p.gruppo !== null ? ` · ${nomeGr(p.gruppo)}` : ''}{p.giorniGravidanzaOggi !== null ? ` · ${p.giorniGravidanzaOggi} gg grav.` : ''}</span>
@@ -203,13 +207,14 @@ export default function PartiPage() {
               </ul>
               <div className="mt-4 hidden overflow-x-auto sm:block">
                 <table className="table">
-                  <thead><tr><th>Vacca</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th className="text-right">Gg gravidanza oggi</th><th>Vaccini fatti</th></tr></thead>
+                  <thead><tr><th>Vacca</th>{conMatr && <th>Matricola</th>}<th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th className="text-right">Gg gravidanza oggi</th><th>Vaccini fatti</th></tr></thead>
                   <tbody>
                     {daVaccinare.map((p) => {
                       const ok = vaccinataTutto(p, fatte)
                       return (
                         <tr key={`${p.vacca}|${p.dataParto}`} className={ok ? 'bg-emerald-50/60' : ''}>
                           <td className="font-semibold">{p.vacca}</td>
+                          {conMatr && <td className="tabular-nums text-stone-600">{mt(p.vacca) || '—'}</td>}
                           <td className="whitespace-nowrap">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400" title="Calcolata dai giorni di gravidanza">(stimata)</span>}</td>
                           <td>{categoriaParto(p.lattazione)}</td>
                           <td>{etichettaGr(p.gruppo)}</td>
@@ -265,13 +270,14 @@ export default function PartiPage() {
             {c60.animali.length === 0 ? <p className="mt-3 text-sm text-stone-500">Nessun animale a {CRYPTIUM60_GG_DA}–{CRYPTIUM60_GG_A} giorni dal parto questo martedì.</p> : (
               <div className="mt-3 overflow-x-auto">
                 <table className="table">
-                  <thead><tr><th>Vacca</th><th className="text-right">Gg al parto</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th>Vaccino</th></tr></thead>
+                  <thead><tr><th>Vacca</th>{conMatr && <th>Matricola</th>}<th className="text-right">Gg al parto</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th>Vaccino</th></tr></thead>
                   <tbody>
                     {c60.animali.map(({ p, giorniAlParto }) => {
                       const ok = fatte.has(idVaccinazione(p, CRYPTIUM_60.id))
                       return (
                         <tr key={`${p.vacca}|${p.dataParto}`} className={ok ? 'bg-emerald-50/60' : ''}>
                           <td className="font-semibold">{p.vacca}</td>
+                          {conMatr && <td className="tabular-nums text-stone-600">{mt(p.vacca) || '—'}</td>}
                           <td className="text-right tabular-nums">{giorniAlParto}</td>
                           <td className="whitespace-nowrap">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400">(stimata)</span>}</td>
                           <td>{categoriaParto(p.lattazione)}</td>

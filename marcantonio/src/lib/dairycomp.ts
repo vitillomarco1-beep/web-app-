@@ -112,7 +112,8 @@ export function costruisciAnimali(f: FileLetto, m: Partial<Record<Campo, number>
       const extra: Record<string, number | string> = {}
       f.intestazioni.forEach((h, i) => {
         if (usate.has(i) || !h || f.intestazioni.findIndex((x) => norm(x) === norm(h)) !== i) return
-        const n = numero(r[i])
+        // la matricola resta testo: senza "IT" davanti sarebbe un numero e perderebbe gli zeri iniziali
+        const n = COLONNE_MATRICOLA.includes(norm(h)) ? null : numero(r[i])
         if (n !== null) extra[h] = n
         else if (r[i]?.trim()) extra[h] = r[i].trim()
       })
@@ -268,4 +269,19 @@ export const importAllaData = (imp: ImportDC[], data: string) =>
 export function correggiGuca(lista: ImportDC): ImportDC | null {
   if (!/GUCA/i.test(lista.nomeFile) || lista.animali.some((a) => a.extra?.GUCA !== undefined)) return null
   return { ...lista, animali: lista.animali.map((a) => ({ ...a, giorniGravidanza: null, extra: { ...(a.extra ?? {}), ...(a.giorniGravidanza != null ? { GUCA: a.giorniGravidanza } : {}) } })) }
+}
+
+/** Colonne con la matricola (marca auricolare) nelle liste di DairyComp. */
+export const COLONNE_MATRICOLA = ['MATR', 'MATRICOLA', 'EID', 'ISO', 'MARCA', 'MARCAAURICOLARE']
+
+/** Matricola di ogni animale, dalle liste date (la prima che la riporta vince). */
+export function matricole(...liste: (ImportDC | undefined)[]): Map<string, string> {
+  const m = new Map<string, string>()
+  for (const l of liste) for (const a of l?.animali ?? []) {
+    if (m.has(a.id)) continue
+    const k = Object.keys(a.extra ?? {}).find((x) => COLONNE_MATRICOLA.includes(norm(x)))
+    const v = k ? String(a.extra![k]).trim() : ''
+    if (v && v !== '-') m.set(a.id, v)
+  }
+  return m
 }

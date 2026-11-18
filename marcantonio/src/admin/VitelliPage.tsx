@@ -4,7 +4,7 @@ import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
 import type { Farmaco } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
-import { abbinaColonne, costruisciAnimali, leggiFile } from '../lib/dairycomp'
+import { abbinaColonne, costruisciAnimali, leggiFile, matricole } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
 import { VACCINI_VITELLI, etaAl, finestra, fonteVitelli, idVacVitello, prossimoMartedi, vitelliDaFonte, type VaccinoVitello, type Vitello } from '../lib/vitelli'
 
@@ -19,6 +19,9 @@ export default function VitelliPage() {
   const fonte = fonteVitelli(dati)
   const lista = fonte?.lista
   const [spost, setSpost] = useState(0)
+  // matricola dalla lista vitelli o Mandria (colonna MATR), se c'è
+  const matr = useMemo(() => matricole(dati.vitelliDC[0], dati.mandriaDC[0]), [dati.vitelliDC, dati.mandriaDC])
+  const mt = (id: string) => matr.get(id) ?? ''
   const martedi = aggiungiGiorni(prossimoMartedi(oggi), 7 * spost)
   const [dataLista, setDataLista] = useState(oggi)
   const [errore, setErrore] = useState('')
@@ -78,7 +81,7 @@ export default function VitelliPage() {
   }
 
   const testo = () => [`Vaccinazioni vitelli – martedì ${fmtData(martedi)}`, ...sezioni.flatMap((s) => s.daFare.length || s.ritardo.length
-    ? [``, `${s.v.nome} (${s.v.via}, ${s.v.doseMl} ml) – ${s.daFare.length + s.ritardo.length} vitelli`, ...[...s.daFare, ...s.ritardo].map((c) => `${c.id}  –  ${etaAl(c, martedi)} giorni${c.gruppo !== null ? `  –  gr. ${c.gruppo}` : ''}${s.ritardo.includes(c) ? '  (in ritardo)' : ''}`)]
+    ? [``, `${s.v.nome} (${s.v.via}, ${s.v.doseMl} ml) – ${s.daFare.length + s.ritardo.length} vitelli`, ...[...s.daFare, ...s.ritardo].map((c) => `${c.id}${mt(c.id) ? ` (${mt(c.id)})` : ''}  –  ${etaAl(c, martedi)} giorni${c.gruppo !== null ? `  –  gr. ${c.gruppo}` : ''}${s.ritardo.includes(c) ? '  (in ritardo)' : ''}`)]
     : [])].join('\n')
   const scaricaPdf = async () => {
     setPdf('in corso')
@@ -89,8 +92,8 @@ export default function VitelliPage() {
           return {
             titolo: `${x.v.nome}  (${tutti.length})`,
             sottotitolo: `${x.v.via} · ${x.v.doseMl} ml · vitelli di ${x.w.da}-${x.w.a} giorni (obiettivo ${x.v.obiettivo})`,
-            colonne: ['Vitello', 'Età (gg)', 'Nato il', 'Gruppo', 'Note', 'Fatto'],
-            righe: tutti.map((c) => [c.id, etaAl(c, martedi), fmtData(c.nascita), c.gruppo ?? '', x.ritardo.includes(c) ? 'in ritardo' : fatte.has(idVacVitello(c.id, x.v.id)) ? 'già segnato' : '', '']),
+            colonne: ['Vitello', ...(matr.size ? ['Matricola'] : []), 'Età (gg)', 'Nato il', 'Gruppo', 'Note', 'Fatto'],
+            righe: tutti.map((c) => [c.id, ...(matr.size ? [mt(c.id)] : []), etaAl(c, martedi), fmtData(c.nascita), c.gruppo ?? '', x.ritardo.includes(c) ? 'in ritardo' : fatte.has(idVacVitello(c.id, x.v.id)) ? 'già segnato' : '', '']),
             evidenzia: tutti.map((c) => x.ritardo.includes(c)),
           }
         }),
@@ -186,7 +189,7 @@ export default function VitelliPage() {
                           const tardi = ritardo.includes(c)
                           return (
                             <li key={c.id} className={`flex items-center gap-3 py-2 ${fatte.has(idVacVitello(c.id, v.id)) ? 'bg-emerald-50/50' : ''}`}>
-                              <span className="w-16 text-lg font-bold text-brand-900">{c.id}</span>
+                              <span className="min-w-[4rem] shrink-0 text-lg font-bold text-brand-900">{c.id}{mt(c.id) && <span className="block text-[10px] font-normal tabular-nums text-stone-500">{mt(c.id)}</span>}</span>
                               <span className="min-w-0 flex-1 text-sm">
                                 <span className="font-medium">{etaAl(c, martedi)} giorni</span>
                                 <span className="text-stone-500"> · nato il {fmtData(c.nascita)}{c.gruppo !== null && ` · gruppo ${c.gruppo}`}</span>
