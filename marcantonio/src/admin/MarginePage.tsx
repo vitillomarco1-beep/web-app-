@@ -64,6 +64,10 @@ function Avvisi({ m, tutte }: { m: M; tutte?: boolean }) {
   if (tutte && !m.altre.length) msg.push('Non hai ancora inserito razioni di asciutta, close up o manze.')
   m.stalle.filter((s) => s.fonteRazione === 'pesate' && s.kgRazioneCapo && s.kgDistribuitiCapo !== null && Math.abs(s.kgDistribuitiCapo / s.kgRazioneCapo - 1) > 0.2)
     .forEach((s) => msg.push(`Gruppo ${s.gruppo}: dalle pesate del carro risultano ${fmt1(s.kgDistribuitiCapo!)} kg per vacca, la razione ne prevede ${fmt1(s.kgRazioneCapo!)}. Controlla le pesate della settimana o i capi della razione: il costo è calcolato sui kg pesati.`))
+  m.stalle.filter((s) => !s.capi).forEach((s) => {
+    const nomi = dati.stalle.find((x) => x.numero === s.stalla)?.robot?.nomi?.join(' + ')
+    msg.push(`Gruppo ${s.gruppo} (stalla ${s.stalla}${nomi ? `, robot ${nomi}` : ''}): nessun dato di mungitura in questa settimana. Caricalo in "Carica la settimana" oppure scegli una settimana con i file di tutte le stalle.`)
+  })
   if (m.giorni.length < 7) msg.push(`La settimana ha ${m.giorni.length} giorni completi di dati robot: le cifre sono medie su quei giorni.`)
   if (!msg.length) return null
   return <div className="mb-6 rounded-xl border border-arancio-200 bg-arancio-50/60 p-4 text-sm text-arancio-900"><ul className="list-disc space-y-1 pl-5">{msg.map((x) => <li key={x}>{x}</li>)}</ul></div>
@@ -91,7 +95,7 @@ function Lattazione({ m }: { m: M }) {
             <tbody>
               {m.stalle.map((s) => (
                 <tr key={s.stalla}>
-                  <td><div className="font-semibold">Gruppo {s.gruppo}</div><div className="text-xs text-stone-500">Stalla {s.stalla} · {s.fonteRazione === 'pesate' ? `dalle pesate: ${fmt1(s.kgDistribuitiCapo ?? 0)} kg/capo${s.kgRazioneCapo ? ` (razione ${fmt1(s.kgRazioneCapo)})` : ''}` : s.fonteRazione === 'razione' ? 'razione teorica' : 'razione mancante'}</div></td>
+                  <td><div className="font-semibold">Gruppo {s.gruppo}</div><div className="text-xs text-stone-500">Stalla {s.stalla} · {!s.capi ? 'nessun dato robot in questa settimana' : s.fonteRazione === 'pesate' ? `dalle pesate: ${fmt1(s.kgDistribuitiCapo ?? 0)} kg/capo${s.kgRazioneCapo ? ` (razione ${fmt1(s.kgRazioneCapo)})` : ''}` : s.fonteRazione === 'razione' ? 'razione teorica' : 'razione mancante'}</div></td>
                   <td className="text-right tabular-nums">{fmt0(s.capi)}</td>
                   <td className="text-right tabular-nums">{s.capi ? fmt1(s.kgLatte / s.capi) : '—'} kg</td>
                   <td className="text-right tabular-nums">{s.capi ? fmtEur(s.ricavo / s.capi) : '—'}</td>
