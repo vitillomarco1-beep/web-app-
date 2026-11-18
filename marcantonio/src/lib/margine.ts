@@ -87,7 +87,8 @@ export function calcolaMargine(dati: Dati, settimana: string) {
     // più robot nella stessa stalla: si sommano (una vacca munge sempre nello stesso box)
     const capiRobot = gg.reduce((t, g) => t + g.vacche, 0) / nG
     const capiVacche = vg.length / nG
-    const capi = capiRobot || capiVacche
+    // senza giorni completi del robot (file mancante o interrotto) la stalla non ha dati in questa settimana
+    const capi = gg.length ? capiRobot || capiVacche : 0
     const datiVaccheIncompleti = capiRobot > 0 && capiVacche < capiRobot * 0.8
     const razione = dati.razioni.find((r) => r.categoria === 'lattazione' && r.gruppi.includes(s.gruppoDairyComp!))
     const c = razione ? costoRazione(razione, dati.ingredienti) : null
@@ -98,6 +99,7 @@ export function calcolaMargine(dati: Dati, settimana: string) {
     let costoR = 0, fonte: MargineStalla['fonteRazione'] = 'mancante'
     if (c && kgDistribuiti !== null && c.costoKg > 0) { costoR = kgDistribuiti * c.costoKg; fonte = 'pesate' }
     else if (c) { costoR = c.costoCapo * capi; fonte = 'razione' }
+    if (!capi) costoR = 0 // niente latte da confrontare: la stalla resta fuori dai totali di questa settimana
     const costoRobot = c ? c.costoRobotCapo * capi : 0
     const ricavo = euro(kgLatte)
     const costo = costoR + costoRobot
