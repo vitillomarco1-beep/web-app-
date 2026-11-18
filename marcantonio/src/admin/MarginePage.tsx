@@ -74,6 +74,7 @@ function Avvisi({ m, tutte }: { m: M; tutte?: boolean }) {
     const nomi = dati.stalle.find((x) => x.numero === s.stalla)?.robot?.nomi?.join(' + ')
     msg.push(`Gruppo ${s.gruppo} (stalla ${s.stalla}${nomi ? `, robot ${nomi}` : ''}): nessun dato di mungitura in questa settimana. Caricalo in "Carica la settimana" oppure scegli una settimana con i file di tutte le stalle.`)
   })
+  m.stalle.filter((s) => s.datiVaccheIncompleti).forEach((s) => msg.push(`Gruppo ${s.gruppo} (stalla ${s.stalla}): nei file di questa settimana mancano molte righe per vacca. I totali della stalla sono giusti, ma l'elenco delle vacche può essere incompleto: ricarica il file del robot in "Carica la settimana".`))
   if (m.giorni.length < 7) msg.push(`La settimana ha ${m.giorni.length} giorni completi di dati robot: le cifre sono medie su quei giorni.`)
   if (!msg.length) return null
   return <div className="mb-6 rounded-xl border border-arancio-200 bg-arancio-50/60 p-4 text-sm text-arancio-900"><ul className="list-disc space-y-1 pl-5">{msg.map((x) => <li key={x}>{x}</li>)}</ul></div>

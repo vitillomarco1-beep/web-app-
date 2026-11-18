@@ -37,6 +37,7 @@ export function settimaneConDati(dati: Dati): string[] {
 }
 
 export interface MargineStalla {
+  datiVaccheIncompleti: boolean // righe per vacca molto meno delle vacche munte: elenco per vacca incompleto
   stalla: number
   nome: string
   gruppo: number
@@ -79,9 +80,15 @@ export function calcolaMargine(dati: Dati, settimana: string) {
   for (const s of dati.stalle) {
     const nomi = s.robot?.nomi ?? []
     if (s.gruppoDairyComp === undefined || !nomi.length) continue
-    const kgLatte = dati.robotGiorni.filter((g) => g.completo && giorni.includes(g.data) && nomi.includes(g.robot)).reduce((t, g) => t + g.kg, 0) / nG
+    const gg = dati.robotGiorni.filter((g) => g.completo && giorni.includes(g.data) && nomi.includes(g.robot))
+    const kgLatte = gg.reduce((t, g) => t + g.kg, 0) / nG
     const vg = dati.robotVacche.filter((v) => giorni.includes(v.data) && nomi.includes(v.robot) && v.mungiture > 0)
-    const capi = vg.length / nG
+    // vacche munte al giorno dal riepilogo del robot (affidabile anche se mancano righe per vacca);
+    // più robot nella stessa stalla: si sommano (una vacca munge sempre nello stesso box)
+    const capiRobot = gg.reduce((t, g) => t + g.vacche, 0) / nG
+    const capiVacche = vg.length / nG
+    const capi = capiRobot || capiVacche
+    const datiVaccheIncompleti = capiRobot > 0 && capiVacche < capiRobot * 0.8
     const razione = dati.razioni.find((r) => r.categoria === 'lattazione' && r.gruppi.includes(s.gruppoDairyComp!))
     const c = razione ? costoRazione(razione, dati.ingredienti) : null
     // pesate del carro della stalla nei giorni del periodo
@@ -95,7 +102,7 @@ export function calcolaMargine(dati: Dati, settimana: string) {
     const ricavo = euro(kgLatte)
     const costo = costoR + costoRobot
     stalle.push({
-      stalla: s.numero, nome: s.nome, gruppo: s.gruppoDairyComp, razione, capi, kgLatte, ricavo, costoRazione: costoR, fonteRazione: fonte,
+      stalla: s.numero, nome: s.nome, gruppo: s.gruppoDairyComp, razione, capi, kgLatte, datiVaccheIncompleti, ricavo, costoRazione: costoR, fonteRazione: fonte,
       kgDistribuitiCapo: kgDistribuiti !== null && capi ? kgDistribuiti / capi : null, kgRazioneCapo: c ? c.kgCapo : null, costoRobot, costo, margine: ricavo - costo, senzaPrezzo: c?.senzaPrezzo ?? 0,
     })
     // margine di ogni vacca: suo latte − costo medio per capo della stalla
