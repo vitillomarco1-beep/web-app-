@@ -280,8 +280,11 @@ export function matricole(...liste: (ImportDC | undefined)[]): Map<string, strin
   for (const l of liste) for (const a of l?.animali ?? []) {
     if (m.has(a.id)) continue
     const k = Object.keys(a.extra ?? {}).find((x) => COLONNE_MATRICOLA.includes(norm(x)))
-    const v = k ? String(a.extra![k]).trim() : ''
-    if (v && v !== '-') m.set(a.id, v)
+    const v = k ? String(a.extra![k]).trim().replace(/\s+/g, '') : ''
+    if (v && v !== '-') m.set(a.id, conSiglaPaese(v))
   }
   return m
 }
+
+/** Matricola italiana completa: se nel file mancano le lettere del paese (solo cifre), aggiunge "IT". */
+export const conSiglaPaese = (m: string) => (/^\d+$/.test(m) ? `IT${m}` : m.toUpperCase())

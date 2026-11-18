@@ -136,6 +136,18 @@ export default function PartiPage() {
       await scarica(blob, `vaccinazioni-preparto-${sett.da}.pdf`)
     } finally { setPdf(false) }
   }
+  const [pdf60, setPdf60] = useState(false)
+  const scaricaPdf60 = async () => {
+    setPdf60(true)
+    try {
+      const blob = await creaPdf('Cryptium a 60 giorni dal parto', `Martedì ${fmtData(c60.martedi)} · animali a ${CRYPTIUM60_GG_DA}–${CRYPTIUM60_GG_A} giorni dal parto previsto · ${CRYPTIUM_60.nome.replace(/ \(.*\)/, '')} ${CRYPTIUM_60.doseMl} ml sottocute`, [{
+        titolo: `Animali da vaccinare (${c60.animali.length})`,
+        colonne: ['Vacca', ...(conMatr ? ['Matricola'] : []), 'Gg al parto', 'Parto previsto', 'Categoria', 'Gruppo', 'Fatto'],
+        righe: c60.animali.map(({ p, giorniAlParto }) => [p.vacca, ...(conMatr ? [mt(p.vacca)] : []), giorniAlParto, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo ?? '', fatte.has(idVaccinazione(p, CRYPTIUM_60.id)) ? 'fatto' : '']),
+      }], 'Segnare i vaccini fatti anche nell’app, sezione Parti e vaccini.')
+      await scarica(blob, `cryptium-60-giorni-${c60.martedi}.pdf`)
+    } finally { setPdf60(false) }
+  }
   const copia = async () => {
     try { await navigator.clipboard.writeText(testo()); setCopiato(true); setTimeout(() => setCopiato(false), 2000) } catch { /* appunti non disponibili */ }
   }
@@ -263,9 +275,12 @@ export default function PartiPage() {
                 <h2>Cryptium a 60 giorni dal parto</h2>
                 <p className="mt-0.5 text-sm text-stone-500">Martedì <b>{fmtData(c60.martedi)}</b> · vacche e manze a {CRYPTIUM60_GG_DA}–{CRYPTIUM60_GG_A} giorni dal parto previsto · {CRYPTIUM_60.doseMl} ml sottocute · {c60Mancano} da fare su {c60.animali.length}</p>
               </div>
+              <div className="flex flex-wrap items-center gap-3">
+              <button className="btn-primary print:hidden" onClick={scaricaPdf60} disabled={!c60.animali.length || pdf60}>{pdf60 ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
               <span className="text-sm text-stone-500">
                 {c60Farmaco ? <>In magazzino: {Math.max(0, Math.floor(c60Farmaco.giacenza / doseInUnita(c60Farmaco.unita, CRYPTIUM_60)))} dosi</> : <>Cryptium non è nel magazzino Farmaci</>}
               </span>
+              </div>
             </div>
             {c60.animali.length === 0 ? <p className="mt-3 text-sm text-stone-500">Nessun animale a {CRYPTIUM60_GG_DA}–{CRYPTIUM60_GG_A} giorni dal parto questo martedì.</p> : (
               <div className="mt-3 overflow-x-auto">
