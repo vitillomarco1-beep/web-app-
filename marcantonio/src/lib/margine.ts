@@ -83,13 +83,17 @@ export function calcolaMargine(dati: Dati, settimana: string) {
     const gg = dati.robotGiorni.filter((g) => g.completo && giorni.includes(g.data) && nomi.includes(g.robot))
     const kgLatte = gg.reduce((t, g) => t + g.kg, 0) / nG
     const vg = dati.robotVacche.filter((v) => giorni.includes(v.data) && nomi.includes(v.robot) && v.mungiture > 0)
-    // vacche munte al giorno dal riepilogo del robot (affidabile anche se mancano righe per vacca);
-    // più robot nella stessa stalla: si sommano (una vacca munge sempre nello stesso box)
-    const capiRobot = gg.reduce((t, g) => t + g.vacche, 0) / nG
+    // Vacche della stalla al giorno: le righe per vacca contano ogni vacca una volta al giorno, anche se
+    // munta da due box (nel gruppo DeLaval le vacche scelgono VMS1 o VMS2). I riepiloghi dei robot danno
+    // i limiti: almeno le vacche del box più usato, al massimo la somma dei box (se le righe per vacca mancano).
+    const perGiorno = new Map<string, number[]>()
+    gg.forEach((g) => perGiorno.set(g.data, [...(perGiorno.get(g.data) ?? []), g.vacche]))
+    const minimo = [...perGiorno.values()].reduce((t, v) => t + Math.max(...v), 0) / nG
+    const massimo = gg.reduce((t, g) => t + g.vacche, 0) / nG
     const capiVacche = vg.length / nG
     // senza giorni completi del robot (file mancante o interrotto) la stalla non ha dati in questa settimana
-    const capi = gg.length ? capiRobot || capiVacche : 0
-    const datiVaccheIncompleti = capiRobot > 0 && capiVacche < capiRobot * 0.8
+    const capi = gg.length ? Math.min(Math.max(capiVacche, minimo), massimo || capiVacche) : 0
+    const datiVaccheIncompleti = minimo > 0 && capiVacche < minimo * 0.8
     const razione = dati.razioni.find((r) => r.categoria === 'lattazione' && r.gruppi.includes(s.gruppoDairyComp!))
     const c = razione ? costoRazione(razione, dati.ingredienti) : null
     // pesate del carro della stalla nei giorni del periodo
