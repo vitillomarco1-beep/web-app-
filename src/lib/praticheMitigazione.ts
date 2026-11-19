@@ -28,6 +28,15 @@
  * essere negativo quando la pratica genera un ricavo (es. vendita del
  * biogas) superiore al suo costo.
  *
+ * Due pratiche (rimozione frequente dei reflui, raffreddamento dei reflui)
+ * hanno un dato di riduzione misurato solo su suini (fonte: Andersen et al.
+ * 2024, Danimarca): applicarlo ad altre specie è un'estrapolazione non
+ * verificata. Il report NON riporta alcuna voce quantificata per "inibitori/
+ * additivi dei reflui" in senso stretto (es. inibitori della ureasi o della
+ * nitrificazione): menziona solo il biochar come pratica promettente ma "non
+ * ancora pronta per il mercato", senza un dato di riduzione/costo
+ * consolidato — non inclusa qui per questo motivo, non perché inefficace.
+ *
  * calcolaProgressoTargetUe2040() collega le pratiche segnate come adottate
  * nella checklist aziendale (ZootecniaForm) alla riduzione CONCITO
  * corrispondente, per un indicatore di monitoraggio rispetto all'obiettivo
@@ -134,14 +143,42 @@ export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
     ambito: 'reflui',
     riduzioneMinPercento: 75,
     riduzioneMaxPercento: 90,
-    macMinEuroPerTCO2: -87,
+    macMinEuroPerTCO2: -10,
     macMaxEuroPerTCO2: 617,
     note:
-      'Costo fino a 617 €/tCO2e; può diventare un risparmio (fino a −87 €/tCO2e) se il biogas prodotto è valorizzato energeticamente.',
+      'Senza valorizzazione del biogas: 77–617 €/tCO2e. Con valorizzazione energetica del biogas: da un risparmio di 10 €/tCO2e a un costo di 87 €/tCO2e. Qui riportato l\'intervallo complessivo delle due situazioni (correzione rispetto a una precedente trascrizione che riportava erroneamente −87 invece di −10 come risparmio massimo).',
     chiaveChecklist: 'gestioneEffluentiDigestione',
     crcfPilota: {
       stato: 'ammissibile',
       nota: 'Elencata esplicitamente ("production of biogas/biomethane by anaerobic digestion of livestock manures"). Requisito minimo di sostenibilità nel documento pilota: il digestore deve essere alimentato principalmente da reflui/residui agricoli (non colture energetiche dedicate) e includere cattura del metano e monitoraggio delle perdite.',
+    },
+  },
+  {
+    nome: 'Rimozione frequente dei reflui dalla stalla (rapid discharge)',
+    ambito: 'reflui',
+    riduzioneMinPercento: 4,
+    riduzioneMaxPercento: 17,
+    macMinEuroPerTCO2: 2,
+    macMaxEuroPerTCO2: 200,
+    note:
+      'Dato solo su suini (Andersen et al. 2024, Danimarca): trasferimento rapido del refluo dalla stalla allo stoccaggio, per rimozione più frequente o scarico automatico. Costo molto variabile (stima degli autori del report, non una media consolidata): basso se è solo un cambio gestionale, alto se richiede di adeguare le stalle esistenti con un impianto automatico. Il beneficio si realizza pienamente solo se lo stoccaggio a valle ha già una tecnologia di riduzione del metano: altrimenti l\'emissione si sposta dalla stalla allo stoccaggio invece di ridursi.',
+    crcfPilota: {
+      stato: 'ammissibile',
+      nota: 'Corrisponde a "frequent removal/scraping" tra le pratiche ammissibili sulla gestione dei reflui nel documento pilota CRCF.',
+    },
+  },
+  {
+    nome: 'Raffreddamento dei reflui in stoccaggio',
+    ambito: 'reflui',
+    riduzioneMinPercento: 2,
+    riduzioneMaxPercento: 7,
+    macMinEuroPerTCO2: 130,
+    macMaxEuroPerTCO2: 130,
+    note:
+      'Dato solo su suini (Andersen et al. 2024, Danimarca). Costo stimato per la sola Danimarca (SEGES, 2024): nessuno studio a livello europeo. La riduzione dipende fortemente dal clima locale (non lineare con la temperatura): il dato non è una media europea.',
+    crcfPilota: {
+      stato: 'ammissibile',
+      nota: 'Corrisponde a "cooling/storage temperature" tra le pratiche ammissibili sulla gestione dei reflui nel documento pilota CRCF.',
     },
   },
   {
