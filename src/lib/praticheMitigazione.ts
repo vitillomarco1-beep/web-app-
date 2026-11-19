@@ -34,6 +34,25 @@
  * UE non vincolante del 16% al 2040 (Strategia UE per la zootecnia, 7 luglio
  * 2026) — non una verifica di conformità, perché nessuna metodologia
  * ufficiale di calcolo per singola azienda esiste ancora.
+ *
+ * AMMISSIBILITÀ CRCF (campo crcfPilota di ciascuna pratica) — fonte diversa
+ * dal report CONCITO sopra: il documento
+ *
+ *   "Pilot certification methodology for livestock activities under CRCF"
+ *   WSP, Wageningen University & Research, Trinomics, Institute for
+ *   European Environmental Policy (IEEP) — consorzio incaricato dalla
+ *   Commissione Europea (DG CLIMA), su mandato dell'art. 18(3) del
+ *   Regolamento CRCF (UE) 2024/3012.
+ *
+ * NON è una proposta normativa né una metodologia adottata: è dichiarato
+ * esplicitamente nel documento stesso come "esercizio di riflessione" in
+ * vista dell'eventuale revisione del CRCF (decisione attesa entro fine
+ * 2026). Definisce però un elenco di pratiche ammissibili e criteri di
+ * esclusione (in particolare: un additivo o una selezione genetica che
+ * riduce il metano solo indirettamente, migliorando la performance animale
+ * e quindi le emissioni per kg di prodotto, NON è ammissibile — lo è solo
+ * se agisce direttamente sulla fermentazione). Il campo crcfPilota riporta
+ * una valutazione di massima, non un giudizio di idoneità certo.
  */
 
 export type AmbitoPraticaMitigazione = 'enterico' | 'reflui'
@@ -53,6 +72,8 @@ export type ChiaveChecklistPratiche =
   | 'geneticaEfficienza'
   | 'alimentazionePrecisione'
 
+export type StatoCrcfPilota = 'ammissibile' | 'condizionata' | 'non_esplicita'
+
 export interface PraticaMitigazione {
   nome: string
   ambito: AmbitoPraticaMitigazione
@@ -62,6 +83,7 @@ export interface PraticaMitigazione {
   macMaxEuroPerTCO2: number
   note: string
   chiaveChecklist?: ChiaveChecklistPratiche
+  crcfPilota?: { stato: StatoCrcfPilota; nota: string }
 }
 
 export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
@@ -75,6 +97,10 @@ export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
     note:
       "Unico additivo anti-metano approvato sul mercato UE (Regolamento (UE) 2022/565). Dato su bovini da latte.",
     chiaveChecklist: 'additiviAlimentari',
+    crcfPilota: {
+      stato: 'ammissibile',
+      nota: 'Il documento pilota CRCF elenca la "manipolazione ruminale, inclusi additivi alimentari che riducono la conversione di carboidrati in CH4" tra le pratiche ammissibili sulla fermentazione enterica, poiché agisce direttamente sulla fermentazione e non solo migliorando la performance animale.',
+    },
   },
   {
     nome: 'Aumento del tenore di grasso nella razione (+1 punto percentuale)',
@@ -85,6 +111,10 @@ export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
     macMaxEuroPerTCO2: 262,
     note:
       'Riduzione riferita a +1 punto percentuale di grasso aggiunto alla razione: non verificata per quantità diverse.',
+    crcfPilota: {
+      stato: 'condizionata',
+      nota: 'Non citata esplicitamente nel documento pilota CRCF. Il criterio di esclusione riguarda gli additivi che riducono il metano solo indirettamente migliorando la performance animale (emissioni per kg di prodotto): da verificare caso per caso se il supplemento di grasso rientri in questa esclusione o agisca direttamente sulla fermentazione ruminale.',
+    },
   },
   {
     nome: 'Acidificazione dei reflui',
@@ -94,6 +124,10 @@ export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
     macMinEuroPerTCO2: 28,
     macMaxEuroPerTCO2: 57,
     note: '% del metano di stoccaggio. Da verificare: può abbassare il pH del suolo se il refluo acidificato è poi spanto.',
+    crcfPilota: {
+      stato: 'ammissibile',
+      nota: 'Elencata esplicitamente tra le pratiche ammissibili sulla gestione dei reflui ("acidification of slurry") nel documento pilota CRCF.',
+    },
   },
   {
     nome: 'Digestione anaerobica',
@@ -105,6 +139,10 @@ export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
     note:
       'Costo fino a 617 €/tCO2e; può diventare un risparmio (fino a −87 €/tCO2e) se il biogas prodotto è valorizzato energeticamente.',
     chiaveChecklist: 'gestioneEffluentiDigestione',
+    crcfPilota: {
+      stato: 'ammissibile',
+      nota: 'Elencata esplicitamente ("production of biogas/biomethane by anaerobic digestion of livestock manures"). Requisito minimo di sostenibilità nel documento pilota: il digestore deve essere alimentato principalmente da reflui/residui agricoli (non colture energetiche dedicate) e includere cattura del metano e monitoraggio delle perdite.',
+    },
   },
   {
     nome: 'Flaring del metano',
@@ -114,6 +152,10 @@ export const PRATICHE_MITIGAZIONE_METANO: PraticaMitigazione[] = [
     macMinEuroPerTCO2: 11,
     macMaxEuroPerTCO2: 11,
     note: 'Non genera energia: riduce le emissioni quando valorizzare il biogas non è fattibile. Opzione più economica del gruppo.',
+    crcfPilota: {
+      stato: 'non_esplicita',
+      nota: 'Non elencata esplicitamente tra le pratiche di gestione reflui del documento pilota CRCF (che cita digestione anaerobica, raffreddamento/temperatura di stoccaggio, acidificazione, coperture, separazione solido-liquido, rimozione frequente, inibitori/additivi): da verificare se rientrerebbe come variante della digestione anaerobica senza valorizzazione energetica.',
+    },
   },
 ]
 
@@ -142,6 +184,7 @@ export interface RigaPotenzialeMitigazione {
   costoMinEuro: number
   costoMaxEuro: number
   formula: string
+  crcfPilota?: { stato: StatoCrcfPilota; nota: string }
 }
 
 /** Applica ciascuna pratica alla base pertinente (metano enterico o metano
@@ -177,6 +220,7 @@ export function calcolaPotenzialeMitigazione(
       costoMinEuro,
       costoMaxEuro,
       formula,
+      crcfPilota: p.crcfPilota,
     }
   })
 }
@@ -191,6 +235,14 @@ export function calcolaPotenzialeMitigazione(
  * rispetto a un anno base ufficiale) e serve a tenere sotto controllo
  * l'ordine di grandezza, non a dimostrare conformità a un obbligo che oggi
  * non esiste. */
+/** Documento pilota sulla certificazione zootecnica nel CRCF — si veda il
+ * docstring in cima al file per status e limiti. Fonte diversa dal report
+ * CONCITO: qui serve solo per il campo crcfPilota di ciascuna pratica. */
+export const METODOLOGIA_PILOTA_CRCF_TITOLO =
+  'Pilot certification methodology for livestock activities under CRCF'
+export const METODOLOGIA_PILOTA_CRCF_FONTE =
+  "WSP, Wageningen University & Research, Trinomics, Institute for European Environmental Policy (IEEP) — documento pilota/esplorativo commissionato dalla Commissione Europea (DG CLIMA) ai sensi dell'art. 18(3) del Regolamento CRCF (UE) 2024/3012. NON è una metodologia adottata né una proposta normativa: è dichiarato nel documento stesso come esercizio di riflessione in vista dell'eventuale revisione del CRCF (decisione attesa entro fine 2026)."
+
 export const TARGET_UE_RIDUZIONE_PERCENTO_2040 = 16
 export const TARGET_UE_FONTE =
   "Strategia UE per la zootecnia, Commissione Europea, 7 luglio 2026 — obiettivo non vincolante, nessun anno di riferimento (baseline) né metodologia di calcolo per azienda ancora definiti a livello UE."

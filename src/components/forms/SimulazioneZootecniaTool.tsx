@@ -37,6 +37,8 @@ import { calcolaThiMensile, formattaThi } from '../../lib/thi'
 import {
   TARGET_UE_RIDUZIONE_PERCENTO_2040,
   TARGET_UE_FONTE,
+  METODOLOGIA_PILOTA_CRCF_TITOLO,
+  METODOLOGIA_PILOTA_CRCF_FONTE,
   calcolaPotenzialeMitigazione,
   calcolaProgressoTargetUe2040,
 } from '../../lib/praticheMitigazione'
@@ -1432,6 +1434,22 @@ export default function SimulazioneZootecniaTool({
                             <span className="block font-normal text-stone-400">
                               {r.ambito === 'enterico' ? 'su metano enterico' : 'su metano da reflui'}
                             </span>
+                            {r.crcfPilota && (
+                              <span
+                                className={`mt-1 block font-normal ${
+                                  r.crcfPilota.stato === 'ammissibile'
+                                    ? 'text-forest-600'
+                                    : 'text-amber-600'
+                                }`}
+                                title={r.crcfPilota.nota}
+                              >
+                                {r.crcfPilota.stato === 'ammissibile'
+                                  ? '✓ ammissibile (pilota CRCF)'
+                                  : r.crcfPilota.stato === 'condizionata'
+                                    ? '≈ da verificare (pilota CRCF)'
+                                    : '✗ non elencata esplicitamente (pilota CRCF)'}
+                              </span>
+                            )}
                           </td>
                           <td className="px-2 py-1.5 align-top text-stone-500">{r.formula}</td>
                           <td className="px-2 py-1.5 text-right align-top font-semibold text-stone-800">
@@ -1448,6 +1466,11 @@ export default function SimulazioneZootecniaTool({
                 <p className="text-stone-400">
                   Costo negativo = risparmio/ricavo netto stimato (es. digestione anaerobica con
                   valorizzazione energetica del biogas), non un costo da sostenere.
+                </p>
+                <p className="text-stone-400">
+                  <strong>Ammissibilità CRCF</strong> (etichette sopra, passa il cursore per il
+                  dettaglio): valutazione di massima secondo{' '}
+                  <em>{METODOLOGIA_PILOTA_CRCF_TITOLO}</em> — {METODOLOGIA_PILOTA_CRCF_FONTE}
                 </p>
 
                 <div
