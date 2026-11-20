@@ -12,6 +12,67 @@ export interface FascicoloAgeaMeta {
   caricatoIl: string
 }
 
+/** Un appezzamento/particella del cliente, per il quaderno di campagna (si veda
+ * lib/registroCampagna.ts): raccoglie le operazioni reali di campo, per
+ * calcolare gli apporti di carbonio (RothC) e l'azoto applicato (N2O da
+ * fertilizzazione) invece di inserirli a mano come totali aziendali stimati. */
+export interface Appezzamento {
+  id: string
+  clienteId: string
+  nome: string
+  superficieHa: number
+  /** Nome di una coltura in COLTURE_RESIDUI (lib/residuiColturali.ts) per
+   * calcolare l'apporto di residui dalla resa, oppure un nome libero se la
+   * coltura non è in elenco (in quel caso l'apporto residui va inserito a
+   * mano, nessun default disponibile). */
+  colturaPrincipale: string
+}
+
+/** A quale dei due scenari del bilancio (si veda lib/carbonEngine.ts) appartiene
+ * un'operazione di campo: il riferimento rappresenta pratiche che non avvengono
+ * più (continuare come prima), quindi normalmente si registrano lì solo
+ * operazioni storiche precedenti all'avvio dell'attività. */
+export type ScenarioOperazione = 'riferimento' | 'attivita'
+
+export type TipoOperazioneCampo =
+  | 'raccolta'
+  | 'fertilizzazione_minerale'
+  | 'ammendante_organico'
+  | 'lavorazione_terreno'
+
+/**
+ * Una singola operazione di campo registrata nel quaderno di campagna.
+ * I campi usati dipendono dal tipo (si veda lib/registroCampagna.ts per come
+ * vengono aggregati):
+ * - raccolta: resaTHaTalQuale (+ quotaResiduoRestituitaAlSuoloPercento) →
+ *   apporto di carbonio dei residui (lib/residuiColturali.ts) e azoto dei
+ *   residui per il calcolo N2O, quando disponibile per la coltura.
+ * - fertilizzazione_minerale: quantitaKgProdotto + azotoPercentoProdotto →
+ *   azoto di sintesi applicato (FSN, per il calcolo N2O).
+ * - ammendante_organico: quantitaKgProdotto + sostanzaSeccaPercento +
+ *   carbonioSostanzaSeccaPercento (→ apporto di carbonio per RothC) +
+ *   azotoPercentoTalQuale (→ azoto organico applicato, FON, per il calcolo N2O).
+ * - lavorazione_terreno: solo informativo (tipoLavorazione), non entra in
+ *   nessun calcolo numerico qui.
+ */
+export interface OperazioneCampo {
+  id: string
+  appezzamentoId: string
+  clienteId: string
+  scenario: ScenarioOperazione
+  tipo: TipoOperazioneCampo
+  data: string
+  note?: string
+  resaTHaTalQuale?: number
+  quotaResiduoRestituitaAlSuoloPercento?: number
+  quantitaKgProdotto?: number
+  azotoPercentoProdotto?: number
+  sostanzaSeccaPercento?: number
+  carbonioSostanzaSeccaPercento?: number
+  azotoPercentoTalQuale?: number
+  tipoLavorazione?: 'convenzionale' | 'ridotta' | 'no_till'
+}
+
 export interface Cliente {
   id: string
   ragioneSociale: string

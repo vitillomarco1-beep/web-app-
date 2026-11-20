@@ -1,10 +1,20 @@
-import type { Cliente, Calcolo, AggiornamentoNormativo, Gruppo, CalcoloGruppo } from '../types'
+import type {
+  Cliente,
+  Calcolo,
+  AggiornamentoNormativo,
+  Gruppo,
+  CalcoloGruppo,
+  Appezzamento,
+  OperazioneCampo,
+} from '../types'
 
 const CLIENTS_KEY = 'cfc.clienti.v1'
 const CALCS_KEY = 'cfc.calcoli.v1'
 const NORMATIVA_KEY = 'cfc.normativa.v1'
 const GRUPPI_KEY = 'cfc.gruppi.v1'
 const CALCS_GRUPPO_KEY = 'cfc.calcoliGruppo.v1'
+const APPEZZAMENTI_KEY = 'cfc.appezzamenti.v1'
+const OPERAZIONI_CAMPO_KEY = 'cfc.operazioniCampo.v1'
 
 function readJSON<T>(key: string, fallback: T): T {
   try {
@@ -43,6 +53,15 @@ export const clientiStore = {
     writeJSON(
       CALCS_KEY,
       calcoliStore.all().filter((c) => c.clientId !== id),
+    )
+    // rimuove a cascata appezzamenti e operazioni del quaderno di campagna
+    writeJSON(
+      APPEZZAMENTI_KEY,
+      appezzamentiStore.all().filter((a) => a.clienteId !== id),
+    )
+    writeJSON(
+      OPERAZIONI_CAMPO_KEY,
+      operazioniCampoStore.all().filter((o) => o.clienteId !== id),
     )
   },
 }
@@ -146,6 +165,68 @@ export const calcoliGruppoStore = {
     writeJSON(
       CALCS_GRUPPO_KEY,
       this.all().filter((c) => c.id !== id),
+    )
+  },
+}
+
+export const appezzamentiStore = {
+  all(): Appezzamento[] {
+    return readJSON<Appezzamento[]>(APPEZZAMENTI_KEY, [])
+  },
+  byClient(clienteId: string): Appezzamento[] {
+    return this.all().filter((a) => a.clienteId === clienteId)
+  },
+  get(id: string): Appezzamento | undefined {
+    return this.all().find((a) => a.id === id)
+  },
+  save(appezzamento: Appezzamento) {
+    const all = this.all()
+    const idx = all.findIndex((a) => a.id === appezzamento.id)
+    if (idx >= 0) all[idx] = appezzamento
+    else all.unshift(appezzamento)
+    writeJSON(APPEZZAMENTI_KEY, all)
+  },
+  remove(id: string) {
+    writeJSON(
+      APPEZZAMENTI_KEY,
+      this.all().filter((a) => a.id !== id),
+    )
+    // rimuove a cascata le operazioni registrate su questo appezzamento
+    writeJSON(
+      OPERAZIONI_CAMPO_KEY,
+      operazioniCampoStore.all().filter((o) => o.appezzamentoId !== id),
+    )
+  },
+}
+
+export const operazioniCampoStore = {
+  all(): OperazioneCampo[] {
+    return readJSON<OperazioneCampo[]>(OPERAZIONI_CAMPO_KEY, [])
+  },
+  byClient(clienteId: string): OperazioneCampo[] {
+    return this.all()
+      .filter((o) => o.clienteId === clienteId)
+      .sort((a, b) => b.data.localeCompare(a.data))
+  },
+  byAppezzamento(appezzamentoId: string): OperazioneCampo[] {
+    return this.all()
+      .filter((o) => o.appezzamentoId === appezzamentoId)
+      .sort((a, b) => b.data.localeCompare(a.data))
+  },
+  get(id: string): OperazioneCampo | undefined {
+    return this.all().find((o) => o.id === id)
+  },
+  save(operazione: OperazioneCampo) {
+    const all = this.all()
+    const idx = all.findIndex((o) => o.id === operazione.id)
+    if (idx >= 0) all[idx] = operazione
+    else all.unshift(operazione)
+    writeJSON(OPERAZIONI_CAMPO_KEY, all)
+  },
+  remove(id: string) {
+    writeJSON(
+      OPERAZIONI_CAMPO_KEY,
+      this.all().filter((o) => o.id !== id),
     )
   },
 }

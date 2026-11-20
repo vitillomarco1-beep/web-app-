@@ -166,6 +166,12 @@ export default function ClientDetailPage() {
               {editMode ? 'Annulla' : 'Modifica'}
             </button>
             <button
+              className="btn-secondary"
+              onClick={() => navigate(`/clienti/${clientId}/quaderno-campagna`)}
+            >
+              📒 Quaderno di campagna
+            </button>
+            <button
               className="btn-primary"
               onClick={() => navigate(`/clienti/${clientId}/nuovo-calcolo`)}
             >

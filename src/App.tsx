@@ -5,6 +5,7 @@ import ClientsPage from './pages/ClientsPage'
 import ClientDetailPage from './pages/ClientDetailPage'
 import NewCalculationPage from './pages/NewCalculationPage'
 import CalculationDetailPage from './pages/CalculationDetailPage'
+import QuadernoCampagnaPage from './pages/QuadernoCampagnaPage'
 import NormativaPage from './pages/NormativaPage'
 import GroupsPage from './pages/GroupsPage'
 import GroupDetailPage from './pages/GroupDetailPage'
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/clienti/:clientId" element={<ClientDetailPage />} />
         <Route path="/clienti/:clientId/nuovo-calcolo" element={<NewCalculationPage />} />
         <Route path="/clienti/:clientId/calcoli/:calcId" element={<CalculationDetailPage />} />
+        <Route path="/clienti/:clientId/quaderno-campagna" element={<QuadernoCampagnaPage />} />
         <Route path="/gruppi" element={<GroupsPage />} />
         <Route path="/gruppi/:gruppoId" element={<GroupDetailPage />} />
         <Route path="/gruppi/:gruppoId/nuovo-calcolo" element={<NewGroupCalculationPage />} />
