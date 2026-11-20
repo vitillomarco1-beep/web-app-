@@ -3,6 +3,7 @@ import type { DatiCalcolo } from '../types'
 import { calcolaBilancio } from '../lib/carbonEngine'
 import { formatDate, formatTCO2, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import RiepilogoZootecnia from './RiepilogoZootecnia'
+import PrezzoERicavoStimato from './PrezzoERicavoStimato'
 import {
   DISCLAIMER_REPORT,
   GWP_VALORI,
@@ -243,6 +244,8 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
               CO₂eq da riportare al periodo di certificazione successivo.
             </div>
           )}
+
+          <PrezzoERicavoStimato dati={dati} risultato={risultato} />
 
           {checklist && (
             <div className="overflow-hidden rounded-md border border-stone-200">

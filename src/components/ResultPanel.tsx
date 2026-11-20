@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { formatTCO2 } from '../lib/format'
+import { calcolaPrezzoCrediti } from '../lib/prezzoCrediti'
 import PdfViewerModal from './PdfViewerModal'
 import ReportPreview from './ReportPreview'
 import RiepilogoZootecnia from './RiepilogoZootecnia'
+import PrezzoERicavoStimato from './PrezzoERicavoStimato'
 
 interface Props {
   risultato: RisultatoCalcolo
@@ -113,6 +115,8 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
           sottrarre nel prossimo periodo di certificazione (allegato, sez. 2.1).
         </div>
       )}
+
+      {dati && <PrezzoERicavoStimato dati={dati} risultato={risultato} />}
 
       {mostraReport && dati && nomeTitolare && (
         <PdfViewerModal

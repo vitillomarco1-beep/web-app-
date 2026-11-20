@@ -125,6 +125,58 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel, region
       </div>
 
       <div className="card space-y-3">
+        <h3 className="font-semibold text-stone-900">
+          Prezzo di vendita e costo di certificazione (facoltativo)
+        </h3>
+        <p className="text-sm text-stone-500">
+          Nessun prezzo di mercato ufficiale esiste oggi per i crediti CRCF (la banca/registro
+          crediti dell'UE non è ancora operativa): inserisci qui una tua ipotesi di prezzo di
+          vendita e il costo totale di certificazione che stimi, per ricavare un possibile ricavo
+          netto e un prezzo di pareggio — non un dato di mercato.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label">Prezzo di vendita ipotizzato (€/t CO2eq)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input"
+              value={dati.prezzoCrediti?.prezzoVenditaEuroPerTCO2 ?? ''}
+              onChange={(e) =>
+                setDati({
+                  ...dati,
+                  prezzoCrediti: {
+                    ...dati.prezzoCrediti,
+                    prezzoVenditaEuroPerTCO2: e.target.value === '' ? undefined : num(e.target.value),
+                  },
+                })
+              }
+            />
+          </div>
+          <div>
+            <label className="label">Costo totale di certificazione (€)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input"
+              value={dati.prezzoCrediti?.costoCertificazioneTotaleEuro ?? ''}
+              onChange={(e) =>
+                setDati({
+                  ...dati,
+                  prezzoCrediti: {
+                    ...dati.prezzoCrediti,
+                    costoCertificazioneTotaleEuro: e.target.value === '' ? undefined : num(e.target.value),
+                  },
+                })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="card space-y-3">
         <h3 className="font-semibold text-stone-900">Pratiche adottate (allegato, sez. 1.1.1.1)</h3>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {PRATICHE_LABELS.map(([key, label]) => (

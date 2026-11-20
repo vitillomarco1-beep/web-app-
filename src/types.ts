@@ -41,6 +41,20 @@ export interface DatiGenerali {
   dataInizioPeriodoAttivita: string
   durataPeriodoCertificazioneAnni: number
   praticheDescrizione?: string
+  /** Ipotesi del consulente per stimare un possibile ricavo dalla vendita dei
+   * crediti — non un prezzo di mercato ufficiale: nessuna banca crediti CRCF
+   * esiste ancora, quindi nessun prezzo di riferimento è disponibile. Si veda
+   * lib/prezzoCrediti.ts. Entrambi facoltativi e lasciati a 0/assenti finché
+   * non inseriti. */
+  prezzoCrediti?: {
+    /** Prezzo di vendita ipotizzato per credito (€/t CO2eq) — assunzione del
+     * consulente, non un prezzo di mercato. */
+    prezzoVenditaEuroPerTCO2?: number
+    /** Costo totale di certificazione per l'intero periodo (€): verifica,
+     * monitoraggio, registro — qualunque struttura di costo il consulente
+     * stia usando, qui inserita come unico totale. */
+    costoCertificazioneTotaleEuro?: number
+  }
 }
 
 /**

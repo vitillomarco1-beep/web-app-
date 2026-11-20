@@ -17,6 +17,7 @@ import {
 } from './reportSteps'
 import { calcolaRiepilogoZootecnia, FONTE_EMISSIONI_BILANCIO_LABEL } from './riepilogoZootecnia'
 import { TARGET_UE_RIDUZIONE_PERCENTO_2040, TARGET_UE_FONTE } from './praticheMitigazione'
+import { calcolaPrezzoCrediti } from './prezzoCrediti'
 
 /** Evita che jspdf-autotable spezzi una riga a metà tra due pagine (di default può
  * troncare il testo di una cella lasciandone la coda orfana sulla pagina successiva
@@ -204,6 +205,70 @@ function disegnaRiepilogoZootecniaPdf(doc: jsPDF, dati: DatiZootecnia, startY: n
     y = (doc as any).lastAutoTable.finalY + 7
   }
 
+  return y
+}
+
+/** Stessa logica di PrezzoERicavoStimato.tsx: mostra solo se il consulente ha
+ * inserito almeno un'ipotesi di prezzo o di costo, per non riempire di zeri
+ * un calcolo dove questi dati non sono ancora stati valutati. */
+function disegnaPrezzoRicavoPdf(
+  doc: jsPDF,
+  dati: DatiCalcolo,
+  numeroUnitaCredito: number,
+  startY: number,
+  marginX: number,
+): number {
+  const prezzoCrediti = dati.prezzoCrediti
+  if (prezzoCrediti?.prezzoVenditaEuroPerTCO2 == null && prezzoCrediti?.costoCertificazioneTotaleEuro == null) {
+    return startY
+  }
+  let y = startY
+  const r = calcolaPrezzoCrediti({
+    numeroUnitaCredito,
+    areaAttivitaHa: dati.areaAttivitaHa,
+    prezzoVenditaEuroPerTCO2: prezzoCrediti?.prezzoVenditaEuroPerTCO2,
+    costoCertificazioneTotaleEuro: prezzoCrediti?.costoCertificazioneTotaleEuro,
+  })
+
+  y = nuovaPaginaSeNecessario(doc, y, 24)
+  autoTable(doc, {
+    startY: y,
+    margin: { left: marginX, right: marginX },
+    head: [[
+      'Prezzo e ricavo stimato (ipotesi del consulente, non un prezzo di mercato)',
+      '',
+      '',
+    ]],
+    body: [[
+      `Ricavo lordo stimato\n${n(r.ricavoLordoEuro)} €`,
+      `Ricavo netto stimato\n${n(r.ricavoNettoEuro)} €`,
+      `Ricavo netto per ettaro\n${r.ricavoNettoPerEttaroEuro != null ? `${n(r.ricavoNettoPerEttaroEuro)} €/ha` : '—'}`,
+    ]],
+    theme: 'grid',
+    headStyles: { fillColor: FOREST, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    styles: { fontSize: 9.5, textColor: STONE, cellPadding: 3, halign: 'center', valign: 'top' },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        const testo = data.cell.raw?.toString() ?? ''
+        if (testo.includes('\n')) data.cell.styles.fontStyle = 'bold'
+      }
+    },
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  y = (doc as any).lastAutoTable.finalY + 6
+
+  y = paragrafo(
+    doc,
+    perPdf(
+      `Prezzo di vendita ipotizzato: ${n(r.prezzoVenditaEuroPerTCO2)} €/t CO2eq. Costo totale di ` +
+        `certificazione: ${n(r.costoCertificazioneTotaleEuro)} €. Prezzo di pareggio: ` +
+        `${r.prezzoDiPareggioEuroPerTCO2 != null ? `${n(r.prezzoDiPareggioEuroPerTCO2)} €/t CO2eq` : 'non calcolabile'} ` +
+        `(${r.formulaPrezzoDiPareggio}). Nessun prezzo di mercato ufficiale esiste oggi per i crediti CRCF: ` +
+        'questi numeri dipendono interamente dalle ipotesi inserite, non da un listino o un registro.',
+    ),
+    y,
+    marginX,
+  )
   return y
 }
 
@@ -444,6 +509,7 @@ export function costruisciReportCalcoloPdf(nomeTitolare: string, dati: DatiCalco
       y += 8
     }
 
+    y = disegnaPrezzoRicavoPdf(doc, dati, numeroUnita, y, marginX)
   }
 
   // Checklist di ammissibilità/addizionalità
