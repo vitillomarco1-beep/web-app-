@@ -5,9 +5,8 @@ import { PROFILI_CLIMATICI } from '../../lib/climaTipico'
 import { formatTCO2 } from '../../lib/format'
 import type { DettaglioRothC, ScenarioOperazione } from '../../types'
 import ResiduiColturaliHelper from './ResiduiColturaliHelper'
+import ImportaQuadernoRothC from './ImportaQuadernoRothC'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
-import { appezzamentiStore, operazioniCampoStore } from '../../lib/storage'
-import { aggregaInputRothC } from '../../lib/registroCampagna'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -126,29 +125,18 @@ export default function RothCTool({
     onChange: (v: ScenarioRothCInput) => void
     scenario: ScenarioOperazione
   }) {
-    function importaDalQuaderno() {
-      if (!clienteId) return
-      const appezzamenti = appezzamentiStore.byClient(clienteId)
-      const operazioni = operazioniCampoStore.byClient(clienteId)
-      const anni = durataAnni > 0 ? durataAnni : 1
-      const aggregato = aggregaInputRothC(operazioni, appezzamenti, scenario, areaAttivitaHa, anni)
-      const arrotonda = (v: number) => Math.round(v * 1000) / 1000
-      onChange({
-        ...valore,
-        apportoResiduiTCHaAnno: arrotonda(aggregato.apportoResiduiTCHaAnno),
-        apportoAmmendantiTCHaAnno: arrotonda(aggregato.apportoAmmendantiTCHaAnno),
-      })
-    }
     return (
       <div className="grid grid-cols-2 gap-3">
         {clienteId && (
-          <button
-            type="button"
-            className="col-span-2 text-xs font-medium text-forest-700 underline underline-offset-2 hover:text-forest-800"
-            onClick={importaDalQuaderno}
-          >
-            📒 Importa apporti dal quaderno di campagna
-          </button>
+          <ImportaQuadernoRothC
+            clienteId={clienteId}
+            scenario={scenario}
+            areaAttivitaHa={areaAttivitaHa}
+            durataAnni={durataAnni}
+            onImporta={(apportoResiduiTCHaAnno, apportoAmmendantiTCHaAnno) =>
+              onChange({ ...valore, apportoResiduiTCHaAnno, apportoAmmendantiTCHaAnno })
+            }
+          />
         )}
         <div>
           <label className="label text-xs">Apporto C da residui (t C/ha/anno)</label>
