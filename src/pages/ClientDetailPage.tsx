@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { v4 as uuidv4 } from 'uuid'
 import { clientiStore, calcoliStore } from '../lib/storage'
+import { calcolaBilancio } from '../lib/carbonEngine'
 import type { Cliente, Calcolo, FascicoloAgeaMeta } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
+import PdfViewerModal from '../components/PdfViewerModal'
 import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
 
 export default function ClientDetailPage() {
@@ -13,6 +16,10 @@ export default function ClientDetailPage() {
   const [cliente, setCliente] = useState<Cliente | undefined>()
   const [calcoli, setCalcoli] = useState<Calcolo[]>([])
   const [editMode, setEditMode] = useState(false)
+  const [calcoloDaDuplicare, setCalcoloDaDuplicare] = useState<Calcolo | null>(null)
+  const [destinazioneClienteId, setDestinazioneClienteId] = useState('')
+  const [nuovoNomeCalcolo, setNuovoNomeCalcolo] = useState('')
+  const [spostaInvece, setSpostaInvece] = useState(false)
   const [form, setForm] = useState({
     ragioneSociale: '',
     referente: '',
@@ -47,6 +54,42 @@ export default function ClientDetailPage() {
     if (!confirm('Eliminare questo calcolo?')) return
     calcoliStore.remove(id)
     setCalcoli(calcoliStore.byClient(clientId!))
+  }
+
+  function apriDuplicaSposta(c: Calcolo) {
+    setCalcoloDaDuplicare(c)
+    const altri = clientiStore.all().filter((cl) => cl.id !== clientId)
+    setDestinazioneClienteId(altri[0]?.id ?? '')
+    setNuovoNomeCalcolo(`${c.dati.nomeCalcolo} (copia)`)
+    setSpostaInvece(false)
+  }
+
+  function confermaDuplicaSposta() {
+    if (!calcoloDaDuplicare || !destinazioneClienteId) return
+    const nome = nuovoNomeCalcolo.trim() || calcoloDaDuplicare.dati.nomeCalcolo
+    const now = new Date().toISOString()
+    if (spostaInvece) {
+      const datiAggiornati = { ...calcoloDaDuplicare.dati, nomeCalcolo: nome }
+      calcoliStore.save({
+        ...calcoloDaDuplicare,
+        clientId: destinazioneClienteId,
+        dati: datiAggiornati,
+        updatedAt: now,
+      })
+    } else {
+      const datiCopia = { ...calcoloDaDuplicare.dati, nomeCalcolo: nome }
+      const nuovoCalcolo: Calcolo = {
+        id: uuidv4(),
+        clientId: destinazioneClienteId,
+        dati: datiCopia,
+        risultato: calcolaBilancio(datiCopia),
+        createdAt: now,
+        updatedAt: now,
+      }
+      calcoliStore.save(nuovoCalcolo)
+    }
+    setCalcoli(calcoliStore.byClient(clientId!))
+    setCalcoloDaDuplicare(null)
   }
 
   function apriModifica() {
@@ -260,6 +303,9 @@ export default function ClientDetailPage() {
                     </p>
                   )}
                 </div>
+                <button className="btn-secondary" onClick={() => apriDuplicaSposta(c)}>
+                  Duplica/sposta
+                </button>
                 <button className="btn-danger" onClick={() => handleDeleteCalcolo(c.id)}>
                   Elimina
                 </button>
@@ -267,6 +313,75 @@ export default function ClientDetailPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {calcoloDaDuplicare && (
+        <PdfViewerModal
+          titolo={spostaInvece ? 'Sposta calcolo' : 'Duplica calcolo'}
+          onClose={() => setCalcoloDaDuplicare(null)}
+        >
+          <div className="space-y-4 p-4">
+            <p className="text-sm text-stone-600">
+              {spostaInvece
+                ? 'Sposta questo calcolo sotto un altro cliente: scompare dalla scheda di questo cliente.'
+                : 'Crea una copia di questo calcolo sotto un altro cliente, utile come punto di partenza per aziende simili: il calcolo originale resta qui invariato.'}
+            </p>
+            <div>
+              <label className="label">Cliente di destinazione</label>
+              {clientiStore.all().filter((cl) => cl.id !== clientId).length === 0 ? (
+                <p className="text-sm text-amber-700">
+                  Non esiste ancora un altro cliente: creane uno dalla lista clienti prima di
+                  duplicare o spostare questo calcolo.
+                </p>
+              ) : (
+                <select
+                  className="input"
+                  value={destinazioneClienteId}
+                  onChange={(e) => setDestinazioneClienteId(e.target.value)}
+                >
+                  {clientiStore
+                    .all()
+                    .filter((cl) => cl.id !== clientId)
+                    .map((cl) => (
+                      <option key={cl.id} value={cl.id}>
+                        {cl.ragioneSociale}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="label">Nome del calcolo nella destinazione</label>
+              <input
+                className="input"
+                value={nuovoNomeCalcolo}
+                onChange={(e) => setNuovoNomeCalcolo(e.target.value)}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+                checked={spostaInvece}
+                onChange={(e) => setSpostaInvece(e.target.checked)}
+              />
+              Sposta invece di duplicare (rimuove il calcolo da questo cliente)
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={!destinazioneClienteId}
+                onClick={confermaDuplicaSposta}
+              >
+                {spostaInvece ? 'Sposta' : 'Duplica'}
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => setCalcoloDaDuplicare(null)}>
+                Annulla
+              </button>
+            </div>
+          </div>
+        </PdfViewerModal>
       )}
     </div>
   )
