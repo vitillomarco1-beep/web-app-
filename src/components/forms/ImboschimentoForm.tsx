@@ -4,6 +4,7 @@ import type { DatiImboschimento } from '../../types'
 import { calcolaBilancio, FATTORE_INCERTEZZA_MINIMO } from '../../lib/carbonEngine'
 import ChecklistPanel from '../ChecklistPanel'
 import ResultPanel from '../ResultPanel'
+import ReferimentoPrezziMercato from '../ReferimentoPrezziMercato'
 import { CHECKLIST_IMBOSCHIMENTO } from '../../lib/checklist'
 import {
   LIVELLI_CONFIDENZA,
@@ -217,6 +218,7 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
             />
           </div>
         </div>
+        <ReferimentoPrezziMercato />
       </div>
 
       <div className="card space-y-4">

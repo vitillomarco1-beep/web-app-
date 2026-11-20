@@ -3,6 +3,7 @@ import type { DatiAgricolturaAgroforestazione } from '../../types'
 import { calcolaBilancio, FATTORE_INCERTEZZA_MINIMO } from '../../lib/carbonEngine'
 import ChecklistPanel from '../ChecklistPanel'
 import ResultPanel from '../ResultPanel'
+import ReferimentoPrezziMercato from '../ReferimentoPrezziMercato'
 import RothCTool from './RothCTool'
 import { CHECKLIST_AGRICOLTURA } from '../../lib/checklist'
 
@@ -174,6 +175,7 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel, region
             />
           </div>
         </div>
+        <ReferimentoPrezziMercato />
       </div>
 
       <div className="card space-y-3">
