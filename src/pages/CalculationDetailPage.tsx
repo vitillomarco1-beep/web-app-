@@ -81,6 +81,7 @@ export default function CalculationDetailPage() {
               onSubmit={handleUpdate}
               submitLabel="Salva modifiche"
               regioneCliente={cliente.regione}
+              clienteId={clientId}
             />
           )}
           {calcolo.dati.tipoAttivita === 'imboschimento' && (

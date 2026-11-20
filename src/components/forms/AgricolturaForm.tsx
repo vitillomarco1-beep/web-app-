@@ -5,6 +5,7 @@ import ChecklistPanel from '../ChecklistPanel'
 import ResultPanel from '../ResultPanel'
 import ReferimentoPrezziMercato from '../ReferimentoPrezziMercato'
 import RothCTool from './RothCTool'
+import ImportaQuadernoN2O from './ImportaQuadernoN2O'
 import { CHECKLIST_AGRICOLTURA } from '../../lib/checklist'
 
 function defaultData(): DatiAgricolturaAgroforestazione {
@@ -55,9 +56,13 @@ interface Props {
   /** Regione del cliente, passata al simulatore RothC per proporre il link al
    * servizio agrometeorologico pubblico della zona. */
   regioneCliente?: string
+  /** Id del cliente, per leggere il suo quaderno di campagna (appezzamenti e
+   * operazioni) e importarne gli apporti direttamente nel simulatore RothC e
+   * nel calcolo delle emissioni N2O — si veda lib/registroCampagna.ts. */
+  clienteId?: string
 }
 
-export default function AgricolturaForm({ initial, onSubmit, submitLabel, regioneCliente }: Props) {
+export default function AgricolturaForm({ initial, onSubmit, submitLabel, regioneCliente, clienteId }: Props) {
   const [dati, setDati] = useState<DatiAgricolturaAgroforestazione>(initial ?? defaultData())
   const [showResult, setShowResult] = useState(false)
 
@@ -220,6 +225,7 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel, region
           areaAttivitaHa={dati.areaAttivitaHa}
           durataPeriodoCertificazioneAnni={dati.durataPeriodoCertificazioneAnni}
           regione={regioneCliente}
+          clienteId={clienteId}
           onApplica={(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC) =>
             setDati({ ...dati, assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC })
           }
@@ -322,6 +328,20 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel, region
             />
           </div>
         </fieldset>
+
+        {clienteId && (
+          <ImportaQuadernoN2O
+            clienteId={clienteId}
+            durataPeriodoCertificazioneAnni={dati.durataPeriodoCertificazioneAnni}
+            onImporta={(attivitaTCO2, riferimentoTCO2) =>
+              setDati({
+                ...dati,
+                emissioniAgricoleAttivitaTCO2: Math.round(attivitaTCO2 * 1000) / 1000,
+                emissioniAgricoleRiferimentoTCO2: Math.round(riferimentoTCO2 * 1000) / 1000,
+              })
+            }
+          />
+        )}
 
         {dati.pratiche.riduzioneN2O && (
           <label className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-800">

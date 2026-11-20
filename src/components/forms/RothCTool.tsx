@@ -3,9 +3,11 @@ import { simulaRothC, RAPPORTO_DPM_RPM_DEFAULT } from '../../lib/rothc'
 import type { MeseClima, ScenarioRothCInput, RisultatoRothC } from '../../lib/rothc'
 import { PROFILI_CLIMATICI } from '../../lib/climaTipico'
 import { formatTCO2 } from '../../lib/format'
-import type { DettaglioRothC } from '../../types'
+import type { DettaglioRothC, ScenarioOperazione } from '../../types'
 import ResiduiColturaliHelper from './ResiduiColturaliHelper'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
+import { appezzamentiStore, operazioniCampoStore } from '../../lib/storage'
+import { aggregaInputRothC } from '../../lib/registroCampagna'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -31,6 +33,9 @@ interface Props {
   /** Regione del cliente (una delle chiavi di SERVIZI_METEO_REGIONALI), per
    * proporre il link al servizio agrometeorologico pubblico della zona. */
   regione?: string
+  /** Id del cliente, per leggere il suo quaderno di campagna e importare gli
+   * apporti di carbonio calcolati — si veda lib/registroCampagna.ts. */
+  clienteId?: string
   onApplica: (
     assorbimentiAttivitaTCO2: number,
     assorbimentiRiferimentoTCO2: number,
@@ -42,6 +47,7 @@ export default function RothCTool({
   areaAttivitaHa,
   durataPeriodoCertificazioneAnni,
   regione,
+  clienteId,
   onApplica,
 }: Props) {
   const [aperto, setAperto] = useState(false)
@@ -114,12 +120,36 @@ export default function RothCTool({
   function ScenarioFields({
     valore,
     onChange,
+    scenario,
   }: {
     valore: ScenarioRothCInput
     onChange: (v: ScenarioRothCInput) => void
+    scenario: ScenarioOperazione
   }) {
+    function importaDalQuaderno() {
+      if (!clienteId) return
+      const appezzamenti = appezzamentiStore.byClient(clienteId)
+      const operazioni = operazioniCampoStore.byClient(clienteId)
+      const anni = durataAnni > 0 ? durataAnni : 1
+      const aggregato = aggregaInputRothC(operazioni, appezzamenti, scenario, areaAttivitaHa, anni)
+      const arrotonda = (v: number) => Math.round(v * 1000) / 1000
+      onChange({
+        ...valore,
+        apportoResiduiTCHaAnno: arrotonda(aggregato.apportoResiduiTCHaAnno),
+        apportoAmmendantiTCHaAnno: arrotonda(aggregato.apportoAmmendantiTCHaAnno),
+      })
+    }
     return (
       <div className="grid grid-cols-2 gap-3">
+        {clienteId && (
+          <button
+            type="button"
+            className="col-span-2 text-xs font-medium text-forest-700 underline underline-offset-2 hover:text-forest-800"
+            onClick={importaDalQuaderno}
+          >
+            📒 Importa apporti dal quaderno di campagna
+          </button>
+        )}
         <div>
           <label className="label text-xs">Apporto C da residui (t C/ha/anno)</label>
           <input
@@ -342,11 +372,11 @@ export default function RothCTool({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-md border border-stone-200 bg-white p-3">
               <p className="mb-2 text-sm font-semibold text-stone-800">Scenario di riferimento</p>
-              <ScenarioFields valore={riferimento} onChange={setRiferimento} />
+              <ScenarioFields valore={riferimento} onChange={setRiferimento} scenario="riferimento" />
             </div>
             <div className="rounded-md border border-stone-200 bg-white p-3">
               <p className="mb-2 text-sm font-semibold text-stone-800">Scenario di attività</p>
-              <ScenarioFields valore={attivita} onChange={setAttivita} />
+              <ScenarioFields valore={attivita} onChange={setAttivita} scenario="attivita" />
             </div>
           </div>
 
