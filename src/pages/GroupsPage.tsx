@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { gruppiStore, calcoliGruppoStore, clientiStore } from '../lib/storage'
 import type { Gruppo, Cliente } from '../types'
+import ConfirmButton from '../components/ConfirmButton'
 
 function nomiMembri(gruppo: Gruppo, clienti: Cliente[]): string {
   return gruppo.membri
@@ -56,7 +57,6 @@ export default function GroupsPage() {
   }
 
   function handleDelete(id: string) {
-    if (!confirm('Eliminare il gruppo e tutti i suoi calcoli condivisi?')) return
     gruppiStore.remove(id)
     setGruppi(gruppiStore.all())
   }
@@ -172,9 +172,11 @@ export default function GroupsPage() {
                 <span className="text-xs text-stone-400">
                   {calcoliGruppoStore.byGruppo(g.id).length} calcoli
                 </span>
-                <button className="btn-danger" onClick={() => handleDelete(g.id)}>
-                  Elimina
-                </button>
+                <ConfirmButton
+                  onConfirm={() => handleDelete(g.id)}
+                  label="Elimina"
+                  confirmText="Eliminare il gruppo e tutti i suoi calcoli condivisi?"
+                />
               </div>
             </div>
           ))}

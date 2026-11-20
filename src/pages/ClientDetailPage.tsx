@@ -8,6 +8,7 @@ import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
 import PdfViewerModal from '../components/PdfViewerModal'
+import ConfirmButton from '../components/ConfirmButton'
 import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
 
 export default function ClientDetailPage() {
@@ -51,7 +52,6 @@ export default function ClientDetailPage() {
   }
 
   function handleDeleteCalcolo(id: string) {
-    if (!confirm('Eliminare questo calcolo?')) return
     calcoliStore.remove(id)
     setCalcoli(calcoliStore.byClient(clientId!))
   }
@@ -312,9 +312,7 @@ export default function ClientDetailPage() {
                 <button className="btn-secondary" onClick={() => apriDuplicaSposta(c)}>
                   Duplica/sposta
                 </button>
-                <button className="btn-danger" onClick={() => handleDeleteCalcolo(c.id)}>
-                  Elimina
-                </button>
+                <ConfirmButton onConfirm={() => handleDeleteCalcolo(c.id)} label="Elimina" />
               </div>
             </div>
           ))}

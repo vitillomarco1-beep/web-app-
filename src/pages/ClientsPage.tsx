@@ -5,6 +5,7 @@ import { clientiStore, calcoliStore } from '../lib/storage'
 import { eliminaFascicoloAgea } from '../lib/fileStore'
 import type { Cliente, FascicoloAgeaMeta } from '../types'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
+import ConfirmButton from '../components/ConfirmButton'
 import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
 
 function nuovoFormId() {
@@ -73,7 +74,6 @@ export default function ClientsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Eliminare il cliente e tutti i suoi calcoli?')) return
     await eliminaFascicoloAgea(id)
     clientiStore.remove(id)
     setClienti(clientiStore.all())
@@ -221,9 +221,11 @@ export default function ClientsPage() {
                 <span className="text-xs text-stone-400">
                   {calcoliStore.byClient(c.id).length} calcoli
                 </span>
-                <button className="btn-danger" onClick={() => handleDelete(c.id)}>
-                  Elimina
-                </button>
+                <ConfirmButton
+                  onConfirm={() => handleDelete(c.id)}
+                  label="Elimina"
+                  confirmText="Eliminare il cliente e tutti i suoi calcoli?"
+                />
               </div>
             </div>
           ))}

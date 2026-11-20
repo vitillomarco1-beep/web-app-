@@ -3,6 +3,7 @@ import type { FascicoloAgeaMeta } from '../types'
 import { formatDate, formatFileSize } from '../lib/format'
 import PdfViewerModal from './PdfViewerModal'
 import PdfCanvasViewer from './PdfCanvasViewer'
+import ConfirmButton from './ConfirmButton'
 
 interface Props {
   meta?: FascicoloAgeaMeta
@@ -78,7 +79,6 @@ export default function DocumentUploader({
   }
 
   async function handleRemove() {
-    if (!confirm(confermaRimozione)) return
     await elimina()
     onChange(undefined)
   }
@@ -113,9 +113,7 @@ export default function DocumentUploader({
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
               />
             </label>
-            <button type="button" className="btn-danger" onClick={handleRemove}>
-              Rimuovi
-            </button>
+            <ConfirmButton onConfirm={handleRemove} label="Rimuovi" confirmText={confermaRimozione} />
           </div>
         </div>
       ) : (

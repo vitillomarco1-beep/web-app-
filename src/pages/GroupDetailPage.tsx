@@ -4,6 +4,7 @@ import { gruppiStore, calcoliGruppoStore, clientiStore } from '../lib/storage'
 import type { Gruppo, CalcoloGruppo, Cliente } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
+import ConfirmButton from '../components/ConfirmButton'
 
 export default function GroupDetailPage() {
   const { gruppoId } = useParams<{ gruppoId: string }>()
@@ -40,7 +41,6 @@ export default function GroupDetailPage() {
   }
 
   function handleDeleteCalcolo(id: string) {
-    if (!confirm('Eliminare questo calcolo?')) return
     calcoliGruppoStore.remove(id)
     setCalcoli(calcoliGruppoStore.byGruppo(gruppoId!))
   }
@@ -59,7 +59,6 @@ export default function GroupDetailPage() {
       alert('Un gruppo richiede almeno 2 membri: eliminalo se non serve più.')
       return
     }
-    if (!confirm(`Rimuovere ${nomeCliente(clienteId)} dal gruppo?`)) return
     const aggiornato: Gruppo = {
       ...gruppo!,
       membri: gruppo!.membri.filter((m) => m.clienteId !== clienteId),
@@ -188,12 +187,12 @@ export default function GroupDetailPage() {
                   </td>
                   {modificaMembri && (
                     <td className="px-3 py-2 text-right">
-                      <button
+                      <ConfirmButton
+                        onConfirm={() => rimuoviMembro(m.clienteId)}
+                        label="Rimuovi"
+                        confirmText={`Rimuovere ${nomeCliente(m.clienteId)} dal gruppo?`}
                         className="text-xs text-red-600 hover:underline"
-                        onClick={() => rimuoviMembro(m.clienteId)}
-                      >
-                        Rimuovi
-                      </button>
+                      />
                     </td>
                   )}
                 </tr>
@@ -255,9 +254,7 @@ export default function GroupDetailPage() {
                     </p>
                   )}
                 </div>
-                <button className="btn-danger" onClick={() => handleDeleteCalcolo(c.id)}>
-                  Elimina
-                </button>
+                <ConfirmButton onConfirm={() => handleDeleteCalcolo(c.id)} label="Elimina" />
               </div>
             </div>
           ))}

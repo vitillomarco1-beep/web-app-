@@ -4,6 +4,7 @@ import { calcoliGruppoStore, gruppiStore, clientiStore } from '../lib/storage'
 import { calcolaBilancio } from '../lib/carbonEngine'
 import type { DatiCalcolo } from '../types'
 import ResultPanel from '../components/ResultPanel'
+import ConfirmButton from '../components/ConfirmButton'
 import AgricolturaForm from '../components/forms/AgricolturaForm'
 import ImboschimentoForm from '../components/forms/ImboschimentoForm'
 import ZootecniaForm from '../components/forms/ZootecniaForm'
@@ -44,7 +45,6 @@ export default function GroupCalculationDetailPage() {
   }
 
   function handleDelete() {
-    if (!confirm('Eliminare questo calcolo?')) return
     calcoliGruppoStore.remove(calcId!)
     navigate(`/gruppi/${gruppoId}`)
   }
@@ -68,9 +68,7 @@ export default function GroupCalculationDetailPage() {
           <button className="btn-secondary" onClick={() => setEditMode((e) => !e)}>
             {editMode ? 'Annulla modifica' : 'Modifica'}
           </button>
-          <button className="btn-danger" onClick={handleDelete}>
-            Elimina
-          </button>
+          <ConfirmButton onConfirm={handleDelete} label="Elimina" />
         </div>
       </div>
 

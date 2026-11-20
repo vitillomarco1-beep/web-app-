@@ -10,6 +10,7 @@ import {
   STATO_NORMATIVA_STILE,
 } from '../lib/format'
 import DocumentUploader from '../components/DocumentUploader'
+import ConfirmButton from '../components/ConfirmButton'
 
 function nuovoFormId() {
   return uuidv4()
@@ -107,7 +108,6 @@ export default function NormativaPage() {
   }
 
   function handleDelete(id: string) {
-    if (!confirm('Eliminare questo aggiornamento normativo?')) return
     eliminaDocumentoNormativa(id)
     normativaStore.remove(id)
     ricarica()
@@ -265,9 +265,7 @@ export default function NormativaPage() {
                   <button className="btn-secondary" onClick={() => apriModifica(v)}>
                     Modifica
                   </button>
-                  <button className="btn-danger" onClick={() => handleDelete(v.id)}>
-                    Elimina
-                  </button>
+                  <ConfirmButton onConfirm={() => handleDelete(v.id)} label="Elimina" />
                 </div>
               </div>
               {v.sintesi && (

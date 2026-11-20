@@ -7,6 +7,7 @@ import { COLTURE_RESIDUI } from '../lib/residuiColturali'
 import { aggregaInputRothC, aggregaAzoto } from '../lib/registroCampagna'
 import { calcolaN2oSuoliAgricoli } from '../lib/n2oSuoliAgricoli'
 import { formatTCO2, formatDate } from '../lib/format'
+import ConfirmButton from '../components/ConfirmButton'
 
 const TIPO_LABEL: Record<TipoOperazioneCampo, string> = {
   raccolta: 'Raccolta (resa)',
@@ -86,7 +87,6 @@ export default function QuadernoCampagnaPage() {
   }
 
   function handleEliminaAppezzamento(id: string) {
-    if (!confirm('Eliminare questo appezzamento e tutte le sue operazioni registrate?')) return
     appezzamentiStore.remove(id)
     if (appezzamentoSelezionatoId === id) setAppezzamentoSelezionatoId(null)
     refresh()
@@ -113,7 +113,6 @@ export default function QuadernoCampagnaPage() {
   }
 
   function handleEliminaOperazione(id: string) {
-    if (!confirm('Eliminare questa operazione?')) return
     operazioniCampoStore.remove(id)
     refresh()
   }
@@ -172,9 +171,11 @@ export default function QuadernoCampagnaPage() {
                     — {a.colturaPrincipale} · {a.superficieHa} ha
                   </span>
                 </button>
-                <button className="btn-danger" onClick={() => handleEliminaAppezzamento(a.id)}>
-                  Elimina
-                </button>
+                <ConfirmButton
+                  onConfirm={() => handleEliminaAppezzamento(a.id)}
+                  label="Elimina"
+                  confirmText="Eliminare questo appezzamento e tutte le sue operazioni?"
+                />
               </div>
             ))}
           </div>
@@ -288,9 +289,7 @@ export default function QuadernoCampagnaPage() {
                       <button type="button" className="btn-secondary" onClick={() => setOperazioneInModifica(o)}>
                         Modifica
                       </button>
-                      <button className="btn-danger" onClick={() => handleEliminaOperazione(o.id)}>
-                        Elimina
-                      </button>
+                      <ConfirmButton onConfirm={() => handleEliminaOperazione(o.id)} label="Elimina" />
                     </div>
                   </div>
                 ))}
