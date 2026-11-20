@@ -1,26 +1,26 @@
 import { useState } from 'react'
 import type { DatiZootecnia } from '../types'
-import { calcolaRiepilogoZootecnia } from '../lib/riepilogoZootecnia'
+import { calcolaRiepilogoZootecnia, FONTE_EMISSIONI_BILANCIO_LABEL } from '../lib/riepilogoZootecnia'
 import { TARGET_UE_RIDUZIONE_PERCENTO_2040, TARGET_UE_FONTE } from '../lib/praticheMitigazione'
 import { formatTCO2 } from '../lib/format'
 
 interface Props {
   dati: DatiZootecnia
-}
-
-const FONTE_EMISSIONI_LABEL: Record<'auto' | 'letteratura' | 'specifiche_aziendali', string> = {
-  auto: 'automatico (dato aziendale se disponibile, altrimenti media di letteratura)',
-  letteratura: 'media di letteratura',
-  specifiche_aziendali: 'dato specifico aziendale',
+  /** true nella vista stampabile/report (ReportPreview): il dettaglio delle
+   * formule parte già aperto, perché un documento esportato va mostrato per
+   * intero invece di richiedere un click che lì non ha senso. Default false
+   * (collassato) per la vista a schermo (ResultPanel). */
+  dettaglioEspansoDiDefault?: boolean
 }
 
 /** Riepilogo di sola lettura della simulazione zootecnica, per la vista "a
- * riposo" del calcolo (ResultPanel): un sommario leggibile in cima (i totali
- * che contano) con il dettaglio tecnico completo — le stesse formule mostrate
- * nel form di modifica — dietro un unico "mostra i dettagli", invece di
- * dover riaprire il form di modifica solo per rivedere un numero. */
-export default function RiepilogoZootecnia({ dati }: Props) {
-  const [mostraDettaglio, setMostraDettaglio] = useState(false)
+ * riposo" del calcolo (ResultPanel) e per il report/PDF: un sommario leggibile
+ * in cima (i totali che contano) con il dettaglio tecnico completo — le
+ * stesse formule mostrate nel form di modifica — dietro un unico "mostra i
+ * dettagli", invece di dover riaprire il form di modifica solo per rivedere
+ * un numero. */
+export default function RiepilogoZootecnia({ dati, dettaglioEspansoDiDefault }: Props) {
+  const [mostraDettaglio, setMostraDettaglio] = useState(dettaglioEspansoDiDefault ?? false)
   const r = calcolaRiepilogoZootecnia(dati)
 
   if (!r || !r.haDati) {
@@ -98,7 +98,7 @@ export default function RiepilogoZootecnia({ dati }: Props) {
           </span>
         </div>
         <p className="mt-1 text-xs text-stone-400">
-          Fonte delle emissioni usata: {FONTE_EMISSIONI_LABEL[r.fonteEmissioniBilancio]}. Ipotesi di
+          Fonte delle emissioni usata: {FONTE_EMISSIONI_BILANCIO_LABEL[r.fonteEmissioniBilancio]}. Ipotesi di
           pianificazione, non un bilancio crediti: nessuna normativa definisce oggi questo confronto.
         </p>
       </div>

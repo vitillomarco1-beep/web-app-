@@ -16,7 +16,26 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
 
   if (!risultato.metodologiaDisponibile) {
     if (dati?.tipoAttivita === 'zootecnia') {
-      return <RiepilogoZootecnia dati={dati} />
+      return (
+        <>
+          <div className="mb-3 flex justify-end">
+            {nomeTitolare && (
+              <button type="button" className="btn-secondary" onClick={() => setMostraReport(true)}>
+                📄 Visualizza report del calcolo
+              </button>
+            )}
+          </div>
+          <RiepilogoZootecnia dati={dati} />
+          {mostraReport && nomeTitolare && (
+            <PdfViewerModal
+              titolo={`Report di calcolo — ${nomeTitolare}`}
+              onClose={() => setMostraReport(false)}
+            >
+              <ReportPreview nomeTitolare={nomeTitolare} dati={dati} />
+            </PdfViewerModal>
+          )}
+        </>
+      )
     }
     return (
       <div className="card space-y-2 border-amber-200 bg-amber-50">

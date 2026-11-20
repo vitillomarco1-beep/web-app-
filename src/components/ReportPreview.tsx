@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { DatiCalcolo } from '../types'
 import { calcolaBilancio } from '../lib/carbonEngine'
 import { formatDate, formatTCO2, TIPO_ATTIVITA_LABEL } from '../lib/format'
+import RiepilogoZootecnia from './RiepilogoZootecnia'
 import {
   DISCLAIMER_REPORT,
   GWP_VALORI,
@@ -100,11 +101,15 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
       />
 
       {!risultato.metodologiaDisponibile ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Per questa metodologia non esiste ancora un atto delegato dell'UE che ne stabilisca la
-          metodologia di certificazione: il bilancio in t CO₂eq non è ancora calcolabile. I dati
-          aziendali sono comunque registrati, pronti per quando la normativa sarà pubblicata.
-        </div>
+        dati.tipoAttivita === 'zootecnia' ? (
+          <RiepilogoZootecnia dati={dati} dettaglioEspansoDiDefault />
+        ) : (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Per questa metodologia non esiste ancora un atto delegato dell'UE che ne stabilisca la
+            metodologia di certificazione: il bilancio in t CO₂eq non è ancora calcolabile. I dati
+            aziendali sono comunque registrati, pronti per quando la normativa sarà pubblicata.
+          </div>
+        )
       ) : (
         <>
           {haQuantificazione(dati) && (

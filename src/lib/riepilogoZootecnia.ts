@@ -49,6 +49,15 @@ function n(v: number): string {
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 3 }).format(v)
 }
 
+/** Etichetta leggibile per RisultatoSimulazioneZootecnia.fonteEmissioniUsata —
+ * condivisa tra la vista a schermo (RiepilogoZootecnia.tsx) e il PDF
+ * (reportPdf.ts), così restano testualmente identiche nei due posti. */
+export const FONTE_EMISSIONI_BILANCIO_LABEL: Record<'auto' | 'letteratura' | 'specifiche_aziendali', string> = {
+  auto: 'automatico (dato aziendale se disponibile, altrimenti media di letteratura)',
+  letteratura: 'media di letteratura',
+  specifiche_aziendali: 'dato specifico aziendale',
+}
+
 export interface RiepilogoZootecnia {
   /** false se non c'è alcuna simulazione inserita (nessun mangime, nessun
    * refluo, nessuna produzione): il riepilogo non ha nulla da mostrare. */
