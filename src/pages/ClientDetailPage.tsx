@@ -5,12 +5,23 @@ import type { Cliente, Calcolo, FascicoloAgeaMeta } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
+import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
 
 export default function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
   const navigate = useNavigate()
   const [cliente, setCliente] = useState<Cliente | undefined>()
   const [calcoli, setCalcoli] = useState<Calcolo[]>([])
+  const [editMode, setEditMode] = useState(false)
+  const [form, setForm] = useState({
+    ragioneSociale: '',
+    referente: '',
+    email: '',
+    telefono: '',
+    comune: '',
+    provincia: '',
+    regione: '',
+  })
 
   useEffect(() => {
     if (!clientId) return
@@ -36,6 +47,37 @@ export default function ClientDetailPage() {
     if (!confirm('Eliminare questo calcolo?')) return
     calcoliStore.remove(id)
     setCalcoli(calcoliStore.byClient(clientId!))
+  }
+
+  function apriModifica() {
+    setForm({
+      ragioneSociale: cliente!.ragioneSociale,
+      referente: cliente!.referente ?? '',
+      email: cliente!.email ?? '',
+      telefono: cliente!.telefono ?? '',
+      comune: cliente!.comune ?? '',
+      provincia: cliente!.provincia ?? '',
+      regione: cliente!.regione ?? '',
+    })
+    setEditMode(true)
+  }
+
+  function handleSalvaModifica(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.ragioneSociale.trim()) return
+    const aggiornato: Cliente = {
+      ...cliente!,
+      ragioneSociale: form.ragioneSociale.trim(),
+      referente: form.referente.trim() || undefined,
+      email: form.email.trim() || undefined,
+      telefono: form.telefono.trim() || undefined,
+      comune: form.comune.trim() || undefined,
+      provincia: form.provincia.trim() || undefined,
+      regione: form.regione || undefined,
+    }
+    clientiStore.save(aggiornato)
+    setCliente(aggiornato)
+    setEditMode(false)
   }
 
   function handleFascicoloChange(fascicoloAgea: FascicoloAgeaMeta | undefined) {
@@ -76,14 +118,100 @@ export default function ClientDetailPage() {
               </div>
             )}
           </div>
-          <button
-            className="btn-primary"
-            onClick={() => navigate(`/clienti/${clientId}/nuovo-calcolo`)}
-          >
-            + Nuovo calcolo
-          </button>
+          <div className="flex gap-2">
+            <button className="btn-secondary" onClick={() => (editMode ? setEditMode(false) : apriModifica())}>
+              {editMode ? 'Annulla' : 'Modifica'}
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => navigate(`/clienti/${clientId}/nuovo-calcolo`)}
+            >
+              + Nuovo calcolo
+            </button>
+          </div>
         </div>
       </div>
+
+      {editMode && (
+        <form onSubmit={handleSalvaModifica} className="card space-y-4">
+          <h2 className="font-semibold text-stone-900">Modifica dati cliente</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Ragione sociale / Nome azienda agricola *</label>
+              <input
+                className="input"
+                required
+                value={form.ragioneSociale}
+                onChange={(e) => setForm({ ...form, ragioneSociale: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Referente</label>
+              <input
+                className="input"
+                value={form.referente}
+                onChange={(e) => setForm({ ...form, referente: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input
+                type="email"
+                className="input"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Telefono</label>
+              <input
+                className="input"
+                value={form.telefono}
+                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Comune</label>
+              <input
+                className="input"
+                value={form.comune}
+                onChange={(e) => setForm({ ...form, comune: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Provincia</label>
+              <input
+                className="input"
+                value={form.provincia}
+                onChange={(e) => setForm({ ...form, provincia: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Regione</label>
+              <select
+                className="input"
+                value={form.regione}
+                onChange={(e) => setForm({ ...form, regione: e.target.value })}
+              >
+                <option value="">— non specificata —</option>
+                {REGIONI_ITALIANE.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className="btn-primary">
+              Salva modifiche
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setEditMode(false)}>
+              Annulla
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="card flex items-center justify-between">
         <p className="text-sm text-stone-500">Crediti netti totali stimati per questo cliente</p>
