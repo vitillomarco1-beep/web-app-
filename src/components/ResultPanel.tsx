@@ -3,6 +3,7 @@ import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { formatTCO2 } from '../lib/format'
 import PdfViewerModal from './PdfViewerModal'
 import ReportPreview from './ReportPreview'
+import RiepilogoZootecnia from './RiepilogoZootecnia'
 
 interface Props {
   risultato: RisultatoCalcolo
@@ -14,6 +15,9 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
   const [mostraReport, setMostraReport] = useState(false)
 
   if (!risultato.metodologiaDisponibile) {
+    if (dati?.tipoAttivita === 'zootecnia') {
+      return <RiepilogoZootecnia dati={dati} />
+    }
     return (
       <div className="card space-y-2 border-amber-200 bg-amber-50">
         <h3 className="font-semibold text-stone-900">Calcolo non ancora disponibile</h3>
