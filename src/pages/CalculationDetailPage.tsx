@@ -79,6 +79,7 @@ export default function CalculationDetailPage() {
               onSubmit={handleUpdate}
               submitLabel="Salva modifiche"
               regioneCliente={cliente.regione}
+              comuneCliente={cliente.comune}
               clienteId={clientId}
             />
           )}

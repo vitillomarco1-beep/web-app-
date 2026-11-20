@@ -83,6 +83,7 @@ export default function NewCalculationPage() {
               onSubmit={handleSave}
               submitLabel="Crea calcolo"
               regioneCliente={cliente.regione}
+              comuneCliente={cliente.comune}
               clienteId={clientId}
             />
           )}

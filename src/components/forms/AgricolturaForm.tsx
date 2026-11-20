@@ -56,13 +56,16 @@ interface Props {
   /** Regione del cliente, passata al simulatore RothC per proporre il link al
    * servizio agrometeorologico pubblico della zona. */
   regioneCliente?: string
+  /** Comune del cliente, solo per precompilare la ricerca località di Open-Meteo
+   * nel simulatore RothC. */
+  comuneCliente?: string
   /** Id del cliente, per leggere il suo quaderno di campagna (appezzamenti e
    * operazioni) e importarne gli apporti direttamente nel simulatore RothC e
    * nel calcolo delle emissioni N2O — si veda lib/registroCampagna.ts. */
   clienteId?: string
 }
 
-export default function AgricolturaForm({ initial, onSubmit, submitLabel, regioneCliente, clienteId }: Props) {
+export default function AgricolturaForm({ initial, onSubmit, submitLabel, regioneCliente, comuneCliente, clienteId }: Props) {
   const [dati, setDati] = useState<DatiAgricolturaAgroforestazione>(initial ?? defaultData())
   const [showResult, setShowResult] = useState(false)
 
@@ -225,6 +228,7 @@ export default function AgricolturaForm({ initial, onSubmit, submitLabel, region
           areaAttivitaHa={dati.areaAttivitaHa}
           durataPeriodoCertificazioneAnni={dati.durataPeriodoCertificazioneAnni}
           regione={regioneCliente}
+          comune={comuneCliente}
           clienteId={clienteId}
           onApplica={(assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC) =>
             setDati({ ...dati, assorbimentiAttivitaTCO2, assorbimentiRiferimentoTCO2, dettaglioRothC })

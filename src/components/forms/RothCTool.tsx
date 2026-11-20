@@ -7,6 +7,7 @@ import type { DettaglioRothC, ScenarioOperazione } from '../../types'
 import ResiduiColturaliHelper from './ResiduiColturaliHelper'
 import ImportaQuadernoRothC from './ImportaQuadernoRothC'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
+import { cercaLuogoOpenMeteo, scaricaClimaStoricoOpenMeteo, type LuogoOpenMeteo } from '../../lib/openMeteo'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -32,6 +33,8 @@ interface Props {
   /** Regione del cliente (una delle chiavi di SERVIZI_METEO_REGIONALI), per
    * proporre il link al servizio agrometeorologico pubblico della zona. */
   regione?: string
+  /** Comune del cliente, solo per precompilare la ricerca località di Open-Meteo. */
+  comune?: string
   /** Id del cliente, per leggere il suo quaderno di campagna e importare gli
    * apporti di carbonio calcolati — si veda lib/registroCampagna.ts. */
   clienteId?: string
@@ -46,6 +49,7 @@ export default function RothCTool({
   areaAttivitaHa,
   durataPeriodoCertificazioneAnni,
   regione,
+  comune,
   clienteId,
   onApplica,
 }: Props) {
@@ -55,6 +59,13 @@ export default function RothCTool({
   const [durataAnni, setDurataAnni] = useState(durataPeriodoCertificazioneAnni || 5)
   const [clima, setClima] = useState<MeseClima[]>(climaVuoto)
   const [profiloSelezionato, setProfiloSelezionato] = useState('')
+  const [queryLuogoMeteo, setQueryLuogoMeteo] = useState(comune ?? '')
+  const [risultatiLuogoMeteo, setRisultatiLuogoMeteo] = useState<LuogoOpenMeteo[]>([])
+  const [cercandoLuogoMeteo, setCercandoLuogoMeteo] = useState(false)
+  const [anniStoricoMeteo, setAnniStoricoMeteo] = useState(5)
+  const [caricandoClimaMeteo, setCaricandoClimaMeteo] = useState(false)
+  const [erroreMeteo, setErroreMeteo] = useState<string | null>(null)
+  const [climaImportatoDa, setClimaImportatoDa] = useState<{ nome: string; primoAnno: number; ultimoAnno: number } | null>(null)
   const [riferimento, setRiferimento] = useState<ScenarioRothCInput>(scenarioVuoto)
   const [attivita, setAttivita] = useState<ScenarioRothCInput>(scenarioVuoto)
   const [risultato, setRisultato] = useState<RisultatoRothC | null>(null)
@@ -72,6 +83,38 @@ export default function RothCTool({
     const profilo = PROFILI_CLIMATICI.find((p) => p.nome === profiloSelezionato)
     if (!profilo) return
     setClima(profilo.climaMensile.map((m) => ({ ...m })))
+  }
+
+  async function handleCercaLuogoMeteo() {
+    setErroreMeteo(null)
+    setClimaImportatoDa(null)
+    setCercandoLuogoMeteo(true)
+    try {
+      const risultati = await cercaLuogoOpenMeteo(queryLuogoMeteo)
+      setRisultatiLuogoMeteo(risultati)
+      if (risultati.length === 0) {
+        setErroreMeteo('Nessuna località trovata. Prova con un altro nome o aggiungi la provincia.')
+      }
+    } catch (e) {
+      setErroreMeteo(e instanceof Error ? e.message : 'Ricerca non riuscita.')
+    } finally {
+      setCercandoLuogoMeteo(false)
+    }
+  }
+
+  async function handleScaricaClimaMeteo(luogo: LuogoOpenMeteo) {
+    setErroreMeteo(null)
+    setCaricandoClimaMeteo(true)
+    try {
+      const risultato = await scaricaClimaStoricoOpenMeteo(luogo.latitudine, luogo.longitudine, anniStoricoMeteo)
+      setClima(risultato.climaMensile)
+      setClimaImportatoDa({ nome: luogo.nome, primoAnno: risultato.primoAnno, ultimoAnno: risultato.ultimoAnno })
+      setRisultatiLuogoMeteo([])
+    } catch (e) {
+      setErroreMeteo(e instanceof Error ? e.message : 'Scaricamento dati climatici non riuscito.')
+    } finally {
+      setCaricandoClimaMeteo(false)
+    }
   }
 
   function handleCalcola() {
@@ -276,6 +319,96 @@ export default function RothCTool({
                 </a>
               </div>
             )}
+
+            <div className="mb-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs">
+              <p className="mb-2 font-medium text-sky-900">
+                🌦️ Importa clima storico da Open-Meteo (dati reali, automatico)
+              </p>
+              <div className="mb-2 flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  className="input !w-auto flex-1"
+                  placeholder="Comune (es. Caserta)"
+                  value={queryLuogoMeteo}
+                  onChange={(e) => setQueryLuogoMeteo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleCercaLuogoMeteo()
+                    }
+                  }}
+                />
+                <label className="flex items-center gap-1 text-stone-600">
+                  Anni da mediare
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    className="input !w-16 !py-1"
+                    value={anniStoricoMeteo}
+                    onChange={(e) => setAnniStoricoMeteo(Math.max(1, num(e.target.value)))}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={cercandoLuogoMeteo || !queryLuogoMeteo.trim()}
+                  onClick={handleCercaLuogoMeteo}
+                >
+                  {cercandoLuogoMeteo ? 'Cerco...' : 'Cerca'}
+                </button>
+              </div>
+
+              {risultatiLuogoMeteo.length > 0 && (
+                <div className="mb-2 space-y-1">
+                  {risultatiLuogoMeteo.map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex items-center justify-between gap-2 rounded bg-white px-2 py-1"
+                    >
+                      <span>
+                        {l.nome}
+                        {l.provincia ? ` (${l.provincia})` : ''}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-secondary !px-2 !py-0.5"
+                        disabled={caricandoClimaMeteo}
+                        onClick={() => handleScaricaClimaMeteo(l)}
+                      >
+                        {caricandoClimaMeteo ? '...' : `Usa (ultimi ${anniStoricoMeteo} anni)`}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {erroreMeteo && <p className="mb-1 text-amber-700">⚠️ {erroreMeteo}</p>}
+              {climaImportatoDa && (
+                <p className="mb-1 text-forest-700">
+                  ✓ Clima di {climaImportatoDa.nome} importato: media{' '}
+                  {climaImportatoDa.primoAnno}–{climaImportatoDa.ultimoAnno}. Compilato nella
+                  tabella sotto, modificabile a mano.
+                </p>
+              )}
+              <p className="text-stone-400">
+                Dati: Open-Meteo.com (licenza CC BY 4.0, rianalisi ERA5/ERA5-Land). La colonna
+                "Evaporazione" è calcolata dall'ET0 Penman-Monteith FAO-56 di Open-Meteo,
+                convertita (÷0.75) per il campo che RothC si aspetta ("evaporazione da vasca" ×
+                0.75 = evapotraspirazione potenziale). Uso gratuito pensato per volumi non
+                commerciali —{' '}
+                <a
+                  href="https://open-meteo.com/en/pricing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  condizioni e piani a pagamento
+                </a>
+                .
+              </p>
+            </div>
+
             <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md bg-stone-50 p-2">
               <select
                 className="input !w-auto flex-1"
