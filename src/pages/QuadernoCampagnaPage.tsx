@@ -8,6 +8,9 @@ import { aggregaInputRothC, aggregaAzoto } from '../lib/registroCampagna'
 import { calcolaN2oSuoliAgricoli } from '../lib/n2oSuoliAgricoli'
 import { formatTCO2, formatDate } from '../lib/format'
 import ConfirmButton from '../components/ConfirmButton'
+import QuadernoCampagnaUploader from '../components/QuadernoCampagnaUploader'
+import { importaAppezzamentiDaCsv, type RisultatoImportazioneCsv } from '../lib/importaAppezzamentiCsv'
+import type { QuadernoCampagnaMeta } from '../types'
 
 const TIPO_LABEL: Record<TipoOperazioneCampo, string> = {
   raccolta: 'Raccolta (resa)',
@@ -48,6 +51,9 @@ export default function QuadernoCampagnaPage() {
   const [areaTotaleHa, setAreaTotaleHa] = useState(0)
   const [anniRiepilogo, setAnniRiepilogo] = useState(5)
   const [lisciviazioneApplicabile, setLisciviazioneApplicabile] = useState(false)
+  const [apertoImportCsv, setApertoImportCsv] = useState(false)
+  const [testoImportCsv, setTestoImportCsv] = useState('')
+  const [anteprimaImportCsv, setAnteprimaImportCsv] = useState<RisultatoImportazioneCsv | null>(null)
 
   if (!clientId) return null
   const cliente = clientiStore.get(clientId)
@@ -89,6 +95,42 @@ export default function QuadernoCampagnaPage() {
   function handleEliminaAppezzamento(id: string) {
     appezzamentiStore.remove(id)
     if (appezzamentoSelezionatoId === id) setAppezzamentoSelezionatoId(null)
+    refresh()
+  }
+
+  function handleQuadernoDocChange(meta: QuadernoCampagnaMeta | undefined) {
+    clientiStore.save({ ...cliente!, quadernoCampagnaDoc: meta })
+    refresh()
+  }
+
+  function handleFileCsv(file: File) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const testo = typeof reader.result === 'string' ? reader.result : ''
+      setTestoImportCsv(testo)
+      setAnteprimaImportCsv(importaAppezzamentiDaCsv(testo))
+    }
+    reader.readAsText(file)
+  }
+
+  function handleAnalizzaTestoCsv() {
+    setAnteprimaImportCsv(importaAppezzamentiDaCsv(testoImportCsv))
+  }
+
+  function handleConfermaImportCsv() {
+    if (!anteprimaImportCsv || anteprimaImportCsv.righe.length === 0) return
+    for (const riga of anteprimaImportCsv.righe) {
+      appezzamentiStore.save({
+        id: uuidv4(),
+        clienteId: clientId!,
+        nome: riga.nome,
+        superficieHa: riga.superficieHa,
+        colturaPrincipale: riga.colturaPrincipale,
+      })
+    }
+    setAnteprimaImportCsv(null)
+    setTestoImportCsv('')
+    setApertoImportCsv(false)
     refresh()
   }
 
@@ -148,6 +190,14 @@ export default function QuadernoCampagnaPage() {
         </p>
       </div>
 
+      <div className="card">
+        <QuadernoCampagnaUploader
+          clienteId={clientId}
+          meta={cliente.quadernoCampagnaDoc}
+          onChange={handleQuadernoDocChange}
+        />
+      </div>
+
       <div className="card space-y-4">
         <h2 className="font-semibold text-stone-900">Appezzamenti</h2>
         {appezzamenti.length === 0 ? (
@@ -180,6 +230,89 @@ export default function QuadernoCampagnaPage() {
             ))}
           </div>
         )}
+
+        <div className="rounded-md border border-stone-200 bg-stone-50">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between px-3 py-2 text-left"
+            onClick={() => setApertoImportCsv((a) => !a)}
+          >
+            <span className="text-xs font-semibold text-stone-700">
+              📥 Importa appezzamenti da CSV/Excel (esportato dal gestionale)
+            </span>
+            <span className="text-stone-500">{apertoImportCsv ? '−' : '+'}</span>
+          </button>
+          {apertoImportCsv && (
+            <div className="space-y-3 border-t border-stone-200 p-3 text-xs">
+              <p className="text-stone-500">
+                Il file o il testo incollato deve avere un'intestazione con le colonne del nome
+                appezzamento (es. "Nome", "Appezzamento", "Particella"), della superficie (es.
+                "Superficie", "Ha") e della coltura (es. "Coltura"). Virgola, punto e virgola o tab
+                vanno bene come separatore.
+              </p>
+              <input
+                type="file"
+                accept=".csv,text/csv,.txt"
+                className="input !py-1 text-xs"
+                onChange={(e) => e.target.files?.[0] && handleFileCsv(e.target.files[0])}
+              />
+              <p className="text-stone-400">oppure incolla qui il testo copiato da Excel/CSV:</p>
+              <textarea
+                className="input font-mono text-xs"
+                rows={4}
+                value={testoImportCsv}
+                onChange={(e) => setTestoImportCsv(e.target.value)}
+                placeholder={'Nome;Superficie;Coltura\nCampo 1;5,2;Mais da granella\nCampo 2;3;Frumento tenero'}
+              />
+              <button type="button" className="btn-secondary" onClick={handleAnalizzaTestoCsv}>
+                Analizza
+              </button>
+
+              {anteprimaImportCsv && anteprimaImportCsv.errori.length > 0 && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-800">
+                  {anteprimaImportCsv.errori.map((err) => (
+                    <p key={err}>⚠️ {err}</p>
+                  ))}
+                </div>
+              )}
+
+              {anteprimaImportCsv && anteprimaImportCsv.righe.length > 0 && (
+                <div className="space-y-2">
+                  <div className="overflow-x-auto rounded-md border border-stone-200">
+                    <table className="w-full min-w-[480px] text-left text-xs">
+                      <thead className="bg-stone-100 text-stone-500">
+                        <tr>
+                          <th className="px-2 py-1">Nome</th>
+                          <th className="px-2 py-1">Superficie (ha)</th>
+                          <th className="px-2 py-1">Coltura</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100 bg-white">
+                        {anteprimaImportCsv.righe.map((r, i) => (
+                          <tr key={i}>
+                            <td className="px-2 py-1">{r.nome}</td>
+                            <td className="px-2 py-1">{r.superficieHa}</td>
+                            <td className="px-2 py-1">
+                              {r.colturaPrincipale}
+                              {!r.colturaRiconosciuta && (
+                                <span className="ml-1 text-amber-600">
+                                  (non in elenco — apporto residui da inserire a mano)
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button type="button" className="btn-primary" onClick={handleConfermaImportCsv}>
+                    Conferma importazione di {anteprimaImportCsv.righe.length} appezzamenti
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleAggiungiAppezzamento} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <div>

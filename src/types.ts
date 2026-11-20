@@ -12,6 +12,19 @@ export interface FascicoloAgeaMeta {
   caricatoIl: string
 }
 
+/** Metadati del quaderno di campagna digitale caricato per il cliente (il PDF
+ * vero e proprio è salvato a parte, in IndexedDB, tramite src/lib/fileStore.ts)
+ * — l'esportazione/stampa del quaderno di campagna digitale ufficiale (in
+ * previsione dell'obbligo di tenuta digitale), da affiancare ai dati
+ * strutturati di appezzamenti/operazioni già inseriti in app (si veda
+ * Appezzamento, OperazioneCampo più sotto): un conto è il documento
+ * ufficiale così com'è, un altro sono i dati estratti per i calcoli. */
+export interface QuadernoCampagnaMeta {
+  nomeFile: string
+  dimensioneByte: number
+  caricatoIl: string
+}
+
 /** Un appezzamento/particella del cliente, per il quaderno di campagna (si veda
  * lib/registroCampagna.ts): raccoglie le operazioni reali di campo, per
  * calcolare gli apporti di carbonio (RothC) e l'azoto applicato (N2O da
@@ -87,6 +100,7 @@ export interface Cliente {
   regione?: string
   note?: string
   fascicoloAgea?: FascicoloAgeaMeta
+  quadernoCampagnaDoc?: QuadernoCampagnaMeta
   createdAt: string
 }
 

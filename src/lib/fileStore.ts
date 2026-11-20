@@ -67,6 +67,20 @@ export function eliminaFascicoloAgea(clienteId: string) {
   return eliminaPerChiave(chiaveFascicolo(clienteId))
 }
 
+function chiaveQuadernoCampagna(clienteId: string): string {
+  return `quaderno-campagna-doc:${clienteId}`
+}
+
+export function salvaQuadernoCampagnaDoc(clienteId: string, file: Blob) {
+  return salvaPerChiave(chiaveQuadernoCampagna(clienteId), file)
+}
+export function leggiQuadernoCampagnaDoc(clienteId: string) {
+  return leggiPerChiave(chiaveQuadernoCampagna(clienteId))
+}
+export function eliminaQuadernoCampagnaDoc(clienteId: string) {
+  return eliminaPerChiave(chiaveQuadernoCampagna(clienteId))
+}
+
 function chiaveDocumentoNormativa(normativaId: string): string {
   return `normativa-doc:${normativaId}`
 }
