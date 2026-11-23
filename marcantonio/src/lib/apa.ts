@@ -77,24 +77,32 @@ export function leggiProduzione(testo: string): { data: string | null; kg: Map<s
   return { data, kg }
 }
 
-/** Da file (zip o txt) a un controllo pronto da salvare. */
-export async function leggiControllo(files: File[]): Promise<ControlloApa> {
-  const testi = new Map<string, string>()
+/** Da file (zip o txt) ai controlli pronti da salvare: ogni zip è un controllo, i .txt sciolti insieme un altro. */
+export async function leggiControlli(files: File[]): Promise<ControlloApa[]> {
+  const gruppi: { nome: string; testi: Map<string, string> }[] = []
+  const sciolti = new Map<string, string>()
   for (const f of files) {
-    if (/\.zip$/i.test(f.name)) for (const [n, t] of await leggiZip(await f.arrayBuffer())) testi.set(n, t)
-    else testi.set(f.name, await f.text())
+    if (/\.zip$/i.test(f.name)) gruppi.push({ nome: f.name, testi: await leggiZip(await f.arrayBuffer()) })
+    else sciolti.set(f.name, await f.text())
   }
+  if (sciolti.size) gruppi.push({ nome: [...sciolti.keys()].join(', '), testi: sciolti })
+  const out: ControlloApa[] = []
+  for (const g of gruppi) out.push(daTesti(g.nome, g.testi))
+  return out
+}
+
+function daTesti(nomeFile: string, testi: Map<string, string>): ControlloApa {
   const an = [...testi.entries()].find(([n]) => /analis/i.test(n)) ?? [...testi.entries()].find(([, t]) => /^[A-Z]{2}\d{34}/m.test(t))
   const pr = [...testi.entries()].find(([n]) => /produz/i.test(n))
-  if (!an) throw new Error('Non trovo il file delle analisi (CFAnalis). Carica lo zip dell’APA così com’è.')
+  if (!an) throw new Error(`${nomeFile}: non trovo il file delle analisi (CFAnalis). Carica lo zip dell’APA così com’è.`)
   const a = leggiAnalisi(an[1])
   const p = pr ? leggiProduzione(pr[1]) : { data: null, kg: new Map<string, number>() }
   const data = a.data ?? p.data
-  if (!data || !a.righe.size) throw new Error('Il file delle analisi non contiene vacche leggibili.')
+  if (!data || !a.righe.size) throw new Error(`${nomeFile}: il file delle analisi non contiene vacche leggibili.`)
   const vacche: ControlloApa['vacche'] = {}
   for (const [m, r] of a.righe) vacche[m] = [p.kg.get(m) ?? null, r[1], r[2], r[3], r[4]]
   for (const [m, kg] of p.kg) if (!vacche[m]) vacche[m] = [kg, null, null, null, null]
-  return { id: data, data, nomeFile: files.map((f) => f.name).join(', '), importatoIl: new Date().toISOString(), vacche }
+  return { id: data, data, nomeFile, importatoIl: new Date().toISOString(), vacche }
 }
 
 /* ---------- indicatori ---------- */

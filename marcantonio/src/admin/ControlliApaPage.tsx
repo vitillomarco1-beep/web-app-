@@ -4,7 +4,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, Vuoto, conferma } from '../components/ui'
 import { matricole } from '../lib/dairycomp'
 import { fmt0, fmt1, fmt2, fmtData } from '../lib/format'
-import { SOGLIE, indici, leggiControllo, normMatricola, vaccheDelControllo, type Indici, type VaccaApa } from '../lib/apa'
+import { SOGLIE, indici, leggiControlli, normMatricola, vaccheDelControllo, type Indici, type VaccaApa } from '../lib/apa'
 
 const pct = (v: number | null) => (v === null ? '—' : `${fmt0(v * 100)}%`)
 const num = (v: number | null, d = 2) => (v === null ? '—' : d === 2 ? fmt2(v) : d === 1 ? fmt1(v) : fmt0(v))
@@ -57,11 +57,12 @@ export default function ControlliApaPage() {
     if (!files?.length) return
     setStato('lettura'); setEsito('')
     try {
-      const nuovo = await leggiControllo([...files])
-      const sost = dati.controlliApa.some((x) => x.id === nuovo.id)
-      imposta('controlliApa', [...dati.controlliApa.filter((x) => x.id !== nuovo.id), nuovo])
-      setScelto(nuovo.id)
-      setEsito(`✓ Controllo del ${fmtData(nuovo.data)} ${sost ? 'aggiornato' : 'caricato'}: ${Object.keys(nuovo.vacche).length} vacche.`)
+      const nuovi = await leggiControlli([...files])
+      const ids = new Set(nuovi.map((x) => x.id))
+      imposta('controlliApa', [...dati.controlliApa.filter((x) => !ids.has(x.id)), ...nuovi])
+      const piuRecente = [...nuovi].sort((a, b) => b.data.localeCompare(a.data))[0]
+      setScelto(piuRecente.id)
+      setEsito(`✓ ${nuovi.map((x) => `Controllo del ${fmtData(x.data)}: ${Object.keys(x.vacche).length} vacche`).join(' · ')}`)
       setStato('')
     } catch (e) {
       setStato((e as Error).message || 'Non riesco a leggere il file.')
