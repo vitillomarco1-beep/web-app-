@@ -252,7 +252,11 @@ export interface Dati {
   note: NotaVeloce[]
   storicoFertilita: StoricoFertilita[] // indici di fertilità, una riga per lista Mandria caricata
   fotoRipro: FotoRipro[] // stato riproduttivo di ogni lista Mandria, per ricavare le diagnosi tra due liste
+  controlliApa: ControlloApa[] // controlli funzionali APA (latte, grasso, proteine, cellule, lattosio per vacca)
 }
+
+/** Un controllo funzionale APA. id = data del controllo. vacche: marca auricolare → [kg, grasso %, proteine %, cellule ×1000, lattosio %]. */
+export interface ControlloApa { id: string; data: string; nomeFile: string; importatoIl: string; vacche: Record<string, [number | null, number | null, number | null, number | null, number | null]> }
 
 /** Stato riproduttivo di ogni animale in una lista Mandria: [stato, fecondazioni, gruppo, lattazione]. id = data della lista. */
 export interface FotoRipro { id: string; data: string; parziale?: boolean /* solo le fecondate */; animali: Record<string, [import('./fertilita').StatoRipro, number, number, number]> }
