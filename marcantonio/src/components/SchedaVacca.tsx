@@ -7,7 +7,6 @@ import { fecondazioni, giorniUltimoCalore, statoRipro, toro, type StatoRipro } f
 import { CRYPTIUM_60, GESTAZIONE_GG, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, partiPrevisti } from '../lib/parti'
 import { normMatricola, SOGLIE } from '../lib/apa'
 import { nomePatologia } from '../lib/salute'
-import { storicoFecondazioni, type Fecondazione } from '../lib/diagnosi'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, giorniTra, isoGiorno, lunediDi } from '../lib/format'
 
 const STATO: Record<StatoRipro, { testo: string; colore: string }> = {
@@ -102,17 +101,6 @@ function Voci({ voci }: { voci: [string, ReactNode][] }) {
     </dl>
   )
 }
-const ESITO: Record<Fecondazione['esito'], { testo: string; colore: string }> = {
-  gravida: { testo: 'Gravida', colore: 'bg-emerald-100 text-emerald-800' },
-  ritorno: { testo: 'Tornata in calore', colore: 'bg-stone-100 text-stone-700' },
-  attesa: { testo: 'In attesa di diagnosi', colore: 'bg-sky-100 text-sky-800' },
-  vuota: { testo: 'Vuota', colore: 'bg-arancio-100 text-arancio-800' },
-}
-const giornoFec = (f: Fecondazione) =>
-  f.data ? fmtData(f.data)
-    : f.tra ? <span className="text-stone-600">tra il {fmtData(f.tra[0]).slice(0, 5)} e il {fmtData(f.tra[1]).slice(0, 5)}</span>
-      : f.prima ? <span className="text-stone-500">prima del {fmtData(f.prima)}</span> : '—'
-
 /** Quando fare un vaccino: futuro, questa settimana o già passato senza registrazione. */
 function Quando({ data, fine, testo }: { data: string; fine: string; testo: string }) {
   const oggi = isoGiorno()
@@ -151,7 +139,6 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
   const martediC60 = parto ? aggiungiGiorni(lunediDi(aggiungiGiorni(parto, -60)), 1) : null
   const settPreparto = parto ? lunediDi(aggiungiGiorni(parto, -7 * SETTIMANE_ANTICIPO)) : null
 
-  const fecondazioniStorico = storicoFecondazioni(dati.fotoRipro, a, lista.data)
 
   // controlli APA
   const apa = matricola
@@ -192,7 +179,9 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
 
       <Sezione titolo="Riproduzione">
         <Voci voci={[
-          ['Fecondazioni', fmt0(nFec)],
+          stato === 'gravida' && nFec > 0
+            ? ['Fecondazioni per la gravidanza', <b>{nFec === 1 ? '1 (gravida alla prima)' : `${nFec} (gravida alla ${nFec}ª)`}</b>]
+            : ['Fecondazioni finora', nFec ? (stato === 'fecondata' ? `${fmt0(nFec)}, l'ultima da diagnosticare` : `${fmt0(nFec)}, nessuna gravidanza`) : 'nessuna'],
           ['Ultimo toro', tor ?? '—'],
           ['Ultimo calore', dataUltimoCalore ? `${fmtData(dataUltimoCalore)} (${fmt0(guca! + passati)} gg fa)` : '—'],
           ...(ggGravidanza ? [['Gravida da', `${fmt0(ggGravidanza)} giorni`] as [string, ReactNode]] : []),
@@ -200,29 +189,6 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
           ...(stato === 'vuota' && a.dim ? [['Giorni aperti', fmt0(a.dim + passati)] as [string, ReactNode]] : []),
         ]} />
       </Sezione>
-
-      {fecondazioniStorico.length > 0 && (
-        <Sezione titolo={a.lattazione ? 'Fecondazioni di questa lattazione' : 'Fecondazioni'}>
-          <div className="overflow-x-auto">
-            <table className="table text-sm">
-              <thead><tr><th className="num">N°</th><th>Giorno</th><th>Toro</th><th>Esito</th></tr></thead>
-              <tbody>
-                {fecondazioniStorico.map((f) => (
-                  <tr key={f.numero}>
-                    <td className="num font-semibold">{f.numero}ª</td>
-                    <td>{giornoFec(f)}</td>
-                    <td>{f.toro ?? <span className="text-stone-400">—</span>}</td>
-                    <td><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESITO[f.esito].colore}`}>{ESITO[f.esito].testo}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {fecondazioniStorico.some((f) => !f.data || !f.toro) && (
-            <p className="mt-1 text-[11px] text-stone-500">Ogni nuova fecondazione viene aggiunta con giorno e toro appena compare nella lista Mandria. Per quelle più vecchie la lista non li riportava.</p>
-          )}
-        </Sezione>
-      )}
 
       {parto && mancano! > -7 && (
         <Sezione titolo="Vaccini prima del parto">
