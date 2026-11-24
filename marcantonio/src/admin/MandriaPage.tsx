@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import ImportDairyComp from '../components/ImportDairyComp'
+import CercaVacca from '../components/SchedaVacca'
 import { categoria, etichettaColonna, nomeAutomaticoGruppo, perGruppo, riepilogo, inLattazione } from '../lib/dairycomp'
 import { applicaGruppiRobot } from '../lib/gruppi'
 import { fmt0, fmtData } from '../lib/format'
@@ -20,6 +21,7 @@ export default function MandriaPage() {
   const [ordine, setOrdine] = useState<Ordine>({ col: 'id', giu: false })
   const [rinomina, setRinomina] = useState<string | null>(null)
   const [testoNome, setTestoNome] = useState('')
+  const [scheda, setScheda] = useState<string | null | undefined>(undefined) // undefined = chiusa, null = ricerca
 
   const animali = useMemo(() => lista?.animali ?? [], [lista])
   const gruppi = useMemo(() => perGruppo(animali), [animali])
@@ -88,7 +90,10 @@ export default function MandriaPage() {
   return (
     <>
       <PageHeader titolo="Mandria" icona={Tag} descrizione={`Tutti gli animali presenti · lista DairyComp del ${fmtData(lista.data)}`}
-        azioni={<button className="btn-primary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>} />
+        azioni={<>
+          <button className="btn-primary" onClick={() => setScheda(null)}><Search className="h-4 w-4" />Cerca vacca</button>
+          <button className="btn-secondary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>
+        </>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
         <StatTile icona={Tag} tono="brand" etichetta="Animali presenti" valore={fmt0(animali.length)} unita="capi" nota={`${gruppi.length} gruppi`} />
@@ -177,7 +182,7 @@ export default function MandriaPage() {
               {ordinati.slice(0, 500).map((a) => {
                 const inc = incoerenze.get(a.id)
                 return (
-                  <tr key={a.id}>
+                  <tr key={a.id} className="cursor-pointer hover:bg-brand-50" onClick={() => setScheda(a.id)} title="Apri la scheda della vacca">
                     {colonne.map((c) => {
                       const v = valore(a, c.col)
                       return (
@@ -197,10 +202,11 @@ export default function MandriaPage() {
           {ordinati.length === 0 && <p className="p-5 text-sm text-stone-500">Nessun animale trovato.</p>}
         </section>
       ) : (
-        <p className="mt-6 text-sm text-stone-500">Tocca un gruppo per vedere i suoi animali.</p>
+        <p className="mt-6 text-sm text-stone-500">Tocca un gruppo per vedere i suoi animali, poi tocca un animale per aprire la sua scheda.</p>
       )}
 
       {importa && <ImportDairyComp destinazione="mandria" onChiudi={() => setImporta(false)} onImportato={() => setImporta(false)} />}
+      {scheda !== undefined && <CercaVacca iniziale={scheda ?? undefined} onChiudi={() => setScheda(undefined)} />}
     </>
   )
 }
