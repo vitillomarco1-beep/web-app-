@@ -152,8 +152,6 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
   const settPreparto = parto ? lunediDi(aggiungiGiorni(parto, -7 * SETTIMANE_ANTICIPO)) : null
 
   const fecondazioniStorico = storicoFecondazioni(dati.fotoRipro, a, lista.data)
-  // storico dalle liste Mandria del lunedì
-  const storico = [...dati.fotoRipro].sort((x, y) => y.data.localeCompare(x.data)).map((f) => ({ data: f.data, r: f.animali[a.id] })).filter((x) => x.r)
 
   // controlli APA
   const apa = matricola
@@ -221,7 +219,7 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
             </table>
           </div>
           {fecondazioniStorico.some((f) => !f.data || !f.toro) && (
-            <p className="mt-1 text-[11px] text-stone-500">Giorno e toro si leggono dalla lista del lunedì: da ora vengono salvati per ogni nuova fecondazione. Per quelle più vecchie la lista non li riporta.</p>
+            <p className="mt-1 text-[11px] text-stone-500">Ogni nuova fecondazione viene aggiunta con giorno e toro appena compare nella lista Mandria. Per quelle più vecchie la lista non li riportava.</p>
           )}
         </Sezione>
       )}
@@ -312,20 +310,6 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
         </Sezione>
       )}
 
-      {storico.length > 1 && (
-        <Sezione titolo="Storico dalle liste del lunedì">
-          <div className="overflow-x-auto">
-            <table className="table text-sm">
-              <thead><tr><th>Lista</th><th>Stato</th><th className="num">Fecondazioni</th><th className="num">Gruppo</th></tr></thead>
-              <tbody>
-                {storico.map(({ data, r: [s, n, g] }) => (
-                  <tr key={data}><td>{fmtData(data)}</td><td>{STATO[s].testo}</td><td className="num">{n}</td><td className="num">{g >= 0 ? g : '—'}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Sezione>
-      )}
     </div>
   )
 }
