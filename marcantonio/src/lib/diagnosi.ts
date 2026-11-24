@@ -3,7 +3,9 @@
 // precedente era fecondata e ora è gravida ha avuto una diagnosi positiva, chi ora è vuota una negativa,
 // chi ha una fecondazione in più è tornata in calore. Le gravide che non lo sono più hanno perso la gravidanza.
 import type { FotoRipro, ImportDC } from './types'
-import { GRUPPI_ESCLUSI, eMaschio, fecondazioni, statoRipro, type StatoRipro } from './fertilita'
+import type { AnimaleDC } from './types'
+import { aggiungiGiorni } from './format'
+import { GRUPPI_ESCLUSI, eMaschio, fecondazioni, giorniUltimoCalore, statoRipro, toro, type StatoRipro } from './fertilita'
 
 /** Quante foto tenere (circa sei mesi di liste settimanali). */
 export const FOTO_DA_TENERE = 26
@@ -13,7 +15,7 @@ export function fotoDaLista(lista: ImportDC): FotoRipro {
   const animali: FotoRipro['animali'] = {}
   for (const a of lista.animali) {
     if (eMaschio(a)) continue
-    animali[a.id] = [statoRipro(a), fecondazioni(a), a.gruppo ?? -1, a.lattazione ?? -1]
+    animali[a.id] = [statoRipro(a), fecondazioni(a), a.gruppo ?? -1, a.lattazione ?? -1, giorniUltimoCalore(a), toro(a)]
   }
   return { id: lista.data, data: lista.data, animali }
 }
@@ -98,4 +100,66 @@ export function perGruppo(c: ConfrontoDiagnosi): RigaGruppo[] {
   c.perse.forEach((e) => riga(e.gruppo).perse++)
   c.attese.forEach((e) => riga(e.gruppo).inAttesa++)
   return [...m.values()].sort((a, b) => a.gruppo - b.gruppo)
+}
+
+/** Una foto salvata prima che si tenessero anche ultimo calore e toro. */
+export const fotoSenzaCalore = (f: FotoRipro) => Object.values(f.animali).some((r) => r.length < 6)
+
+export interface Fecondazione {
+  numero: number // 1ª, 2ª… della lattazione
+  data: string | null // giorno esatto (dai giorni dall'ultimo calore)
+  tra: [string, string] | null // se il giorno non si conosce: tra queste due liste
+  prima: string | null // se il giorno non si conosce ed era già fatta alla prima lista salvata
+  toro: string | null
+  esito: 'gravida' | 'ritorno' | 'attesa' | 'vuota'
+}
+
+/**
+ * Fecondazioni della lattazione in corso, ricavate dalle liste Mandria del lunedì:
+ * ogni volta che il numero di fecondazioni sale c'è stata una fecondazione; giorno e toro
+ * si leggono dai giorni dall'ultimo calore e dall'ultimo toro della lista che la mostra per prima.
+ */
+export function storicoFecondazioni(foto: FotoRipro[], a: AnimaleDC, dataLista: string): Fecondazione[] {
+  const attuale = fotoDaLista({ id: dataLista, data: dataLista, importatoIl: '', nomeFile: '', animali: [a] }).animali[a.id]
+  if (!attuale) return []
+  const righe = [...foto.filter((f) => f.data < dataLista && !f.parziale), { id: dataLista, data: dataLista, animali: { [a.id]: attuale } } as FotoRipro]
+    .sort((x, y) => x.data.localeCompare(y.data))
+    .map((f) => ({ data: f.data, r: f.animali[a.id] }))
+    .filter((x) => x.r && x.r[3] === attuale[3]) // solo la lattazione in corso
+  const out = new Map<number, Fecondazione>()
+  const esatta = (data: string, r: NonNullable<FotoRipro['animali'][string]>) => (typeof r[4] === 'number' && r[4] > 0 ? aggiungiGiorni(data, -r[4]) : null)
+  righe.forEach(({ data, r }, i) => {
+    const n = r[1]
+    const nPrima = i > 0 ? righe[i - 1].r[1] : 0
+    for (let k = Math.max(1, nPrima + 1); k <= n; k++) {
+      if (out.has(k)) continue
+      const ultima = k === n
+      out.set(k, {
+        numero: k,
+        data: ultima ? esatta(data, r) : null,
+        tra: i > 0 ? [righe[i - 1].data, data] : null,
+        prima: i === 0 ? data : null,
+        toro: ultima ? r[5] ?? null : null,
+        esito: 'ritorno',
+      })
+    }
+  })
+  const lista = [...out.values()].sort((x, y) => x.numero - y.numero)
+  const ultima = lista[lista.length - 1]
+  if (ultima) {
+    const s = attuale[0]
+    ultima.esito = s === 'gravida' ? 'gravida' : s === 'fecondata' ? 'attesa' : 'vuota'
+    // la lista di oggi conosce sempre giorno e toro dell'ultima
+    ultima.data ??= esatta(dataLista, attuale)
+    ultima.toro ??= attuale[5] ?? null
+  }
+  for (const f of lista) if (f.data) { f.tra = null; f.prima = null }
+  // una fecondazione senza giorno è comunque avvenuta prima della successiva di cui si conosce il giorno
+  let dopo: string | null = null
+  for (const f of [...lista].reverse()) {
+    if (f.data) { dopo = f.data; continue }
+    if (dopo && f.prima && dopo < f.prima) f.prima = dopo
+    if (dopo && f.tra && dopo < f.tra[1]) { f.prima = dopo; f.tra = null }
+  }
+  return lista
 }

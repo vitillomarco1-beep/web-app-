@@ -9,7 +9,7 @@ import {
   DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
   calcolaFertilita, giudizio, listaAdatta, statoRipro, GRUPPI_ESCLUSI, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
-import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, perGruppo, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
+import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, fotoSenzaCalore, perGruppo, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
 import { nomeAutomaticoGruppo, perGruppo as animaliPerGruppo } from '../lib/dairycomp'
 
 const pct = (v: number | null) => (v === null ? '—' : fmt0(v * 100))
@@ -45,7 +45,7 @@ export default function FertilitaPage() {
 
   // foto dello stato riproduttivo di ogni lista: confrontando due liste si ricavano le diagnosi
   useEffect(() => {
-    if (lista && adatta.ok && !dati.fotoRipro.some((x) => x.id === lista.data)) imposta('fotoRipro', aggiornaFoto(dati.fotoRipro, fotoDaLista(lista)))
+    if (lista && adatta.ok && !dati.fotoRipro.some((x) => x.id === lista.data && !fotoSenzaCalore(x))) imposta('fotoRipro', aggiornaFoto(dati.fotoRipro, fotoDaLista(lista)))
   }, [lista, adatta.ok, dati.fotoRipro, imposta])
   const diagnosi = useMemo(() => {
     if (!lista || !adatta.ok) return []

@@ -259,7 +259,7 @@ export interface Dati {
 export interface ControlloApa { id: string; data: string; nomeFile: string; importatoIl: string; vacche: Record<string, [number | null, number | null, number | null, number | null, number | null]> }
 
 /** Stato riproduttivo di ogni animale in una lista Mandria: [stato, fecondazioni, gruppo, lattazione]. id = data della lista. */
-export interface FotoRipro { id: string; data: string; parziale?: boolean /* solo le fecondate */; animali: Record<string, [import('./fertilita').StatoRipro, number, number, number]> }
+export interface FotoRipro { id: string; data: string; parziale?: boolean /* solo le fecondate */; animali: Record<string, [import('./fertilita').StatoRipro, number, number, number, (number | null)?, (string | null)?]> /* stato, fecondazioni, gruppo, lattazione, giorni dall'ultimo calore, ultimo toro */ }
 
 /** Indici di fertilità di una lista Mandria (id = data della lista). */
 export interface StoricoFertilita { id: string; data: string; vacche: number; gravidePct: number | null; gravideA150: number | null; giorniAperti: number | null; serviziPerGravidanza: number | null; tassoConcepimento: number | null; primaFecondazione: number | null; etaPrimoParto: number | null }
