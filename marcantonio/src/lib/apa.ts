@@ -4,7 +4,7 @@
 // CFProduz: per riga marca auricolare (14), spazi, latte kg ×10 (4) e un secondo valore (8).
 import type { ControlloApa } from './types'
 
-export type RigaApa = [kg: number | null, grasso: number | null, proteine: number | null, cellule: number | null, lattosio: number | null]
+export type RigaApa = [kg: number | null, grasso: number | null, proteine: number | null, cellule: number | null, lattosio: number | null, urea?: number | null, caseina?: number | null]
 
 /** Matricola normalizzata: maiuscole, senza spazi, "IT" davanti se sono solo cifre. */
 export const normMatricola = (m: string) => {
@@ -81,12 +81,13 @@ export function leggiProduzione(testo: string): { data: string | null; kg: Map<s
 export async function leggiControlli(files: File[]): Promise<ControlloApa[]> {
   const gruppi: { nome: string; testi: Map<string, string> }[] = []
   const sciolti = new Map<string, string>()
+  const out: ControlloApa[] = []
   for (const f of files) {
     if (/\.zip$/i.test(f.name)) gruppi.push({ nome: f.name, testi: await leggiZip(await f.arrayBuffer()) })
+    else if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') out.push(await leggiStampaCellule(f))
     else sciolti.set(f.name, await f.text())
   }
   if (sciolti.size) gruppi.push({ nome: [...sciolti.keys()].join(', '), testi: sciolti })
-  const out: ControlloApa[] = []
   for (const g of gruppi) out.push(daTesti(g.nome, g.testi))
   return out
 }
@@ -105,18 +106,68 @@ function daTesti(nomeFile: string, testi: Map<string, string>): ControlloApa {
   return { id: data, data, nomeFile, importatoIl: new Date().toISOString(), vacche }
 }
 
+/* ---------- stampa PDF "Analisi Cellule Gruppi Produttivi" (SCC04): porta anche urea e caseina ---------- */
+const numIt = (t: string | undefined) => { if (!t) return null; const n = Number(t.replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : null }
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+async function leggiStampaCellule(file: File): Promise<ControlloApa> {
+  const pdfjs: any = await import('pdfjs-dist')
+  await import('pdfjs-dist/build/pdf.worker.min.mjs' as string)
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  let data: string | null = null
+  const vacche: ControlloApa['vacche'] = {}
+  for (let n = 1; n <= doc.numPages; n++) {
+    const items: { x: number; y: number; s: string }[] = (await (await doc.getPage(n)).getTextContent()).items
+      .filter((i: any) => i.str?.trim()).map((i: any) => ({ x: i.transform[4], y: i.transform[5], s: i.str.trim() }))
+    const testo = items.map((i) => i.s).join(' ')
+    const d = testo.match(/Data CF:\s*(\d{2})\/(\d{2})\/(\d{4})/)
+    if (d && !data) data = `${d[3]}-${d[2]}-${d[1]}`
+    // la matricola sta a destra, circa sulla stessa riga dei valori della vacca
+    for (const m of items.filter((i) => /^[A-Z]{2}\d{12}$/.test(i.s))) {
+      const riga = items.filter((i) => Math.abs(i.y - m.y) <= 3 && i.x < m.x)
+      // colonne: PRD ult (x≈68), grasso (≈96), proteine (≈121), lattosio (≈147), caseina (≈173), urea (≈197), cellule ult. ctr (≈231)
+      const col = (da: number, a: number) => riga.find((i) => i.x >= da && i.x < a)?.s
+      const cell = col(222, 250)
+      vacche[m.s] = [numIt(col(60, 88)), numIt(col(88, 113)), numIt(col(113, 139)), cell ? Number(cell.replace(/\D/g, '')) || null : null, numIt(col(139, 165)), numIt(col(188, 222)), numIt(col(165, 188))]
+    }
+  }
+  if (!data || !Object.keys(vacche).length) throw new Error(`${file.name}: non riconosco la stampa delle cellule dell'APA (SCC04).`)
+  return { id: data, data, nomeFile: file.name, importatoIl: new Date().toISOString(), vacche }
+}
+
+/** Unisce i controlli letti a quelli salvati: stessa data = stesso controllo, i valori mancanti si completano (es. urea dal PDF). */
+export function unisciControlli(salvati: ControlloApa[], nuovi: ControlloApa[]): ControlloApa[] {
+  const out = new Map(salvati.map((c) => [c.id, c]))
+  for (const n of nuovi) {
+    const v = out.get(n.id)
+    if (!v) { out.set(n.id, n); continue }
+    const vacche = { ...v.vacche }
+    const daPdf = /\.pdf$/i.test(n.nomeFile) // i valori dello zip restano quelli buoni; dal PDF si prendono urea e caseina
+    for (const [m, r] of Object.entries(n.vacche)) {
+      const k = Object.keys(vacche).find((x) => normMatricola(x) === normMatricola(m)) ?? m
+      const e = vacche[k]
+      vacche[k] = e
+        ? [0, 1, 2, 3, 4, 5, 6].map((i) => (i < 5 && daPdf ? e[i] ?? r[i] : r[i] ?? e[i]) ?? null) as RigaApa
+        : r
+    }
+    out.set(n.id, { ...v, vacche, nomeFile: v.nomeFile.split(' + ').includes(n.nomeFile) ? v.nomeFile : `${v.nomeFile} + ${n.nomeFile}` })
+  }
+  return [...out.values()]
+}
+
 /* ---------- indicatori ---------- */
-export const SOGLIE = { cellule: 200, celluleAlte: 400, gpBasso: 1.0, gpAlto: 1.4, lattosio: 4.6 }
+export const SOGLIE = { cellule: 200, celluleAlte: 400, gpBasso: 1.0, gpAlto: 1.4, lattosio: 4.6, ureaAlta: 36, ureaBassa: 20 }
 
 export interface VaccaApa {
   matricola: string; vacca: string | null; stalla: number | null; gruppo: number | null; lattazione: number | null
-  kg: number | null; grasso: number | null; proteine: number | null; gp: number | null; cellule: number | null; lattosio: number | null
+  kg: number | null; grasso: number | null; proteine: number | null; gp: number | null; cellule: number | null; lattosio: number | null; urea: number | null; caseina: number | null
   cellulePrima: number | null // controllo precedente
 }
 
 export interface Indici {
   n: number; kgMedio: number | null; grasso: number | null; proteine: number | null; gp: number | null
   gpBassoPct: number | null; gpAltoPct: number | null; cellule: number | null /* media geometrica pesata sul latte */; celluleAltePct: number | null; lattosio: number | null
+  urea: number | null; ureaAltaPct: number | null; ureaBassaPct: number | null
 }
 
 const media = (v: number[]) => (v.length ? v.reduce((s, x) => s + x, 0) / v.length : null)
@@ -131,6 +182,7 @@ const pesata = (vs: VaccaApa[], k: 'grasso' | 'proteine' | 'lattosio') => {
 export function indici(vs: VaccaApa[]): Indici {
   const conGp = vs.filter((v) => v.gp !== null)
   const conCell = vs.filter((v) => v.cellule !== null)
+  const conUrea = vs.filter((v) => v.urea !== null)
   const pesi = conCell.map((v) => v.kg ?? 1)
   const totPesi = pesi.reduce((s, x) => s + x, 0)
   const geo = conCell.length ? Math.exp(conCell.reduce((s, v, i) => s + Math.log(Math.max(1, v.cellule!)) * pesi[i], 0) / totPesi) : null
@@ -144,16 +196,19 @@ export function indici(vs: VaccaApa[]): Indici {
     cellule: geo,
     celluleAltePct: conCell.length ? conCell.filter((v) => v.cellule! > SOGLIE.cellule).length / conCell.length : null,
     lattosio: pesata(vs, 'lattosio'),
+    urea: media(conUrea.map((v) => v.urea!)),
+    ureaAltaPct: conUrea.length ? conUrea.filter((v) => v.urea! > SOGLIE.ureaAlta).length / conUrea.length : null,
+    ureaBassaPct: conUrea.length ? conUrea.filter((v) => v.urea! < SOGLIE.ureaBassa).length / conUrea.length : null,
   }
 }
 
 /** Vacche di un controllo con numero di stalla (dalla matricola della lista Mandria) e cellule del controllo precedente. */
 export function vaccheDelControllo(c: ControlloApa, prima: ControlloApa | undefined, perMatricola: Map<string, { vacca: string; gruppo: number | null; lattazione?: number | null }>, stallaDelGruppo: (g: number | null) => number | null): VaccaApa[] {
-  return Object.entries(c.vacche).map(([matricola, [kg, grasso, proteine, cellule, lattosio]]) => {
+  return Object.entries(c.vacche).map(([matricola, [kg, grasso, proteine, cellule, lattosio, urea, caseina]]) => {
     const a = perMatricola.get(normMatricola(matricola))
     return {
       matricola, vacca: a?.vacca ?? null, gruppo: a?.gruppo ?? null, lattazione: a?.lattazione ?? null, stalla: a ? stallaDelGruppo(a.gruppo) : null,
-      kg, grasso, proteine, gp: grasso && proteine ? grasso / proteine : null, cellule, lattosio,
+      kg, grasso, proteine, gp: grasso && proteine ? grasso / proteine : null, cellule, lattosio, urea: urea ?? null, caseina: caseina ?? null,
       cellulePrima: prima?.vacche[matricola]?.[3] ?? null,
     }
   })

@@ -256,7 +256,7 @@ export interface Dati {
 }
 
 /** Un controllo funzionale APA. id = data del controllo. vacche: marca auricolare → [kg, grasso %, proteine %, cellule ×1000, lattosio %]. */
-export interface ControlloApa { id: string; data: string; nomeFile: string; importatoIl: string; vacche: Record<string, [number | null, number | null, number | null, number | null, number | null]> }
+export interface ControlloApa { id: string; data: string; nomeFile: string; importatoIl: string; vacche: Record<string, [number | null, number | null, number | null, number | null, number | null, (number | null)?, (number | null)?]> /* kg, grasso, proteine, cellule, lattosio, urea, caseina */ }
 
 /** Stato riproduttivo di ogni animale in una lista Mandria: [stato, fecondazioni, gruppo, lattazione]. id = data della lista. */
 export interface FotoRipro { id: string; data: string; parziale?: boolean /* solo le fecondate */; animali: Record<string, [import('./fertilita').StatoRipro, number, number, number, (number | null)?, (string | null)?]> /* stato, fecondazioni, gruppo, lattazione, giorni dall'ultimo calore, ultimo toro */ }

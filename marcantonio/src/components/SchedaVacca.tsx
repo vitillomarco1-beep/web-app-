@@ -210,9 +210,9 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
         {apa.length ? (
           <div className="overflow-x-auto">
             <table className="table text-sm">
-              <thead><tr><th>Data</th><th className="num">Latte kg</th><th className="num">Grasso %</th><th className="num">Proteine %</th><th className="num">G/P</th><th className="num">Cellule</th><th className="num">Lattosio %</th></tr></thead>
+              <thead><tr><th>Data</th><th className="num">Latte kg</th><th className="num">Grasso %</th><th className="num">Proteine %</th><th className="num">G/P</th><th className="num">Cellule</th><th className="num">Lattosio %</th>{apa.some((x) => x.v[5] != null) && <th className="num">Urea</th>}</tr></thead>
               <tbody>
-                {apa.map(({ data, v: [kg, g, p, c, l] }) => (
+                {apa.map(({ data, v: [kg, g, p, c, l, u] }) => (
                   <tr key={data}>
                     <td>{fmtData(data)}</td>
                     <td className="num">{kg !== null ? fmt1(kg) : '—'}</td>
@@ -221,6 +221,7 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
                     <td className={`num ${g && p && g / p < 1 ? 'text-arancio-700' : ''}`}>{g && p ? fmt2(g / p) : '—'}</td>
                     <td className={`num ${c !== null && c > SOGLIE.celluleAlte ? 'font-semibold text-red-700' : c !== null && c > SOGLIE.cellule ? 'text-arancio-700' : ''}`}>{c !== null ? `${fmt0(c)}.000` : '—'}</td>
                     <td className={`num ${l !== null && l < SOGLIE.lattosio ? 'text-arancio-700' : ''}`}>{l !== null ? fmt2(l) : '—'}</td>
+                    {apa.some((x) => x.v[5] != null) && <td className={`num ${u != null && u > SOGLIE.ureaAlta ? 'font-semibold text-red-700' : u != null && u < SOGLIE.ureaBassa ? 'text-sky-700' : ''}`}>{u != null ? fmt1(u) : '—'}</td>}
                   </tr>
                 ))}
               </tbody>

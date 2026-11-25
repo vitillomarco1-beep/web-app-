@@ -4,7 +4,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, Vuoto, conferma } from '../components/ui'
 import { matricole } from '../lib/dairycomp'
 import { fmt0, fmt1, fmt2, fmtData } from '../lib/format'
-import { SOGLIE, indici, leggiControlli, normMatricola, vaccheDelControllo, type Indici, type VaccaApa } from '../lib/apa'
+import { SOGLIE, indici, leggiControlli, normMatricola, unisciControlli, vaccheDelControllo, type Indici, type VaccaApa } from '../lib/apa'
 
 const pct = (v: number | null) => (v === null ? '—' : `${fmt0(v * 100)}%`)
 const num = (v: number | null, d = 2) => (v === null ? '—' : d === 2 ? fmt2(v) : d === 1 ? fmt1(v) : fmt0(v))
@@ -23,6 +23,9 @@ const RIGHE: { nome: string; spiega: string; v: (i: Indici) => number | null; fm
   { nome: 'Cellule (migliaia/ml)', spiega: 'media come il latte di massa', v: (i) => i.cellule, fmt: (v) => num(v, 0), tono: (v) => (v === null ? null : v <= 150 ? 'buono' : v <= 250 ? 'medio' : 'scarso') },
   { nome: 'Vacche sopra 200.000 cellule', spiega: 'mastite subclinica', v: (i) => i.celluleAltePct, fmt: pct, tono: (v) => (v === null ? null : v <= 0.15 ? 'buono' : v <= 0.25 ? 'medio' : 'scarso') },
   { nome: 'Lattosio %', spiega: 'basso = mammella infiammata o stress', v: (i) => i.lattosio, fmt: (v) => num(v), tono: (v) => (v === null ? null : v >= 4.7 ? 'buono' : v >= 4.5 ? 'medio' : 'scarso') },
+  { nome: 'Urea (mg/dl)', spiega: 'normale 20–30', v: (i) => i.urea, fmt: (v) => num(v, 1), tono: (v) => (v === null ? null : v >= 20 && v <= 30 ? 'buono' : v >= 15 && v <= 35 ? 'medio' : 'scarso') },
+  { nome: `Vacche con urea sopra ${SOGLIE.ureaAlta}`, spiega: 'troppa proteina o poca energia: peggiora la fertilità', v: (i) => i.ureaAltaPct, fmt: pct, tono: (v) => (v === null ? null : v <= 0.1 ? 'buono' : v <= 0.2 ? 'medio' : 'scarso') },
+  { nome: `Vacche con urea sotto ${SOGLIE.ureaBassa}`, spiega: 'poca proteina nella razione', v: (i) => i.ureaBassaPct, fmt: pct, tono: (v) => (v === null ? null : v <= 0.1 ? 'buono' : v <= 0.2 ? 'medio' : 'scarso') },
 ]
 
 /** Controlli funzionali APA: per stalla, con le vacche da controllare. */
@@ -33,7 +36,7 @@ export default function ControlliApaPage() {
   const [stato, setStato] = useState<'' | 'lettura' | string>('')
   const [esito, setEsito] = useState('')
   const [filtro, setFiltro] = useState<number | 'tutte' | 'altre'>('tutte')
-  const [ordine, setOrdine] = useState<'cellule' | 'gp' | 'kg' | 'vacca'>('cellule')
+  const [ordine, setOrdine] = useState<'cellule' | 'gp' | 'kg' | 'urea' | 'vacca'>('cellule')
   const input = useRef<HTMLInputElement>(null)
 
   const c = controlli.find((x) => x.id === scelto) ?? controlli[0]
@@ -58,11 +61,10 @@ export default function ControlliApaPage() {
     setStato('lettura'); setEsito('')
     try {
       const nuovi = await leggiControlli([...files])
-      const ids = new Set(nuovi.map((x) => x.id))
-      imposta('controlliApa', [...dati.controlliApa.filter((x) => !ids.has(x.id)), ...nuovi])
+      imposta('controlliApa', unisciControlli(dati.controlliApa, nuovi))
       const piuRecente = [...nuovi].sort((a, b) => b.data.localeCompare(a.data))[0]
       setScelto(piuRecente.id)
-      setEsito(`✓ ${nuovi.map((x) => `Controllo del ${fmtData(x.data)}: ${Object.keys(x.vacche).length} vacche`).join(' · ')}`)
+      setEsito(`✓ ${nuovi.map((x) => `${/\.pdf$/i.test(x.nomeFile) ? 'Stampa cellule (con urea)' : 'Controllo'} del ${fmtData(x.data)}: ${Object.keys(x.vacche).length} vacche`).join(' · ')}`)
       setStato('')
     } catch (e) {
       setStato((e as Error).message || 'Non riesco a leggere il file.')
@@ -71,7 +73,7 @@ export default function ControlliApaPage() {
 
   const caricatore = (
     <>
-      <input ref={input} type="file" multiple accept=".zip,.txt" className="hidden" onChange={(e) => { void carica(e.target.files); e.target.value = '' }} />
+      <input ref={input} type="file" multiple accept=".zip,.txt,.pdf" className="hidden" onChange={(e) => { void carica(e.target.files); e.target.value = '' }} />
       <button className="btn-primary" onClick={() => input.current?.click()} disabled={stato === 'lettura'}>
         {stato === 'lettura' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}Carica controllo APA
       </button>
@@ -83,7 +85,7 @@ export default function ControlliApaPage() {
       <>
         <PageHeader titolo="Controlli funzionali APA" icona={ClipboardList} descrizione="Grasso, proteine, cellule e lattosio di ogni vacca, divisi per stalla" />
         <Vuoto>
-          <p>Carica lo <b>zip</b> che ti manda l’APA (contiene CFAnalis e CFProduz) così com’è, oppure i due file .txt.</p>
+          <p>Carica lo <b>zip</b> che ti manda l’APA (contiene CFAnalis e CFProduz) così com’è, oppure i due file .txt. Per avere anche l’<b>urea</b> carica pure il PDF “Analisi Cellule Gruppi Produttivi”.</p>
           <div className="mt-4 flex justify-center">{caricatore}</div>
           {stato && stato !== 'lettura' && <p className="mt-3 text-sm text-red-600">{stato}</p>}
         </Vuoto>
@@ -109,11 +111,12 @@ export default function ControlliApaPage() {
     ...stalle.map((s) => ({ nome: `Stalla ${s.numero}`, f: (v: VaccaApa) => v.stalla === s.numero })),
     { nome: collegate ? 'Altri / senza numero' : 'Senza numero', f: (v: VaccaApa) => v.stalla === null },
   ]
+  const conUrea = vacche.some((v) => v.urea !== null)
   const nomeV = (v: VaccaApa) => v.vacca ?? v.matricola.slice(-5)
 
   const elenco = vacche
     .filter((v) => (filtro === 'tutte' ? true : filtro === 'altre' ? v.stalla === null : v.stalla === filtro))
-    .sort((a, b) => ordine === 'cellule' ? (b.cellule ?? -1) - (a.cellule ?? -1) : ordine === 'gp' ? (a.gp ?? 9) - (b.gp ?? 9) : ordine === 'kg' ? (b.kg ?? 0) - (a.kg ?? 0)
+    .sort((a, b) => ordine === 'cellule' ? (b.cellule ?? -1) - (a.cellule ?? -1) : ordine === 'gp' ? (a.gp ?? 9) - (b.gp ?? 9) : ordine === 'kg' ? (b.kg ?? 0) - (a.kg ?? 0) : ordine === 'urea' ? (b.urea ?? -1) - (a.urea ?? -1)
       : (a.vacca ?? 'zz').localeCompare(b.vacca ?? 'zz', 'it', { numeric: true }))
 
   return (
@@ -147,7 +150,7 @@ export default function ControlliApaPage() {
               {ind.map((x) => <th key={x.k} className="px-2 text-right font-semibold">{x.nome}</th>)}
             </tr></thead>
             <tbody>
-              {RIGHE.map((r) => (
+              {RIGHE.filter((r) => ind.some((x) => r.v(x.i) !== null)).map((r) => (
                 <tr key={r.nome} className="border-b border-stone-100 last:border-0 tabular-nums">
                   <td className="py-1.5 pr-3"><span className="text-stone-800">{r.nome}</span>{r.spiega && <span className="block text-[11px] text-stone-500">{r.spiega}</span>}</td>
                   {ind.map((x) => {
@@ -250,7 +253,7 @@ export default function ControlliApaPage() {
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-stone-500">
-                <th className="py-2 pr-3">Controllo</th><th className="px-2 text-right">Vacche</th><th className="px-2 text-right">Grasso</th><th className="px-2 text-right">Proteine</th><th className="px-2 text-right">Grasso sotto proteine</th><th className="px-2 text-right">Cellule</th><th className="pl-2 text-right">Sopra 200.000</th>
+                <th className="py-2 pr-3">Controllo</th><th className="px-2 text-right">Vacche</th><th className="px-2 text-right">Grasso</th><th className="px-2 text-right">Proteine</th><th className="px-2 text-right">Grasso sotto proteine</th><th className="px-2 text-right">Cellule</th><th className="px-2 text-right">Sopra 200.000</th><th className="pl-2 text-right">Urea</th>
               </tr></thead>
               <tbody>
                 {controlli.map((x) => {
@@ -259,7 +262,7 @@ export default function ControlliApaPage() {
                     <tr key={x.id} className={`border-b border-stone-100 last:border-0 tabular-nums ${x.id === c.id ? 'bg-brand-50/60' : ''}`}>
                       <td className="py-1.5 pr-3">{fmtData(x.data)}</td><td className="px-2 text-right">{i.n}</td>
                       <td className="px-2 text-right">{num(i.grasso)}%</td><td className="px-2 text-right">{num(i.proteine)}%</td>
-                      <td className="px-2 text-right">{pct(i.gpBassoPct)}</td><td className="px-2 text-right">{num(i.cellule, 0)}</td><td className="pl-2 text-right">{pct(i.celluleAltePct)}</td>
+                      <td className="px-2 text-right">{pct(i.gpBassoPct)}</td><td className="px-2 text-right">{num(i.cellule, 0)}</td><td className="px-2 text-right">{pct(i.celluleAltePct)}</td><td className="pl-2 text-right">{num(i.urea, 1)}</td>
                     </tr>
                   )
                 })}
@@ -279,13 +282,13 @@ export default function ControlliApaPage() {
                 className={`rounded-full border px-3 py-1 text-sm ${filtro === x.k ? 'border-brand-700 bg-brand-700 text-white' : 'border-stone-300 bg-white text-stone-600'}`}>{x.n}</button>
             ))}
             <select className="input !w-auto py-1 text-sm" value={ordine} onChange={(e) => setOrdine(e.target.value as typeof ordine)} aria-label="Ordina per">
-              <option value="cellule">Cellule più alte</option><option value="gp">Grasso/proteine più basso</option><option value="kg">Più latte</option><option value="vacca">Numero vacca</option>
+              <option value="cellule">Cellule più alte</option><option value="gp">Grasso/proteine più basso</option><option value="kg">Più latte</option>{conUrea && <option value="urea">Urea più alta</option>}<option value="vacca">Numero vacca</option>
             </select>
           </div>
         </div>
         <div className="mt-3 overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Vacca</th><th>Matricola</th><th>Stalla</th><th className="text-right">Latte kg</th><th className="text-right">Grasso</th><th className="text-right">Proteine</th><th className="text-right">G/P</th><th className="text-right">Cellule</th><th className="text-right">Lattosio</th></tr></thead>
+            <thead><tr><th>Vacca</th><th>Matricola</th><th>Stalla</th><th className="text-right">Latte kg</th><th className="text-right">Grasso</th><th className="text-right">Proteine</th><th className="text-right">G/P</th><th className="text-right">Cellule</th><th className="text-right">Lattosio</th>{conUrea && <th className="text-right">Urea</th>}</tr></thead>
             <tbody>
               {elenco.map((v) => {
                 const cellAlte = v.cellule !== null && v.cellule > SOGLIE.cellule
@@ -300,6 +303,7 @@ export default function ControlliApaPage() {
                     <td className={`text-right font-semibold tabular-nums ${v.gp === null ? '' : v.gp < SOGLIE.gpBasso ? 'text-sky-700' : v.gp > SOGLIE.gpAlto ? 'text-violet-700' : 'text-stone-700'}`}>{num(v.gp)}</td>
                     <td className={`text-right tabular-nums ${cellAlte ? 'font-semibold text-rose-700' : ''}`}>{num(v.cellule, 0)}{v.cellulePrima !== null && <span className="ml-1 text-[11px] font-normal text-stone-400">({fmt0(v.cellulePrima)})</span>}</td>
                     <td className={`text-right tabular-nums ${v.lattosio !== null && v.lattosio < SOGLIE.lattosio ? 'font-semibold text-arancio-700' : ''}`}>{num(v.lattosio)}</td>
+                    {conUrea && <td className={`text-right tabular-nums ${v.urea !== null && v.urea > SOGLIE.ureaAlta ? 'font-semibold text-rose-700' : v.urea !== null && v.urea < SOGLIE.ureaBassa ? 'font-semibold text-sky-700' : ''}`}>{num(v.urea, 1)}</td>}
                   </tr>
                 )
               })}
@@ -315,6 +319,7 @@ export default function ControlliApaPage() {
           <li><b>Grasso/proteine sopra 1,4</b>, soprattutto nelle fresche: la vacca usa il grasso corporeo, rischio chetosi.</li>
           <li><b>Cellule sopra 200.000</b>: mastite subclinica. Se resta alta in due controlli di seguito è cronica; tra parentesi il controllo precedente.</li>
           <li><b>Lattosio sotto 4,6%</b>: mammella infiammata o vacca sotto stress.</li>
+          <li><b>Urea sopra {SOGLIE.ureaAlta} mg/dl</b>: troppa proteina degradabile rispetto all’energia della razione; peggiora la fertilità. <b>Sotto {SOGLIE.ureaBassa}</b>: proteina scarsa. L’urea arriva dal PDF “Analisi Cellule Gruppi Produttivi”, non dallo zip.</li>
         </ul>
         <button className="mt-4 inline-flex items-center gap-1 text-xs text-stone-400 hover:text-rose-600" onClick={() => { if (conferma(`Eliminare il controllo del ${fmtData(c.data)}?`)) { imposta('controlliApa', dati.controlliApa.filter((x) => x.id !== c.id)); setScelto(null) } }}>
           <Trash2 className="h-3.5 w-3.5" />Elimina questo controllo
