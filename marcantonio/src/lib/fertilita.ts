@@ -10,6 +10,8 @@ import { isCloseUp } from './dairycomp'
 export const PERIODO_ATTESA = 60
 /** Oltre questi giorni senza gravidanza la vacca è "vuota da troppo". */
 export const DIM_VUOTA_PROBLEMA = 150
+/** Secondo controllo delle gravide: a 110 giorni di lattazione. */
+export const DIM_GRAVIDE_PRESTO = 110
 /** Diagnosi di gravidanza dall'ecografia: da questi giorni dopo il calore della fecondazione. */
 export const GG_DIAGNOSI = 30
 /** Finestra in cui osservare il ritorno in calore (un ciclo dura circa 21 giorni). */
@@ -84,6 +86,8 @@ export interface IndiciFertilita {
   vacche: number
   perStato: { stato: StatoRipro; n: number }[]
   gravidePct: number | null // vacche gravide / vacche presenti
+  gravideA110: number | null // % gravide tra le vacche oltre 110 giorni di lattazione
+  oltre110: number
   gravideA150: number | null // % gravide tra le vacche oltre 150 giorni di lattazione
   oltre150: number
   giorniAperti: number | null // giorni dal parto al concepimento (vacche gravide)
@@ -122,6 +126,7 @@ export function calcolaFertilita(lista: ImportDC, gruppi?: number[]): IndiciFert
   vacche.forEach((a) => conta.set(statoRipro(a), (conta.get(statoRipro(a)) ?? 0) + 1))
   const gravide = vacche.filter((a) => statoRipro(a) === 'gravida')
   const oltre150 = vacche.filter((a) => (a.dim ?? 0) > DIM_VUOTA_PROBLEMA)
+  const oltre110 = vacche.filter((a) => (a.dim ?? 0) > DIM_GRAVIDE_PRESTO)
 
   // giorni dal parto al concepimento: solo dove i numeri sono coerenti (gravidanza della lattazione in corso)
   const aperti = gravide
@@ -175,6 +180,8 @@ export function calcolaFertilita(lista: ImportDC, gruppi?: number[]): IndiciFert
     vacche: vacche.length,
     perStato: (['gravida', 'fecondata', 'vuota', 'attesa', 'nonFecondare', 'altro'] as StatoRipro[]).map((s) => ({ stato: s, n: conta.get(s) ?? 0 })).filter((x) => x.n > 0),
     gravidePct: quota(gravide.length, vacche.length),
+    gravideA110: quota(oltre110.filter((a) => statoRipro(a) === 'gravida').length, oltre110.length),
+    oltre110: oltre110.length,
     gravideA150: quota(oltre150.filter((a) => statoRipro(a) === 'gravida').length, oltre150.length),
     oltre150: oltre150.length,
     giorniAperti: am,
@@ -209,6 +216,7 @@ export function listaAdatta(lista: ImportDC | undefined) {
 /** Obiettivi indicativi per una stalla da latte con robot (valori di riferimento comuni). */
 export const OBIETTIVI = {
   gravidePct: { buono: 0.5, scarso: 0.4, testo: 'obiettivo ≥ 50%' },
+  gravideA110: { buono: 0.5, scarso: 0.35, testo: 'obiettivo ≥ 50%' },
   gravideA150: { buono: 0.7, scarso: 0.55, testo: 'obiettivo ≥ 70%' },
   giorniAperti: { buono: 120, scarso: 150, testo: 'obiettivo ≤ 120 giorni' },
   interparto: { buono: 400, scarso: 430, testo: 'obiettivo ≤ 400 giorni' },

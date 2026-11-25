@@ -6,7 +6,7 @@ import { PageHeader, StatTile, Vuoto, type Tono } from '../components/ui'
 import { fmt0, fmt1, fmtData } from '../lib/format'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import {
-  DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
+  DIM_GRAVIDE_PRESTO, DIM_VUOTA_PROBLEMA, ETA_FECONDAZIONE_MANZE, GG_DIAGNOSI, NOMI_STATO, OBIETTIVI, PERIODO_ATTESA, RITORNO_CALORE,
   calcolaFertilita, giudizio, listaAdatta, statoRipro, GRUPPI_ESCLUSI, perCategoria, type IndiciCategoria, riassuntoStorico, type ChiaveObiettivo, type IndiciFertilita, type RigaLista, type StatoRipro,
 } from '../lib/fertilita'
 import { FOTO_INIZIALE, aggiornaFoto, fotoDaLista, fotoSenzaCalore, perGruppo, quotaPositive, storicoDiagnosi, type ConfrontoDiagnosi, type Esito } from '../lib/diagnosi'
@@ -127,6 +127,7 @@ export default function FertilitaPage() {
       <h2 className="mb-3">{sel ? `Stalla ${sel.st.numero}` : 'Vacche'} <span className="text-base font-normal text-stone-500">· {sel ? `${f.vacche} vacche in lattazione (gruppo ${sel.st.gruppoDairyComp})` : `${f.vacche} tra lattazione e asciutta`}{escluseNF ? `, più ${escluseNF} "non fecondare" escluse dal calcolo` : ''}</span></h2>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {tile('gravidePct', 'Vacche gravide', pct(f.gravidePct), '%', Dna)}
+        {tile('gravideA110', `Gravide a ${DIM_GRAVIDE_PRESTO} giorni`, pct(f.gravideA110), '%', CalendarClock, `su ${f.oltre110} vacche oltre ${DIM_GRAVIDE_PRESTO} gg`)}
         {tile('gravideA150', `Gravide a ${DIM_VUOTA_PROBLEMA} giorni`, pct(f.gravideA150), '%', CalendarClock, `su ${f.oltre150} vacche oltre ${DIM_VUOTA_PROBLEMA} gg`)}
         {tile('giorniAperti', 'Parto → concepimento', f.giorniAperti === null ? '—' : fmt0(f.giorniAperti), 'giorni', Timer, 'media delle gravide')}
         {tile('interparto', 'Interparto previsto', f.interparto === null ? '—' : fmt0(f.interparto), 'giorni', Repeat)}
@@ -265,9 +266,10 @@ function Lista({ titolo, spiega, righe, vuoto, icona: I, tono, aperta = false }:
   )
 }
 
-type ChiaveConfronto = 'gravidePct' | 'gravideA150' | 'giorniAperti' | 'interparto' | 'serviziPerGravidanza' | 'tassoConcepimento' | 'primaFecondazione'
+type ChiaveConfronto = 'gravidePct' | 'gravideA110' | 'gravideA150' | 'giorniAperti' | 'interparto' | 'serviziPerGravidanza' | 'tassoConcepimento' | 'primaFecondazione'
 const RIGHE_CONFRONTO: { k: ChiaveConfronto; nome: string; fmt: (v: number | null) => string }[] = [
   { k: 'gravidePct', nome: 'Vacche gravide', fmt: (v) => `${pct(v)}%` },
+  { k: 'gravideA110', nome: `Gravide a ${DIM_GRAVIDE_PRESTO} giorni`, fmt: (v) => `${pct(v)}%` },
   { k: 'gravideA150', nome: `Gravide a ${DIM_VUOTA_PROBLEMA} giorni`, fmt: (v) => `${pct(v)}%` },
   { k: 'giorniAperti', nome: 'Parto → concepimento', fmt: (v) => (v === null ? '—' : `${fmt0(v)} gg`) },
   { k: 'interparto', nome: 'Interparto previsto', fmt: (v) => (v === null ? '—' : `${fmt0(v)} gg`) },
