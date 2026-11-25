@@ -109,7 +109,7 @@ function daTesti(nomeFile: string, testi: Map<string, string>): ControlloApa {
 export const SOGLIE = { cellule: 200, celluleAlte: 400, gpBasso: 1.0, gpAlto: 1.4, lattosio: 4.6 }
 
 export interface VaccaApa {
-  matricola: string; vacca: string | null; stalla: number | null; gruppo: number | null
+  matricola: string; vacca: string | null; stalla: number | null; gruppo: number | null; lattazione: number | null
   kg: number | null; grasso: number | null; proteine: number | null; gp: number | null; cellule: number | null; lattosio: number | null
   cellulePrima: number | null // controllo precedente
 }
@@ -148,11 +148,11 @@ export function indici(vs: VaccaApa[]): Indici {
 }
 
 /** Vacche di un controllo con numero di stalla (dalla matricola della lista Mandria) e cellule del controllo precedente. */
-export function vaccheDelControllo(c: ControlloApa, prima: ControlloApa | undefined, perMatricola: Map<string, { vacca: string; gruppo: number | null }>, stallaDelGruppo: (g: number | null) => number | null): VaccaApa[] {
+export function vaccheDelControllo(c: ControlloApa, prima: ControlloApa | undefined, perMatricola: Map<string, { vacca: string; gruppo: number | null; lattazione?: number | null }>, stallaDelGruppo: (g: number | null) => number | null): VaccaApa[] {
   return Object.entries(c.vacche).map(([matricola, [kg, grasso, proteine, cellule, lattosio]]) => {
     const a = perMatricola.get(normMatricola(matricola))
     return {
-      matricola, vacca: a?.vacca ?? null, gruppo: a?.gruppo ?? null, stalla: a ? stallaDelGruppo(a.gruppo) : null,
+      matricola, vacca: a?.vacca ?? null, gruppo: a?.gruppo ?? null, lattazione: a?.lattazione ?? null, stalla: a ? stallaDelGruppo(a.gruppo) : null,
       kg, grasso, proteine, gp: grasso && proteine ? grasso / proteine : null, cellule, lattosio,
       cellulePrima: prima?.vacche[matricola]?.[3] ?? null,
     }

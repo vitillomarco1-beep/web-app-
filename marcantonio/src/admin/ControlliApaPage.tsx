@@ -42,9 +42,9 @@ export default function ControlliApaPage() {
   // matricola → numero e gruppo, dalla lista Mandria (colonna MATR)
   const mandria = dati.mandriaDC[0]
   const perMatricola = useMemo(() => {
-    const m = new Map<string, { vacca: string; gruppo: number | null }>()
-    const gruppo = new Map((mandria?.animali ?? []).map((a) => [a.id, a.gruppo]))
-    for (const [id, matr] of matricole(mandria)) m.set(normMatricola(matr), { vacca: id, gruppo: gruppo.get(id) ?? null })
+    const m = new Map<string, { vacca: string; gruppo: number | null; lattazione: number | null }>()
+    const animale = new Map((mandria?.animali ?? []).map((a) => [a.id, a]))
+    for (const [id, matr] of matricole(mandria)) m.set(normMatricola(matr), { vacca: id, gruppo: animale.get(id)?.gruppo ?? null, lattazione: animale.get(id)?.lattazione ?? null })
     return m
   }, [mandria])
   const stalle = useMemo(() => dati.stalle.filter((s) => s.gruppoDairyComp !== undefined).sort((a, b) => a.numero - b.numero), [dati.stalle])
@@ -160,6 +160,58 @@ export default function ControlliApaPage() {
           </table>
         </div>
       </section>
+
+      {/* ---- Cellule per lattazione */}
+      {vacche.some((v) => v.lattazione) && (() => {
+        const cat = [
+          { k: 'l1', nome: 'Primipare', f: (v: VaccaApa) => v.lattazione === 1 },
+          { k: 'l2', nome: 'Secondipare', f: (v: VaccaApa) => v.lattazione === 2 },
+          { k: 'l3', nome: '3ª lattazione e oltre', f: (v: VaccaApa) => (v.lattazione ?? 0) >= 3 },
+          { k: 'tutte', nome: 'Mandria', f: (v: VaccaApa) => (v.lattazione ?? 0) >= 1 },
+        ].map((x) => {
+          const vs = vacche.filter(x.f), pv = vaccheprima.filter(x.f)
+          const conta = (l: VaccaApa[]) => l.filter((v) => v.cellule !== null).length
+          const quota = (l: VaccaApa[], soglia: number) => (conta(l) ? l.filter((v) => v.cellule !== null && v.cellule > soglia).length / conta(l) : null)
+          return { ...x, vs, i: indici(vs), ip: pv.length ? indici(pv) : null, alte: quota(vs, SOGLIE.celluleAlte), altePrima: pv.length ? quota(pv, SOGLIE.celluleAlte) : null,
+            croniche: croniche.filter(x.f).length, nuove: nuove.filter(x.f).length, guarite: guarite.filter(x.f).length }
+        }).filter((x) => x.vs.length)
+        const tonoCell = (v: number | null): Tono => (v === null ? null : v <= 150 ? 'buono' : v <= 250 ? 'medio' : 'scarso')
+        const tonoQuota = (v: number | null, b: number, m: number): Tono => (v === null ? null : v <= b ? 'buono' : v <= m ? 'medio' : 'scarso')
+        const righe: { nome: string; spiega?: string; val: (x: (typeof cat)[number]) => { v: string; t: Tono; p?: string } }[] = [
+          { nome: 'Vacche controllate', val: (x) => ({ v: fmt0(x.i.n), t: null }) },
+          { nome: 'Cellule (migliaia/ml)', spiega: 'media come il latte di massa', val: (x) => ({ v: num(x.i.cellule, 0), t: tonoCell(x.i.cellule), p: x.ip ? num(x.ip.cellule, 0) : undefined }) },
+          { nome: 'Vacche sopra 200.000', spiega: 'mastite subclinica', val: (x) => ({ v: pct(x.i.celluleAltePct), t: tonoQuota(x.i.celluleAltePct, 0.15, 0.25), p: x.ip ? pct(x.ip.celluleAltePct) : undefined }) },
+          { nome: 'Vacche sopra 400.000', val: (x) => ({ v: pct(x.alte), t: tonoQuota(x.alte, 0.05, 0.12), p: x.altePrima !== null ? pct(x.altePrima) : undefined }) },
+          ...(prima ? [
+            { nome: 'Mastiti croniche', spiega: 'sopra 200.000 in tutti e due i controlli', val: (x: (typeof cat)[number]) => ({ v: fmt0(x.croniche), t: null }) },
+            { nome: 'Nuove infezioni', spiega: 'sopra 200.000, prima no', val: (x: (typeof cat)[number]) => ({ v: fmt0(x.nuove), t: null }) },
+            { nome: 'Guarite', spiega: 'tornate sotto 200.000', val: (x: (typeof cat)[number]) => ({ v: fmt0(x.guarite), t: null }) },
+          ] : []),
+          { nome: 'Lattosio %', val: (x) => ({ v: num(x.i.lattosio), t: x.i.lattosio === null ? null : x.i.lattosio >= 4.7 ? 'buono' : x.i.lattosio >= 4.5 ? 'medio' : 'scarso', p: x.ip ? num(x.ip.lattosio) : undefined }) },
+        ]
+        return (
+          <section className="card mt-6">
+            <h2>Cellule per lattazione</h2>
+            <p className="mt-0.5 text-xs text-stone-500">Tutte le stalle insieme, lattazione dalla lista Mandria{prima ? `; tra parentesi il controllo del ${fmtData(prima.data)}` : ''}.</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b text-xs uppercase tracking-wide text-stone-500">
+                  <th className="py-2 pr-3 text-left font-semibold">Indice</th>
+                  {cat.map((x) => <th key={x.k} className="px-2 text-right font-semibold">{x.nome}</th>)}
+                </tr></thead>
+                <tbody>
+                  {righe.map((r) => (
+                    <tr key={r.nome} className="border-b border-stone-100 last:border-0 tabular-nums">
+                      <td className="py-1.5 pr-3"><span className="text-stone-800">{r.nome}</span>{r.spiega && <span className="block text-[11px] text-stone-500">{r.spiega}</span>}</td>
+                      {cat.map((x) => { const o = r.val(x); return <td key={x.k} className={`px-2 text-right font-semibold ${o.t ? COLORE[o.t] : 'text-stone-700'}`}>{o.v}{o.p !== undefined && <span className="block text-[11px] font-normal text-stone-400">({o.p})</span>}</td> })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )
+      })()}
 
       {/* ---- Vacche da controllare per stalla */}
       <h2 className="mb-3 mt-8">Vacche da controllare</h2>
