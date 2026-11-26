@@ -10,6 +10,7 @@ import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
 import PdfViewerModal from '../components/PdfViewerModal'
 import ConfirmButton from '../components/ConfirmButton'
 import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
+import { NotebookPen } from 'lucide-react'
 
 export default function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -169,7 +170,7 @@ export default function ClientDetailPage() {
               className="btn-secondary"
               onClick={() => navigate(`/clienti/${clientId}/quaderno-campagna`)}
             >
-              📒 Quaderno di campagna
+              <NotebookPen className="icon" aria-hidden="true" />Quaderno di campagna
             </button>
             <button
               className="btn-primary"
@@ -183,72 +184,86 @@ export default function ClientDetailPage() {
 
       {editMode && (
         <form onSubmit={handleSalvaModifica} className="card space-y-4">
-          <h2 className="font-semibold text-stone-900">Modifica dati cliente</h2>
+          <h2 className="text-lg font-semibold text-stone-900">Modifica dati cliente</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">Ragione sociale / Nome azienda agricola *</label>
-              <input
-                className="input"
-                required
-                value={form.ragioneSociale}
-                onChange={(e) => setForm({ ...form, ragioneSociale: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Ragione sociale / Nome azienda agricola *</span>
+                <input
+                  className="input"
+                  required
+                  value={form.ragioneSociale}
+                  onChange={(e) => setForm({ ...form, ragioneSociale: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Referente</label>
-              <input
-                className="input"
-                value={form.referente}
-                onChange={(e) => setForm({ ...form, referente: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Referente</span>
+                <input
+                  className="input"
+                  value={form.referente}
+                  onChange={(e) => setForm({ ...form, referente: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Email</span>
+                <input
+                  type="email"
+                  className="input"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Telefono</label>
-              <input
-                className="input"
-                value={form.telefono}
-                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Telefono</span>
+                <input
+                  className="input"
+                  value={form.telefono}
+                  onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Comune</label>
-              <input
-                className="input"
-                value={form.comune}
-                onChange={(e) => setForm({ ...form, comune: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Comune</span>
+                <input
+                  className="input"
+                  value={form.comune}
+                  onChange={(e) => setForm({ ...form, comune: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Provincia</label>
-              <input
-                className="input"
-                value={form.provincia}
-                onChange={(e) => setForm({ ...form, provincia: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Provincia</span>
+                <input
+                  className="input"
+                  value={form.provincia}
+                  onChange={(e) => setForm({ ...form, provincia: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Regione</label>
-              <select
-                className="input"
-                value={form.regione}
-                onChange={(e) => setForm({ ...form, regione: e.target.value })}
-              >
-                <option value="">— non specificata —</option>
-                {REGIONI_ITALIANE.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+              <label className="block">
+                <span className="label">Regione</span>
+                <select
+                  className="input"
+                  value={form.regione}
+                  onChange={(e) => setForm({ ...form, regione: e.target.value })}
+                >
+                  <option value="">— non specificata —</option>
+                  {REGIONI_ITALIANE.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
           <div className="flex gap-2">
@@ -331,7 +346,7 @@ export default function ClientDetailPage() {
                 : 'Crea una copia di questo calcolo sotto un altro cliente, utile come punto di partenza per aziende simili: il calcolo originale resta qui invariato.'}
             </p>
             <div>
-              <label className="label">Cliente di destinazione</label>
+              <label htmlFor="destinazione-cliente" className="label">Cliente di destinazione</label>
               {clientiStore.all().filter((cl) => cl.id !== clientId).length === 0 ? (
                 <p className="text-sm text-amber-700">
                   Non esiste ancora un altro cliente: creane uno dalla lista clienti prima di
@@ -339,6 +354,7 @@ export default function ClientDetailPage() {
                 </p>
               ) : (
                 <select
+                  id="destinazione-cliente"
                   className="input"
                   value={destinazioneClienteId}
                   onChange={(e) => setDestinazioneClienteId(e.target.value)}
@@ -355,12 +371,14 @@ export default function ClientDetailPage() {
               )}
             </div>
             <div>
-              <label className="label">Nome del calcolo nella destinazione</label>
-              <input
-                className="input"
-                value={nuovoNomeCalcolo}
-                onChange={(e) => setNuovoNomeCalcolo(e.target.value)}
-              />
+              <label className="block">
+                <span className="label">Nome del calcolo nella destinazione</span>
+                <input
+                  className="input"
+                  value={nuovoNomeCalcolo}
+                  onChange={(e) => setNuovoNomeCalcolo(e.target.value)}
+                />
+              </label>
             </div>
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input

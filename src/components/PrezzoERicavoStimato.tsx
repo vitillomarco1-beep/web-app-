@@ -1,6 +1,7 @@
 import type { DatiCalcolo, RisultatoCalcolo } from '../types'
 import { calcolaPrezzoCrediti } from '../lib/prezzoCrediti'
 import { formatTCO2 } from '../lib/format'
+import { Euro } from 'lucide-react'
 
 interface Props {
   dati: DatiCalcolo
@@ -32,7 +33,7 @@ export default function PrezzoERicavoStimato({ dati, risultato }: Props) {
   return (
     <div className="rounded-lg border border-stone-200 bg-white p-4 text-sm text-stone-600">
       <p className="font-semibold text-stone-800">
-        💶 Prezzo e ricavo stimato (ipotesi del consulente, non un prezzo di mercato)
+        <Euro className="icon" aria-hidden="true" />Prezzo e ricavo stimato (ipotesi del consulente, non un prezzo di mercato)
       </p>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div>
@@ -63,12 +64,12 @@ export default function PrezzoERicavoStimato({ dati, risultato }: Props) {
         </p>
         <p className="mt-1">{r.formulaPrezzoDiPareggio}</p>
       </div>
-      <div className="mt-2 space-y-1 font-mono text-xs text-stone-400">
+      <div className="mt-2 space-y-1 font-mono text-xs text-stone-500">
         <p>{r.formulaRicavoLordo}</p>
         <p>{r.formulaRicavoNetto}</p>
         <p>{r.formulaRicavoNettoPerEttaro}</p>
       </div>
-      <p className="mt-2 text-xs text-stone-400">
+      <p className="mt-2 text-xs text-stone-500">
         Numero di crediti usato: {formatTCO2(r.numeroUnitaCredito)} (stesso valore del "Numero di
         unità di credito certificabili" sopra). Nessun prezzo di mercato ufficiale esiste oggi per
         i crediti CRCF: questi numeri dipendono interamente dalle ipotesi inserite, non da un

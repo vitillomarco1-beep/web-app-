@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { COLTURE_RESIDUI, calcolaApportoResiduiColturali } from '../../lib/residuiColturali'
 import { formatTCO2 } from '../../lib/format'
+import { Wheat } from 'lucide-react'
 
 interface Props {
   onCalcola: (apportoTCHaAnno: number) => void
@@ -38,7 +39,14 @@ export default function ResiduiColturaliHelper({ onCalcola }: Props) {
         className="text-xs font-medium text-forest-700 underline underline-offset-2 hover:text-forest-800"
         onClick={() => setAperto((a) => !a)}
       >
-        {aperto ? '− Chiudi' : '🌾 Calcola da resa colturale'}
+        {aperto ? (
+          '− Chiudi'
+        ) : (
+          <>
+            <Wheat className="icon" aria-hidden="true" />
+            Calcola da resa colturale
+          </>
+        )}
       </button>
 
       {aperto && (

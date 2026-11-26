@@ -12,6 +12,7 @@ import {
   calcolaCampionamentoStratificatoCdm,
   type LivelloConfidenza,
 } from '../../lib/campionamentoForestale'
+import { Ruler } from 'lucide-react'
 
 function defaultData(): DatiImboschimento {
   return {
@@ -111,60 +112,70 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
         <h3 className="font-semibold text-stone-900">Dati generali</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Nome del calcolo *</label>
-            <input
-              className="input"
-              required
-              placeholder="Es. Azienda Bianchi — imboschimento 2026"
-              value={dati.nomeCalcolo}
-              onChange={(e) => setDati({ ...dati, nomeCalcolo: e.target.value })}
-            />
+            <label className="block">
+              <span className="label">Nome del calcolo *</span>
+              <input
+                className="input"
+                required
+                placeholder="Es. Azienda Bianchi — imboschimento 2026"
+                value={dati.nomeCalcolo}
+                onChange={(e) => setDati({ ...dati, nomeCalcolo: e.target.value })}
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Area di attività (ha) — minimo 0,5 ha *</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              required
-              value={dati.areaAttivitaHa}
-              onChange={(e) => setDati({ ...dati, areaAttivitaHa: num(e.target.value) })}
-            />
+            <label className="block">
+              <span className="label">Area di attività (ha) — minimo 0,5 ha *</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className="input"
+                required
+                value={dati.areaAttivitaHa}
+                onChange={(e) => setDati({ ...dati, areaAttivitaHa: num(e.target.value) })}
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Data inizio periodo di attività</label>
-            <input
-              type="date"
-              className="input"
-              value={dati.dataInizioPeriodoAttivita}
-              onChange={(e) => setDati({ ...dati, dataInizioPeriodoAttivita: e.target.value })}
-            />
+            <label className="block">
+              <span className="label">Data inizio periodo di attività</span>
+              <input
+                type="date"
+                className="input"
+                value={dati.dataInizioPeriodoAttivita}
+                onChange={(e) => setDati({ ...dati, dataInizioPeriodoAttivita: e.target.value })}
+              />
+            </label>
           </div>
           <div>
-            <label className="label">
+            <label className="block">
+              <span className="label">
               Durata periodo di certificazione (anni) — periodo di attività min. 35 anni, di
               monitoraggio min. 40
+            </span>
+              <input
+                type="number"
+                min={1}
+                className="input"
+                value={dati.durataPeriodoCertificazioneAnni}
+                onChange={(e) =>
+                  setDati({ ...dati, durataPeriodoCertificazioneAnni: num(e.target.value) })
+                }
+              />
             </label>
-            <input
-              type="number"
-              min={1}
-              className="input"
-              value={dati.durataPeriodoCertificazioneAnni}
-              onChange={(e) =>
-                setDati({ ...dati, durataPeriodoCertificazioneAnni: num(e.target.value) })
-              }
-            />
           </div>
         </div>
         <div>
-          <label className="label">Descrizione pratiche (impianto, semina, rigenerazione naturale, specie...)</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={dati.praticheDescrizione}
-            onChange={(e) => setDati({ ...dati, praticheDescrizione: e.target.value })}
-          />
+          <label className="block">
+            <span className="label">Descrizione pratiche (impianto, semina, rigenerazione naturale, specie...)</span>
+            <textarea
+              className="input"
+              rows={2}
+              value={dati.praticheDescrizione}
+              onChange={(e) => setDati({ ...dati, praticheDescrizione: e.target.value })}
+            />
+          </label>
         </div>
       </div>
 
@@ -180,42 +191,46 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Prezzo di vendita ipotizzato (€/t CO2eq)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              value={dati.prezzoCrediti?.prezzoVenditaEuroPerTCO2 ?? ''}
-              onChange={(e) =>
-                setDati({
-                  ...dati,
-                  prezzoCrediti: {
-                    ...dati.prezzoCrediti,
-                    prezzoVenditaEuroPerTCO2: e.target.value === '' ? undefined : num(e.target.value),
-                  },
-                })
-              }
-            />
+            <label className="block">
+              <span className="label">Prezzo di vendita ipotizzato (€/t CO2eq)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className="input"
+                value={dati.prezzoCrediti?.prezzoVenditaEuroPerTCO2 ?? ''}
+                onChange={(e) =>
+                  setDati({
+                    ...dati,
+                    prezzoCrediti: {
+                      ...dati.prezzoCrediti,
+                      prezzoVenditaEuroPerTCO2: e.target.value === '' ? undefined : num(e.target.value),
+                    },
+                  })
+                }
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Costo totale di certificazione (€)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              value={dati.prezzoCrediti?.costoCertificazioneTotaleEuro ?? ''}
-              onChange={(e) =>
-                setDati({
-                  ...dati,
-                  prezzoCrediti: {
-                    ...dati.prezzoCrediti,
-                    costoCertificazioneTotaleEuro: e.target.value === '' ? undefined : num(e.target.value),
-                  },
-                })
-              }
-            />
+            <label className="block">
+              <span className="label">Costo totale di certificazione (€)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className="input"
+                value={dati.prezzoCrediti?.costoCertificazioneTotaleEuro ?? ''}
+                onChange={(e) =>
+                  setDati({
+                    ...dati,
+                    prezzoCrediti: {
+                      ...dati.prezzoCrediti,
+                      costoCertificazioneTotaleEuro: e.target.value === '' ? undefined : num(e.target.value),
+                    },
+                  })
+                }
+              />
+            </label>
           </div>
         </div>
         <ReferimentoPrezziMercato />
@@ -231,17 +246,19 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
         </p>
 
         <div>
-          <label className="label">
+          <label className="block">
+            <span className="label">
             Assorbimenti di carbonio nella biomassa vivente (e, se incluso, nei suoli minerali) —
             scenario di attività (t CO₂ assorbite)
+          </span>
+            <input
+              type="number"
+              step="0.01"
+              className="input max-w-xs"
+              value={dati.assorbimentiAttivitaTCO2}
+              onChange={(e) => setDati({ ...dati, assorbimentiAttivitaTCO2: num(e.target.value) })}
+            />
           </label>
-          <input
-            type="number"
-            step="0.01"
-            className="input max-w-xs"
-            value={dati.assorbimentiAttivitaTCO2}
-            onChange={(e) => setDati({ ...dati, assorbimentiAttivitaTCO2: num(e.target.value) })}
-          />
         </div>
 
         <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -249,28 +266,32 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
             Emissioni dal suolo — LULUCF (facoltativo, sez. 2.1.3)
           </legend>
           <div>
-            <label className="label">Scenario di attività (t CO₂eq emesse)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={dati.emissioniSuoloAttivitaTCO2}
-              onChange={(e) =>
-                setDati({ ...dati, emissioniSuoloAttivitaTCO2: num(e.target.value) })
-              }
-            />
+            <label className="block">
+              <span className="label">Scenario di attività (t CO₂eq emesse)</span>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={dati.emissioniSuoloAttivitaTCO2}
+                onChange={(e) =>
+                  setDati({ ...dati, emissioniSuoloAttivitaTCO2: num(e.target.value) })
+                }
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Scenario di riferimento (t CO₂eq emesse)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={dati.emissioniSuoloRiferimentoTCO2}
-              onChange={(e) =>
-                setDati({ ...dati, emissioniSuoloRiferimentoTCO2: num(e.target.value) })
-              }
-            />
+            <label className="block">
+              <span className="label">Scenario di riferimento (t CO₂eq emesse)</span>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={dati.emissioniSuoloRiferimentoTCO2}
+                onChange={(e) =>
+                  setDati({ ...dati, emissioniSuoloRiferimentoTCO2: num(e.target.value) })
+                }
+              />
+            </label>
           </div>
         </fieldset>
 
@@ -279,43 +300,49 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
             Emissioni dai suoli agricoli gestiti (facoltativo)
           </legend>
           <div>
-            <label className="label">Scenario di attività (t CO₂eq emesse)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={dati.emissioniAgricoleAttivitaTCO2}
-              onChange={(e) =>
-                setDati({ ...dati, emissioniAgricoleAttivitaTCO2: num(e.target.value) })
-              }
-            />
+            <label className="block">
+              <span className="label">Scenario di attività (t CO₂eq emesse)</span>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={dati.emissioniAgricoleAttivitaTCO2}
+                onChange={(e) =>
+                  setDati({ ...dati, emissioniAgricoleAttivitaTCO2: num(e.target.value) })
+                }
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Scenario di riferimento (t CO₂eq emesse)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={dati.emissioniAgricoleRiferimentoTCO2}
-              onChange={(e) =>
-                setDati({ ...dati, emissioniAgricoleRiferimentoTCO2: num(e.target.value) })
-              }
-            />
+            <label className="block">
+              <span className="label">Scenario di riferimento (t CO₂eq emesse)</span>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={dati.emissioniAgricoleRiferimentoTCO2}
+                onChange={(e) =>
+                  setDati({ ...dati, emissioniAgricoleRiferimentoTCO2: num(e.target.value) })
+                }
+              />
+            </label>
           </div>
         </fieldset>
 
         <div>
-          <label className="label">
+          <label className="block">
+            <span className="label">
             GES associati — N2O da fertilizzanti su alberi appena piantati + combustione
             combustibili (t CO₂eq)
+          </span>
+            <input
+              type="number"
+              step="0.01"
+              className="input max-w-xs"
+              value={dati.gesAssociatiTCO2}
+              onChange={(e) => setDati({ ...dati, gesAssociatiTCO2: num(e.target.value) })}
+            />
           </label>
-          <input
-            type="number"
-            step="0.01"
-            className="input max-w-xs"
-            value={dati.gesAssociatiTCO2}
-            onChange={(e) => setDati({ ...dati, gesAssociatiTCO2: num(e.target.value) })}
-          />
         </div>
 
         <div className="space-y-2 rounded-md bg-amber-50 p-3">
@@ -333,51 +360,57 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
           </label>
           {dati.applicaPerditaLavorazionePratiPermanenti && (
             <div className="max-w-xs">
-              <label className="label">Stock di carbonio preesistente nel suolo (t CO₂eq)</label>
-              <input
-                type="number"
-                step="0.01"
-                className="input"
-                value={dati.stockCarbonioSueloPreesistenteTCO2 ?? 0}
-                onChange={(e) =>
-                  setDati({
-                    ...dati,
-                    stockCarbonioSueloPreesistenteTCO2: num(e.target.value),
-                  })
-                }
-              />
+              <label className="block">
+                <span className="label">Stock di carbonio preesistente nel suolo (t CO₂eq)</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={dati.stockCarbonioSueloPreesistenteTCO2 ?? 0}
+                  onChange={(e) =>
+                    setDati({
+                      ...dati,
+                      stockCarbonioSueloPreesistenteTCO2: num(e.target.value),
+                    })
+                  }
+                />
+              </label>
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">
+            <label className="block">
+              <span className="label">
               Fattore di riduzione per incertezza (INC) — minimo {FATTORE_INCERTEZZA_MINIMO * 100}%
               (sez. 2.5)
+            </span>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                max={1}
+                className="input"
+                value={dati.fattoreIncertezza}
+                onChange={(e) => setDati({ ...dati, fattoreIncertezza: num(e.target.value) })}
+              />
             </label>
-            <input
-              type="number"
-              step="0.01"
-              min={0}
-              max={1}
-              className="input"
-              value={dati.fattoreIncertezza}
-              onChange={(e) => setDati({ ...dati, fattoreIncertezza: num(e.target.value) })}
-            />
           </div>
           <div>
-            <label className="label">Deficit di crediti dal periodo precedente (t CO₂eq)</label>
-            <input
-              type="number"
-              step="0.01"
-              min={0}
-              className="input"
-              value={dati.deficitCreditiPrecedenteTCO2 ?? 0}
-              onChange={(e) =>
-                setDati({ ...dati, deficitCreditiPrecedenteTCO2: num(e.target.value) })
-              }
-            />
+            <label className="block">
+              <span className="label">Deficit di crediti dal periodo precedente (t CO₂eq)</span>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                className="input"
+                value={dati.deficitCreditiPrecedenteTCO2 ?? 0}
+                onChange={(e) =>
+                  setDati({ ...dati, deficitCreditiPrecedenteTCO2: num(e.target.value) })
+                }
+              />
+            </label>
           </div>
         </div>
       </div>
@@ -389,7 +422,7 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
           onClick={() => setApertoCampionamento((a) => !a)}
         >
           <span className="text-sm font-semibold text-sky-800">
-            📐 Piano di monitoraggio — numero minimo di unità di campionamento
+            <Ruler className="icon" aria-hidden="true" />Piano di monitoraggio — numero minimo di unità di campionamento
           </span>
           <span className="text-sky-700">{apertoCampionamento ? '−' : '+'}</span>
         </button>
@@ -437,7 +470,7 @@ export default function ImboschimentoForm({ initial, onSubmit, submitLabel }: Pr
                   value={pianoCampionamento.margineErroreE}
                   onChange={(e) => aggiornaPianoCampionamento({ margineErroreE: num(e.target.value) })}
                 />
-                <p className="mt-1 text-[11px] text-stone-400">
+                <p className="mt-1 text-[11px] text-stone-500">
                   Stesse unità di σ (es. t s.s./ha). Default indicativo: 10% dello stock medio
                   stimato nell'area.
                 </p>

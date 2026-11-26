@@ -4,6 +4,7 @@ import { appezzamentiStore, operazioniCampoStore } from '../../lib/storage'
 import { aggregaAzoto } from '../../lib/registroCampagna'
 import { calcolaN2oSuoliAgricoli } from '../../lib/n2oSuoliAgricoli'
 import { formatTCO2 } from '../../lib/format'
+import { NotebookPen } from 'lucide-react'
 
 interface Props {
   clienteId: string
@@ -46,7 +47,7 @@ export default function ImportaQuadernoN2O({ clienteId, durataPeriodoCertificazi
         onClick={() => setAperto((a) => !a)}
       >
         <span className="text-xs font-semibold text-stone-700">
-          📒 Importa dal quaderno di campagna (emissioni N2O da fertilizzazione)
+          <NotebookPen className="icon" aria-hidden="true" />Importa dal quaderno di campagna (emissioni N2O da fertilizzazione)
         </span>
         <span className="text-stone-500">{aperto ? '−' : '+'}</span>
       </button>
@@ -85,14 +86,14 @@ export default function ImportaQuadernoN2O({ clienteId, durataPeriodoCertificazi
                   <p className="mt-1 font-semibold text-stone-900">
                     {formatTCO2(n2oRiferimento.totaleTCO2eq)} t CO2eq/anno
                   </p>
-                  <p className="mt-1 text-stone-400">{n2oRiferimento.formulaDiretto}</p>
+                  <p className="mt-1 text-stone-500">{n2oRiferimento.formulaDiretto}</p>
                 </div>
                 <div className="rounded-md border border-stone-200 bg-white p-2">
                   <p className="font-medium text-stone-700">Scenario di attività</p>
                   <p className="mt-1 font-semibold text-stone-900">
                     {formatTCO2(n2oAttivita.totaleTCO2eq)} t CO2eq/anno
                   </p>
-                  <p className="mt-1 text-stone-400">{n2oAttivita.formulaDiretto}</p>
+                  <p className="mt-1 text-stone-500">{n2oAttivita.formulaDiretto}</p>
                 </div>
               </div>
               <button

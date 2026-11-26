@@ -38,7 +38,7 @@ export default function ChecklistPanel({ items, value, onChange }: Props) {
             />
             <div>
               <p className="text-sm text-stone-800">{item.label}</p>
-              <p className="text-xs text-stone-400">{item.riferimento}</p>
+              <p className="text-xs text-stone-500">{item.riferimento}</p>
             </div>
           </li>
         ))}

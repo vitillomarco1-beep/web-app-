@@ -11,6 +11,7 @@ import ConfirmButton from '../components/ConfirmButton'
 import QuadernoCampagnaUploader from '../components/QuadernoCampagnaUploader'
 import { importaAppezzamentiDaCsv, type RisultatoImportazioneCsv } from '../lib/importaAppezzamentiCsv'
 import type { QuadernoCampagnaMeta } from '../types'
+import { Download, TriangleAlert } from 'lucide-react'
 
 const TIPO_LABEL: Record<TipoOperazioneCampo, string> = {
   raccolta: 'Raccolta (resa)',
@@ -199,7 +200,7 @@ export default function QuadernoCampagnaPage() {
       </div>
 
       <div className="card space-y-4">
-        <h2 className="font-semibold text-stone-900">Appezzamenti</h2>
+        <h2 className="text-lg font-semibold text-stone-900">Appezzamenti</h2>
         {appezzamenti.length === 0 ? (
           <p className="text-sm text-stone-500">Nessun appezzamento ancora.</p>
         ) : (
@@ -238,7 +239,7 @@ export default function QuadernoCampagnaPage() {
             onClick={() => setApertoImportCsv((a) => !a)}
           >
             <span className="text-xs font-semibold text-stone-700">
-              📥 Importa appezzamenti da CSV/Excel (esportato dal gestionale)
+              <Download className="icon" aria-hidden="true" />Importa appezzamenti da CSV/Excel (esportato dal gestionale)
             </span>
             <span className="text-stone-500">{apertoImportCsv ? '−' : '+'}</span>
           </button>
@@ -256,7 +257,7 @@ export default function QuadernoCampagnaPage() {
                 className="input !py-1 text-xs"
                 onChange={(e) => e.target.files?.[0] && handleFileCsv(e.target.files[0])}
               />
-              <p className="text-stone-400">oppure incolla qui il testo copiato da Excel/CSV:</p>
+              <p className="text-stone-500">oppure incolla qui il testo copiato da Excel/CSV:</p>
               <textarea
                 className="input font-mono text-xs"
                 rows={4}
@@ -269,9 +270,9 @@ export default function QuadernoCampagnaPage() {
               </button>
 
               {anteprimaImportCsv && anteprimaImportCsv.errori.length > 0 && (
-                <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-800">
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800">
                   {anteprimaImportCsv.errori.map((err) => (
-                    <p key={err}>⚠️ {err}</p>
+                    <p key={err}><TriangleAlert className="icon" aria-hidden="true" />{err}</p>
                   ))}
                 </div>
               )}
@@ -361,7 +362,7 @@ export default function QuadernoCampagnaPage() {
       {appezzamentoSelezionato && (
         <div className="card space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold text-stone-900">
+            <h2 className="text-lg font-semibold text-stone-900">
               Operazioni — {appezzamentoSelezionato.nome}
             </h2>
             <div className="flex gap-1 rounded-md bg-stone-100 p-1 text-sm">
@@ -644,7 +645,7 @@ export default function QuadernoCampagnaPage() {
       )}
 
       <div className="card space-y-4">
-        <h2 className="font-semibold text-stone-900">
+        <h2 className="text-lg font-semibold text-stone-900">
           Riepilogo aggregato — da copiare nel form del calcolo
         </h2>
         <p className="text-sm text-stone-500">

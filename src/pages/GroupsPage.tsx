@@ -86,30 +86,36 @@ export default function GroupsPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card space-y-4">
-          <h2 className="font-semibold text-stone-900">Nuovo gruppo di gestori</h2>
+          <h2 className="text-lg font-semibold text-stone-900">Nuovo gruppo di gestori</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">Nome del gruppo *</label>
-              <input
-                className="input"
-                required
-                placeholder="Es. Consorzio Valle Verde"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-              />
+              <label className="block">
+                <span className="label">Nome del gruppo *</span>
+                <input
+                  className="input"
+                  required
+                  placeholder="Es. Consorzio Valle Verde"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Referente / coordinatore</label>
-              <input className="input" value={referente} onChange={(e) => setReferente(e.target.value)} />
+              <label className="block">
+                <span className="label">Referente / coordinatore</span>
+                <input className="input" value={referente} onChange={(e) => setReferente(e.target.value)} />
+              </label>
             </div>
           </div>
           <div>
-            <label className="label">Note</label>
-            <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+            <label className="block">
+              <span className="label">Note</span>
+              <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+            </label>
           </div>
 
-          <div>
-            <label className="label">Aziende membro (almeno 2) *</label>
+          <div role="group" aria-labelledby="aziende-membro-label">
+            <p id="aziende-membro-label" className="label">Aziende membro (almeno 2) *</p>
             {clienti.length === 0 ? (
               <p className="text-sm text-stone-500">
                 Nessun cliente disponibile:{' '}
@@ -169,7 +175,7 @@ export default function GroupsPage() {
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-xs text-stone-400">
+                <span className="text-xs text-stone-500">
                   {calcoliGruppoStore.byGruppo(g.id).length} calcoli
                 </span>
                 <ConfirmButton

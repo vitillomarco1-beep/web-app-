@@ -44,6 +44,18 @@ import {
 } from '../../lib/praticheMitigazione'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
 import { formatTCO2 } from '../../lib/format'
+import {
+  ChartColumn,
+  ClipboardList,
+  Compass,
+  Droplets,
+  Euro,
+  FlaskConical,
+  MapPin,
+  Thermometer,
+  TriangleAlert,
+  Wind,
+} from 'lucide-react'
 
 /** Tipologie per cui ha senso proporre la standardizzazione del latte (produzione
  * principale — o comunque rilevante — espressa in latte). */
@@ -166,7 +178,7 @@ function AnalisiAlimentoBlock({
             }
           />
         </div>
-        <p className="text-[11px] text-stone-400">
+        <p className="text-[11px] text-stone-500">
           {haAnalisiPropria
             ? 'Valori da analisi di laboratorio specifica.'
             : haRiferimento
@@ -190,12 +202,12 @@ function AnalisiAlimentoBlock({
           className="text-[11px] font-medium text-stone-500 underline"
           onClick={() => setApertoAnalisiCompleta((a) => !a)}
         >
-          🧪 {apertoAnalisiCompleta ? 'Nascondi' : 'Inserisci'} analisi di laboratorio completa
+          <FlaskConical className="icon" aria-hidden="true" />{apertoAnalisiCompleta ? 'Nascondi' : 'Inserisci'} analisi di laboratorio completa
           (facoltativa)
         </button>
         {apertoAnalisiCompleta && (
           <div className="mt-2 space-y-3">
-            <p className="text-[11px] text-stone-400">
+            <p className="text-[11px] text-stone-500">
               Dal referto di laboratorio (fieno, insilato, granella, razione miscelata…): tutti i
               valori sono sulla sostanza secca salvo dove indicato. Solo sostanza secca e carbonio
               (sopra) entrano nei calcoli oggi — il resto è raccolto per completezza del fascicolo,
@@ -221,7 +233,7 @@ function AnalisiAlimentoBlock({
                   {gruppo.campi.map((campo) => (
                     <div key={campo.key}>
                       <label className="text-[11px] text-stone-500">
-                        {campo.label} <span className="text-stone-400">({campo.unita})</span>
+                        {campo.label} <span className="text-stone-500">({campo.unita})</span>
                       </label>
                       <input
                         type="number"
@@ -254,7 +266,7 @@ function AnalisiAlimentoBlock({
                         </button>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-stone-400">
+                      <p className="text-[11px] text-stone-500">
                         Inserisci le ceneri (% s.s.) per una stima più precisa del carbonio, basata
                         sulla sola sostanza organica invece del default fisso.
                       </p>
@@ -327,7 +339,7 @@ function RigaMangime({ mangime: m, onUpdate, onRemove }: RigaMangimeProps) {
                 {r.nome}
               </option>
             ))}
-            <option value="__custom__">➕ Alimento personalizzato…</option>
+            <option value="__custom__">+ Alimento personalizzato…</option>
           </select>
         )}
         <input
@@ -670,7 +682,7 @@ export default function SimulazioneZootecniaTool({
         onClick={() => setAperto((a) => !a)}
       >
         <span className="text-sm font-semibold text-amber-800">
-          🧭 Simulazione bilancio alimento/emissioni (anticipazione, non certificabile)
+          <Compass className="icon" aria-hidden="true" />Simulazione bilancio alimento/emissioni (anticipazione, non certificabile)
         </span>
         <span className="text-amber-700">{aperto ? '−' : '+'}</span>
       </button>
@@ -698,7 +710,7 @@ export default function SimulazioneZootecniaTool({
               </button>
             </div>
             {sim.mangimi.length === 0 && (
-              <p className="text-xs text-stone-400">Nessun alimento inserito.</p>
+              <p className="text-xs text-stone-500">Nessun alimento inserito.</p>
             )}
             {sim.mangimi.map((m) => (
               <RigaMangime
@@ -725,7 +737,7 @@ export default function SimulazioneZootecniaTool({
                     <tr key={i}>
                       <td className="px-2 py-1.5 align-top font-medium text-stone-700">
                         {r.nomeMangime}
-                        {!r.autoprodotto && <span className="text-stone-400"> (acquistato)</span>}
+                        {!r.autoprodotto && <span className="text-stone-500"> (acquistato)</span>}
                       </td>
                       <td className="px-2 py-1.5 align-top text-stone-500">{r.formula}</td>
                       <td className="px-2 py-1.5 text-right align-top font-semibold text-stone-800">
@@ -750,7 +762,7 @@ export default function SimulazioneZootecniaTool({
               onClick={() => setApertoMetano((a) => !a)}
             >
               <span className="text-xs font-semibold text-stone-700">
-                🐄💨 Stima metano enterico (IPCC Tier 1/2/3 — approfondimento)
+                <Wind className="icon" aria-hidden="true" />Stima metano enterico (IPCC Tier 1/2/3 — approfondimento)
               </span>
               <span className="text-stone-500">{apertoMetano ? '−' : '+'}</span>
             </button>
@@ -835,7 +847,7 @@ export default function SimulazioneZootecniaTool({
 
                 {tierMetanoEnterico === 'tier1' && (
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
-                    <p className="text-[11px] text-stone-400">
+                    <p className="text-[11px] text-stone-500">
                       {haStrutturaMandria && tipologiaAllevamento === 'bovini_da_latte'
                         ? "Struttura della mandria per categoria disponibile (dati generali dell'allevamento): il Tier 1 applica l'EF da latte alla mandria adulta (lattazione+asciutta) e un EF specifico per fase di crescita a manze, manzette e vitelli (Annex 10A.2 IPCC) — più preciso di un unico EF per tutti i capi."
                         : `Numero di capi (dato generale dell'allevamento: ${n(numeroCapiTier)}) × fattore di emissione di default per area geografica — nessun dato di razione richiesto.`}
@@ -862,7 +874,7 @@ export default function SimulazioneZootecniaTool({
                             })
                           }
                         />
-                        <span className="text-[11px] text-stone-400">
+                        <span className="text-[11px] text-stone-500">
                           kg CH4/capo/anno manuale — lascia vuoto per usare il riferimento
                         </span>
                       </div>
@@ -876,7 +888,7 @@ export default function SimulazioneZootecniaTool({
 
                 {tierMetanoEnterico === 'tier3' && (
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
-                    <p className="text-[11px] text-stone-400">
+                    <p className="text-[11px] text-stone-500">
                       Numero di capi (dato generale dell'allevamento: {n(numeroCapiTier)}) × fattore
                       di emissione misurato specifico dell'azienda o della categoria animale (camera
                       respiratoria, GreenFeed, Sniffer o metodo equivalente).
@@ -903,7 +915,7 @@ export default function SimulazioneZootecniaTool({
 
                 {tierMetanoEnterico === 'misto' && (
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
-                    <p className="text-[11px] text-stone-400">
+                    <p className="text-[11px] text-stone-500">
                       Per quando l'analisi di laboratorio della TMR copre solo le vacche in
                       lattazione: Tier 2 (dalla razione) per la mandria in lattazione (
                       {n(animaliLattazioneMisto)} capi, dalla struttura della mandria nei dati
@@ -914,7 +926,7 @@ export default function SimulazioneZootecniaTool({
                     </p>
                     {!struttureMandria && (
                       <p className="text-[11px] text-red-600">
-                        ⚠️ Compila la "Struttura della mandria per categoria" nei dati generali
+                        <TriangleAlert className="icon" aria-hidden="true" />Compila la "Struttura della mandria per categoria" nei dati generali
                         dell'allevamento per usare questa modalità.
                       </p>
                     )}
@@ -971,7 +983,7 @@ export default function SimulazioneZootecniaTool({
 
                 {modalitaMetano === 'daRazioneMiscelata' ? (
                   <div className="space-y-2 rounded-md border border-stone-200 bg-white p-2">
-                    <p className="text-[11px] text-stone-400">
+                    <p className="text-[11px] text-stone-500">
                       Un campione della razione unifeed già miscelata ha lo stesso referto di
                       laboratorio di un singolo alimento (sostanza secca, NDF, proteine, minerali,
                       energia…): inseriscilo qui per intero, non solo l'NDF, così i dati sono pronti
@@ -1005,7 +1017,7 @@ export default function SimulazioneZootecniaTool({
                         />
                       </div>
                     </div>
-                    <p className="text-[11px] text-stone-400">
+                    <p className="text-[11px] text-stone-500">
                       {formulaQuantitaRazione} — tutti i capi che ricevono questa razione (comprese
                       le vacche in asciutta), non solo gli animali in mungitura del pannello latte
                       qui sotto.
@@ -1057,7 +1069,7 @@ export default function SimulazioneZootecniaTool({
                         </button>
                       )}
                     </div>
-                    <p className="mt-1 text-[11px] text-stone-400">
+                    <p className="mt-1 text-[11px] text-stone-500">
                       {produzioneLatteKgCapoAnno != null
                         ? `Calcolato automaticamente dal livello produttivo della mandria in lattazione (${n(produzioneLatteKgCapoAnno)} kg/capo/anno, dai dati di stalla) secondo la Tabella 10.12 IPCC — lascia vuoto per usarlo, o sovrascrivilo qui se hai un valore più accurato (es. da misurazione diretta).`
                         : 'Senza produzione media di latte per capo nota, il calcolo automatico usa il TDN della dieta come proxy della digeribilità o, in mancanza di questo, l\'NDF — entrambi approssimazioni. Inserisci qui un valore manuale se ne hai uno più accurato.'}
@@ -1095,7 +1107,7 @@ export default function SimulazioneZootecniaTool({
               onClick={() => setApertoReflui((a) => !a)}
             >
               <span className="text-xs font-semibold text-stone-700">
-                💧 Gestione reflui — emissioni da stoccaggio e spandimento (IPCC Tier 2 — approfondimento)
+                <Droplets className="icon" aria-hidden="true" />Gestione reflui — emissioni da stoccaggio e spandimento (IPCC Tier 2 — approfondimento)
               </span>
               <span className="text-stone-500">{apertoReflui ? '−' : '+'}</span>
             </button>
@@ -1140,7 +1152,7 @@ export default function SimulazioneZootecniaTool({
                         aggiornaGestioneReflui({ temperaturaMediaAnnuaC: num(e.target.value) })
                       }
                     />
-                    <p className="mt-1 text-[11px] text-stone-400">
+                    <p className="mt-1 text-[11px] text-stone-500">
                       Determina il MCF secondo la Tabella 10.17 IPCC — valore esatto, non a fasce.
                     </p>
                   </div>
@@ -1160,7 +1172,7 @@ export default function SimulazioneZootecniaTool({
                           aggiornaGestioneReflui({ durataStoccaggioMesi: num(e.target.value) })
                         }
                       />
-                      <p className="mt-1 text-[11px] text-stone-400">
+                      <p className="mt-1 text-[11px] text-stone-500">
                         Sotto/sopra 1 mese cambia molto il MCF per questo sistema (Tabella 10.17).
                         Nelle zone vulnerabili ai nitrati lo spandimento è vietato nei mesi invernali
                         (Direttiva Nitrati): la permanenza reale è spesso più lunga del minimo
@@ -1206,7 +1218,7 @@ export default function SimulazioneZootecniaTool({
                         })
                       }
                     />
-                    <span className="text-[11px] text-stone-400">
+                    <span className="text-[11px] text-stone-500">
                       % — lascia vuoto per usare il TDN medio della dieta
                     </span>
                   </div>
@@ -1269,7 +1281,7 @@ export default function SimulazioneZootecniaTool({
                     value={gestioneReflui.azotoEscretoKgAnno}
                     onChange={(e) => aggiornaGestioneReflui({ azotoEscretoKgAnno: num(e.target.value) })}
                   />
-                  <p className="mt-1 text-[11px] text-stone-400">
+                  <p className="mt-1 text-[11px] text-stone-500">
                     Spesso già disponibile dal Piano di Utilizzazione Agronomica (PUA), se il
                     cliente è in zona vulnerabile ai nitrati.
                   </p>
@@ -1306,7 +1318,7 @@ export default function SimulazioneZootecniaTool({
                         })
                       }
                     />
-                    <span className="text-[11px] text-stone-400">
+                    <span className="text-[11px] text-stone-500">
                       % — lascia vuoto per usare la Tabella 10.22 (dove disponibile)
                     </span>
                   </div>
@@ -1341,7 +1353,7 @@ export default function SimulazioneZootecniaTool({
                         })
                       }
                     />
-                    <span className="text-[11px] text-stone-400">
+                    <span className="text-[11px] text-stone-500">
                       % — lascia vuoto per usare la Tabella 10.23 (dove disponibile)
                     </span>
                   </div>
@@ -1377,7 +1389,7 @@ export default function SimulazioneZootecniaTool({
                   <p className="mt-0.5 text-stone-500">{risultatoReflui.formulaN2oIndirettoSpandimento}</p>
                 </div>
 
-                <div className="rounded-lg bg-amber-600 p-3 text-white">
+                <div className="rounded-lg bg-amber-700 p-3 text-white">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">Totale reflui (stoccaggio + spandimento)</span>
                     <span className="shrink-0 text-lg font-bold">
@@ -1397,7 +1409,7 @@ export default function SimulazioneZootecniaTool({
               onClick={() => setApertoMitigazione((a) => !a)}
             >
               <span className="text-xs font-semibold text-stone-700">
-                💶 Potenziale e costo di pratiche di mitigazione del metano (stima — non normativa)
+                <Euro className="icon" aria-hidden="true" />Potenziale e costo di pratiche di mitigazione del metano (stima — non normativa)
               </span>
               <span className="text-stone-500">{apertoMitigazione ? '−' : '+'}</span>
             </button>
@@ -1431,7 +1443,7 @@ export default function SimulazioneZootecniaTool({
                         <tr key={r.nome}>
                           <td className="px-2 py-1.5 align-top font-medium text-stone-700">
                             {r.nome}
-                            <span className="block font-normal text-stone-400">
+                            <span className="block font-normal text-stone-500">
                               {r.ambito === 'enterico' ? 'su metano enterico' : 'su metano da reflui'}
                             </span>
                             {r.crcfPilota && (
@@ -1463,11 +1475,11 @@ export default function SimulazioneZootecniaTool({
                     </tbody>
                   </table>
                 </div>
-                <p className="text-stone-400">
+                <p className="text-stone-500">
                   Costo negativo = risparmio/ricavo netto stimato (es. digestione anaerobica con
                   valorizzazione energetica del biogas), non un costo da sostenere.
                 </p>
-                <p className="text-stone-400">
+                <p className="text-stone-500">
                   <strong>Ammissibilità CRCF</strong> (etichette sopra, passa il cursore per il
                   dettaglio): valutazione di massima secondo{' '}
                   <em>{METODOLOGIA_PILOTA_CRCF_TITOLO}</em> — {METODOLOGIA_PILOTA_CRCF_FONTE}
@@ -1478,7 +1490,7 @@ export default function SimulazioneZootecniaTool({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-medium text-stone-700">
-                      📊 Monitoraggio — obiettivo UE −{TARGET_UE_RIDUZIONE_PERCENTO_2040}% al 2040
+                      <ChartColumn className="icon" aria-hidden="true" />Monitoraggio — obiettivo UE −{TARGET_UE_RIDUZIONE_PERCENTO_2040}% al 2040
                       (non vincolante)
                     </p>
                     <span
@@ -1489,14 +1501,14 @@ export default function SimulazioneZootecniaTool({
                   </div>
                   <p className="mt-1 text-stone-500">{progressoTargetUe.formula}</p>
                   {progressoTargetUe.pratichenonQuantificateAdottate.length > 0 && (
-                    <p className="mt-1 text-stone-400">
+                    <p className="mt-1 text-stone-500">
                       Hai segnato come adottate anche altre pratiche (
                       {progressoTargetUe.pratichenonQuantificateAdottate.join(', ')}) che il report
                       CONCITO non quantifica con un intervallo di riduzione consolidato: non entrano
                       in questa stima, non perché inefficaci.
                     </p>
                   )}
-                  <p className="mt-1 text-stone-400">
+                  <p className="mt-1 text-stone-500">
                     Stima basata solo sulle pratiche quantificate (3-NOP/Bovaer, digestione
                     anaerobica) segnate come adottate nella checklist della descrizione aziendale, al
                     valore medio dell'intervallo CONCITO. <strong>Non è una verifica di conformità</strong>:
@@ -1514,7 +1526,7 @@ export default function SimulazioneZootecniaTool({
               onClick={() => setApertoThi((a) => !a)}
             >
               <span className="text-xs font-semibold text-stone-700">
-                🌡️ Indice di stress da caldo (THI) — approfondimento
+                <Thermometer className="icon" aria-hidden="true" />Indice di stress da caldo (THI) — approfondimento
               </span>
               <span className="text-stone-500">{apertoThi ? '−' : '+'}</span>
             </button>
@@ -1531,7 +1543,7 @@ export default function SimulazioneZootecniaTool({
                 {regione && SERVIZI_METEO_REGIONALI[regione] && (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-forest-200 bg-forest-50 px-3 py-2">
                     <span className="text-stone-600">
-                      📍 Temperatura e umidità storiche pubbliche per <strong>{regione}</strong>:{' '}
+                      <MapPin className="icon" aria-hidden="true" />Temperatura e umidità storiche pubbliche per <strong>{regione}</strong>:{' '}
                       {SERVIZI_METEO_REGIONALI[regione].ente}.
                     </span>
                     <a
@@ -1617,7 +1629,7 @@ export default function SimulazioneZootecniaTool({
                 onClick={() => setApertoAnalisiLatte((a) => !a)}
               >
                 <span className="text-xs font-semibold text-stone-700">
-                  📋 Standardizza da analisi del latte (FPCM / ECM / FCM 3,5%)
+                  <ClipboardList className="icon" aria-hidden="true" />Standardizza da analisi del latte (FPCM / ECM / FCM 3,5%)
                 </span>
                 <span className="text-stone-500">{apertoAnalisiLatte ? '−' : '+'}</span>
               </button>
@@ -1705,7 +1717,7 @@ export default function SimulazioneZootecniaTool({
                           <span className="font-normal text-forest-700">consigliato</span>
                         </p>
                         <p className="text-xs text-stone-500">{risultatoStandardizzazione.formulaFpcm}</p>
-                        <p className="text-xs text-stone-400">
+                        <p className="text-xs text-stone-500">
                           Coerente con l'intensità emissiva di riferimento usata sotto (Tsigkas et
                           al. 2026, espressa in t CO2eq/t di FPCM).
                         </p>
@@ -1751,7 +1763,7 @@ export default function SimulazioneZootecniaTool({
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-stone-400">
+                  <p className="text-xs text-stone-500">
                     "Usa ..." imposta il valore scelto come produzione annua (modalità "Dato
                     annuale") nel campo qui sotto — puoi comunque modificarlo a mano in qualsiasi
                     momento.
@@ -1813,7 +1825,7 @@ export default function SimulazioneZootecniaTool({
                       value={sim.produzioneGiornalieraStallaKgGiorno ?? 0}
                       onChange={(e) => aggiornaProduzioneGiornaliera(num(e.target.value))}
                     />
-                    <p className="text-xs text-stone-400">
+                    <p className="text-xs text-stone-500">
                       {n(sim.produzioneGiornalieraStallaKgGiorno ?? 0)} kg/giorno × 365 giorni ÷
                       1000 = {n(sim.produzioneAnnuaTProdotto)} t/anno stimate. Meno preciso di un
                       dato annuale reale (non tiene conto di stagionalità, lattazione, ecc.): usalo
@@ -1835,12 +1847,12 @@ export default function SimulazioneZootecniaTool({
                   }
                 />
                 {riferimento ? (
-                  <p className="mt-1 text-xs text-stone-400">
+                  <p className="mt-1 text-xs text-stone-500">
                     Intervallo di letteratura: {formatTCO2(riferimento.rangeMinTCO2PerTProdotto)}–
                     {formatTCO2(riferimento.rangeMaxTCO2PerTProdotto)} t CO2eq/t. {riferimento.fonte}
                   </p>
                 ) : (
-                  <p className="mt-1 text-xs text-stone-400">
+                  <p className="mt-1 text-xs text-stone-500">
                     Nessun valore di riferimento per questa tipologia di allevamento (troppo
                     eterogenea): inserisci un valore da una fonte verificata.
                   </p>
@@ -1881,20 +1893,24 @@ export default function SimulazioneZootecniaTool({
                   Media di letteratura
                 </label>
               </div>
-              <p className="mt-2 text-stone-400">
+              <p className="mt-2 text-stone-500">
                 {fonteEmissioniScelta === 'auto' &&
                   (datiSpecificiDisponibili
                     ? 'Automatico: usa il dato aziendale perché metano enterico e gestione reflui (sopra) sono stati calcolati.'
                     : "Automatico: userà il dato aziendale appena compili metano enterico e gestione reflui (sopra) — per ora usa la media di letteratura perché mancano.")}
                 {fonteEmissioniScelta === 'specifiche_aziendali' &&
-                  !datiSpecificiDisponibili &&
-                  '⚠️ Nessun dato di metano enterico/gestione reflui disponibile: compilali sopra, altrimenti il totale resta a zero.'}
+                  !datiSpecificiDisponibili && (
+                    <span className="text-amber-700">
+                      <TriangleAlert className="icon" aria-hidden="true" />
+                      Nessun dato di metano enterico/gestione reflui disponibile: compilali sopra, altrimenti il totale resta a zero.
+                    </span>
+                  )}
               </p>
               <p className="mt-2 text-stone-500">{risultato.formulaEmissioni}</p>
             </div>
           </div>
 
-          <div className="rounded-lg bg-amber-600 p-4 text-white">
+          <div className="rounded-lg bg-amber-700 p-4 text-white">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">
                 Bilancio simulato (alimento autoprodotto − emissioni dirette)
@@ -1905,7 +1921,7 @@ export default function SimulazioneZootecniaTool({
             </div>
             <p className="mt-1 text-xs text-amber-100">{risultato.formulaBilancio}</p>
             <p className="mt-2 text-xs font-medium text-amber-100">
-              ⚠️ Simulazione non certificabile: nessuna normativa la definisce oggi.
+              <TriangleAlert className="icon" aria-hidden="true" />Simulazione non certificabile: nessuna normativa la definisce oggi.
             </p>
           </div>
         </div>

@@ -28,11 +28,18 @@ export default function PdfViewerModal({ titolo, onClose, children }: Props) {
     // l'elemento fixed come ancoraggio per il posizionamento assoluto del report
     // (si veda .report-print-area in index.css) e ne taglia il contenuto alla sola
     // area visibile a schermo invece di stamparlo per intero su più pagine.
-    <div className="fixed inset-0 z-50 flex flex-col bg-stone-900/85 p-3 sm:p-6 print:static print:block print:bg-white print:p-0">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-titolo"
+      className="fixed inset-0 z-50 flex flex-col bg-stone-900/85 p-3 sm:p-6 print:static print:block print:bg-white print:p-0"
+    >
       <div className="flex items-center justify-between pb-3 print:hidden">
-        <h3 className="font-medium text-white">{titolo}</h3>
+        <h3 id="modal-titolo" className="font-medium text-white">
+          {titolo}
+        </h3>
         <button type="button" className="btn-secondary" onClick={onClose}>
-          Chiudi ✕
+          Chiudi
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-xl print:static print:h-auto print:overflow-visible print:rounded-none print:shadow-none">

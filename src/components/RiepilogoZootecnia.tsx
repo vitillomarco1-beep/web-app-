@@ -3,6 +3,7 @@ import type { DatiZootecnia } from '../types'
 import { calcolaRiepilogoZootecnia, FONTE_EMISSIONI_BILANCIO_LABEL } from '../lib/riepilogoZootecnia'
 import { TARGET_UE_RIDUZIONE_PERCENTO_2040, TARGET_UE_FONTE } from '../lib/praticheMitigazione'
 import { formatTCO2 } from '../lib/format'
+import { ChartColumn, Compass } from 'lucide-react'
 
 interface Props {
   dati: DatiZootecnia
@@ -77,7 +78,7 @@ export default function RiepilogoZootecnia({ dati, dettaglioEspansoDiDefault }: 
       >
         <div className="flex items-center justify-between gap-2">
           <p className="font-medium text-stone-700">
-            📊 Monitoraggio — obiettivo UE −{TARGET_UE_RIDUZIONE_PERCENTO_2040}% al 2040 (non vincolante)
+            <ChartColumn className="icon" aria-hidden="true" />Monitoraggio — obiettivo UE −{TARGET_UE_RIDUZIONE_PERCENTO_2040}% al 2040 (non vincolante)
           </p>
           <span
             className={`shrink-0 font-semibold ${r.progressoTargetUe.raggiungeTarget ? 'text-forest-700' : 'text-amber-700'}`}
@@ -85,19 +86,19 @@ export default function RiepilogoZootecnia({ dati, dettaglioEspansoDiDefault }: 
             {formatTCO2(r.progressoTargetUe.riduzioneStimataPercento)}%
           </span>
         </div>
-        <p className="mt-1 text-xs text-stone-400">{TARGET_UE_FONTE}</p>
+        <p className="mt-1 text-xs text-stone-500">{TARGET_UE_FONTE}</p>
       </div>
 
       <div className="rounded-lg bg-white p-3 text-sm text-stone-600">
         <div className="flex items-center justify-between gap-2">
           <p className="font-medium text-stone-700">
-            🧭 Bilancio simulato alimento autoprodotto − emissioni dirette
+            <Compass className="icon" aria-hidden="true" />Bilancio simulato alimento autoprodotto − emissioni dirette
           </p>
           <span className="text-lg font-bold text-stone-900">
             {formatTCO2(r.bilancioSimulato.bilancioSimulatoTCO2)} t CO₂eq
           </span>
         </div>
-        <p className="mt-1 text-xs text-stone-400">
+        <p className="mt-1 text-xs text-stone-500">
           Fonte delle emissioni usata: {FONTE_EMISSIONI_BILANCIO_LABEL[r.fonteEmissioniBilancio]}. Ipotesi di
           pianificazione, non un bilancio crediti: nessuna normativa definisce oggi questo confronto.
         </p>

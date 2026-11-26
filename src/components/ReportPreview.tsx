@@ -16,6 +16,7 @@ import {
   introduzioneRothC,
   righeConfrontoRothC,
 } from '../lib/reportSteps'
+import { Printer } from 'lucide-react'
 
 interface Props {
   nomeTitolare: string
@@ -72,20 +73,20 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
             {nomeTitolare} — {dati.nomeCalcolo}
           </p>
           <p className="text-sm text-stone-500">Metodologia: {TIPO_ATTIVITA_LABEL[dati.tipoAttivita]}</p>
-          <p className="text-xs text-stone-400">
+          <p className="text-xs text-stone-500">
             Documento generato il {new Intl.DateTimeFormat('it-IT', { dateStyle: 'long' }).format(new Date())}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1 print:hidden">
           <div className="flex gap-2">
             <button type="button" className="btn-primary" onClick={() => window.print()}>
-              🖨️ Stampa / Salva come PDF
+              <Printer className="icon" aria-hidden="true" />Stampa / Salva come PDF
             </button>
             <button type="button" className="btn-secondary" disabled={scaricando} onClick={handleScaricaPdf}>
               {scaricando ? 'Generazione…' : '⬇️ Scarica PDF'}
             </button>
           </div>
-          <p className="max-w-[16rem] text-right text-xs text-stone-400">
+          <p className="max-w-[16rem] text-right text-xs text-stone-500">
             Nell'anteprima Claude questi pulsanti possono non rispondere: funzionano una volta
             pubblicata l'app su un dominio proprio. Il report resta comunque consultabile qui sopra.
           </p>
@@ -105,7 +106,7 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
         dati.tipoAttivita === 'zootecnia' ? (
           <RiepilogoZootecnia dati={dati} dettaglioEspansoDiDefault />
         ) : (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             Per questa metodologia non esiste ancora un atto delegato dell'UE che ne stabilisca la
             metodologia di certificazione: il bilancio in t CO₂eq non è ancora calcolabile. I dati
             aziendali sono comunque registrati, pronti per quando la normativa sarà pubblicata.
@@ -162,7 +163,7 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
 
           {dati.tipoAttivita === 'agricoltura_agroforestazione' && dati.dettaglioRothC && (
             <div className="space-y-2">
-              <div className="rounded-md border border-forest-200 bg-forest-50/40 p-4 text-sm text-stone-600">
+              <div className="rounded-md border border-forest-200 bg-forest-50 p-3 text-sm text-stone-600">
                 <p className="mb-1 font-semibold text-stone-800">
                   Dettaglio della simulazione RothC per gli assorbimenti di carbonio
                 </p>
@@ -229,7 +230,7 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
           <div className="flex items-center justify-between px-1 text-sm text-stone-600">
             <span>
               Numero di unità di credito certificabili{' '}
-              <span className="text-xs text-stone-400">
+              <span className="text-xs text-stone-500">
                 (1 unità certificata = 1 t CO₂eq; arrotondamento per difetto)
               </span>
             </span>
@@ -303,7 +304,7 @@ export default function ReportPreview({ nomeTitolare, dati }: Props) {
         </p>
       </div>
 
-      <p className="border-t border-stone-200 pt-4 text-xs italic text-stone-400">{DISCLAIMER_REPORT}</p>
+      <p className="border-t border-stone-200 pt-4 text-xs italic text-stone-500">{DISCLAIMER_REPORT}</p>
     </div>
   )
 }

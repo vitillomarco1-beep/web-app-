@@ -8,6 +8,7 @@ import ResiduiColturaliHelper from './ResiduiColturaliHelper'
 import ImportaQuadernoRothC from './ImportaQuadernoRothC'
 import { SERVIZI_METEO_REGIONALI } from '../../lib/serviziMeteoRegionali'
 import { cercaLuogoOpenMeteo, scaricaClimaStoricoOpenMeteo, type LuogoOpenMeteo } from '../../lib/openMeteo'
+import { CloudSun, FlaskConical, MapPin, TriangleAlert } from 'lucide-react'
 
 const NOMI_MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -242,7 +243,7 @@ export default function RothCTool({
         onClick={() => setAperto((a) => !a)}
       >
         <span className="text-sm font-semibold text-forest-800">
-          🧪 Simulatore RothC — stima l'assorbimento di carbonio nel suolo
+          <FlaskConical className="icon" aria-hidden="true" />Simulatore RothC — stima l'assorbimento di carbonio nel suolo
         </span>
         <span className="text-forest-700">{aperto ? '−' : '+'}</span>
       </button>
@@ -302,11 +303,11 @@ export default function RothCTool({
             {regione && SERVIZI_METEO_REGIONALI[regione] && (
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-forest-200 bg-forest-50 px-3 py-2 text-xs">
                 <span className="text-stone-600">
-                  📍 Dati climatici storici pubblici per <strong>{regione}</strong>:{' '}
+                  <MapPin className="icon" aria-hidden="true" />Dati climatici storici pubblici per <strong>{regione}</strong>:{' '}
                   {SERVIZI_METEO_REGIONALI[regione].ente}. Scarica i valori mensili della zona e
                   inseriscili nella tabella qui sotto.
                   {SERVIZI_METEO_REGIONALI[regione].nota && (
-                    <span className="block text-stone-400">{SERVIZI_METEO_REGIONALI[regione].nota}</span>
+                    <span className="block text-stone-500">{SERVIZI_METEO_REGIONALI[regione].nota}</span>
                   )}
                 </span>
                 <a
@@ -322,7 +323,7 @@ export default function RothCTool({
 
             <div className="mb-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs">
               <p className="mb-2 font-medium text-sky-900">
-                🌦️ Importa clima storico da Open-Meteo (dati reali, automatico)
+                <CloudSun className="icon" aria-hidden="true" />Importa clima storico da Open-Meteo (dati reali, automatico)
               </p>
               <div className="mb-2 flex flex-wrap gap-2">
                 <input
@@ -383,7 +384,7 @@ export default function RothCTool({
                 </div>
               )}
 
-              {erroreMeteo && <p className="mb-1 text-amber-700">⚠️ {erroreMeteo}</p>}
+              {erroreMeteo && <p className="mb-1 text-amber-700"><TriangleAlert className="icon" aria-hidden="true" />{erroreMeteo}</p>}
               {climaImportatoDa && (
                 <p className="mb-1 text-forest-700">
                   ✓ Clima di {climaImportatoDa.nome} importato: media{' '}
@@ -391,7 +392,7 @@ export default function RothCTool({
                   tabella sotto, modificabile a mano.
                 </p>
               )}
-              <p className="text-stone-400">
+              <p className="text-stone-500">
                 Dati: Open-Meteo.com (licenza CC BY 4.0, rianalisi ERA5/ERA5-Land). La colonna
                 "Evaporazione" è calcolata dall'ET0 Penman-Monteith FAO-56 di Open-Meteo,
                 convertita (÷0.75) per il campo che RothC si aspetta ("evaporazione da vasca" ×

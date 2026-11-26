@@ -2,8 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
+/* Scorrimento fluido solo per chi non ha chiesto di ridurre il movimento (HIG: Motion). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Un unico indicatore di focus da tastiera, coerente col colore d'azione, per link,
+ * pulsanti e controlli personalizzati (gli input hanno il proprio anello sotto). */
+:where(a, button, summary, [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid theme('colors.forest.500');
+  outline-offset: 2px;
+  border-radius: theme('borderRadius.md');
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: theme('colors.forest.600');
+}
+
+input[type='checkbox']:focus-visible,
+input[type='radio']:focus-visible {
+  outline: 2px solid theme('colors.forest.500');
+  outline-offset: 2px;
 }
 
 body {
@@ -11,7 +43,8 @@ body {
 }
 
 .input {
-  @apply w-full rounded-md border border-stone-300 px-3 py-2 text-sm shadow-sm focus:border-forest-500 focus:outline-none focus:ring-1 focus:ring-forest-500;
+  /* 16px sotto sm: evita lo zoom automatico di Safari iOS sui campi con testo più piccolo. */
+  @apply w-full rounded-md border border-stone-300 px-3 py-2 text-base shadow-sm sm:text-sm focus:border-forest-500 focus:outline-none focus:ring-1 focus:ring-forest-500;
 }
 
 .label {
@@ -30,8 +63,27 @@ body {
   @apply inline-flex items-center justify-center rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50;
 }
 
+/* Icona inline accanto al testo (set lucide-react): segue dimensione e colore del testo. */
+.icon {
+  @apply mr-1.5 inline-block h-[1.15em] w-[1.15em] shrink-0 align-[-0.2em];
+}
+
 .btn-danger {
   @apply inline-flex items-center justify-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50;
+}
+
+/* Area di tocco minima di 44pt (HIG) sui dispositivi touch; con mouse e trackpad i
+ * controlli restano compatti come prima. */
+@media (pointer: coarse) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .nav-item {
+    min-height: 44px;
+  }
+  .input {
+    min-height: 44px;
+  }
 }
 
 /* Stampa/"Salva come PDF" del report di calcolo: nell'anteprima pubblicata di

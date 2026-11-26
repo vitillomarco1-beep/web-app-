@@ -6,6 +6,7 @@ import PdfViewerModal from './PdfViewerModal'
 import ReportPreview from './ReportPreview'
 import RiepilogoZootecnia from './RiepilogoZootecnia'
 import PrezzoERicavoStimato from './PrezzoERicavoStimato'
+import { FileText, TriangleAlert } from 'lucide-react'
 
 interface Props {
   risultato: RisultatoCalcolo
@@ -23,7 +24,7 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
           <div className="mb-3 flex justify-end">
             {nomeTitolare && (
               <button type="button" className="btn-secondary" onClick={() => setMostraReport(true)}>
-                📄 Visualizza report del calcolo
+                <FileText className="icon" aria-hidden="true" />Visualizza report del calcolo
               </button>
             )}
           </div>
@@ -58,7 +59,7 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
         <h3 className="font-semibold text-stone-900">Risultato del bilancio</h3>
         {dati && nomeTitolare && (
           <button type="button" className="btn-secondary" onClick={() => setMostraReport(true)}>
-            📄 Visualizza report del calcolo
+            <FileText className="icon" aria-hidden="true" />Visualizza report del calcolo
           </button>
         )}
       </div>
@@ -99,7 +100,7 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
       <div className="flex items-center justify-between px-1 text-sm text-stone-600">
         <span>
           Numero di unità di credito certificabili{' '}
-          <span className="text-xs text-stone-400">
+          <span className="text-xs text-stone-500">
             (1 unità = 1 t CO₂eq, arrotondato per difetto)
           </span>
         </span>
@@ -109,8 +110,8 @@ export default function ResultPanel({ risultato, dati, nomeTitolare }: Props) {
       </div>
 
       {risultato.deficitCreditiTCO2 > 0 && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          ⚠️ Il risultato è negativo: deficit di crediti di{' '}
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <TriangleAlert className="icon" aria-hidden="true" />Il risultato è negativo: deficit di crediti di{' '}
           <strong>{formatTCO2(risultato.deficitCreditiTCO2)} t CO₂eq</strong> da riportare e
           sottrarre nel prossimo periodo di certificazione (allegato, sez. 2.1).
         </div>

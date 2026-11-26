@@ -4,6 +4,7 @@ import ChecklistPanel from '../ChecklistPanel'
 import { CHECKLIST_ZOOTECNIA } from '../../lib/checklist'
 import { TIPOLOGIA_ALLEVAMENTO_LABEL } from '../../lib/format'
 import SimulazioneZootecniaTool from './SimulazioneZootecniaTool'
+import { Construction } from 'lucide-react'
 
 function defaultData(): DatiZootecnia {
   return {
@@ -189,7 +190,7 @@ function PannelloIndici<T extends Record<string, number | string | undefined>>({
                   <div key={String(campo.key)}>
                     <label className="text-xs text-stone-500">
                       {campo.label}
-                      {campo.unita && <span className="text-stone-400"> ({campo.unita})</span>}
+                      {campo.unita && <span className="text-stone-500"> ({campo.unita})</span>}
                     </label>
                     {campo.opzioni ? (
                       <select
@@ -298,7 +299,7 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
       }}
     >
       <div className="card space-y-2 border-amber-200 bg-amber-50">
-        <h3 className="font-semibold text-stone-900">🚧 Metodologia in preparazione</h3>
+        <h3 className="font-semibold text-stone-900"><Construction className="icon" aria-hidden="true" />Metodologia in preparazione</h3>
         <p className="text-sm text-stone-600">
           A oggi non esiste ancora un atto delegato dell'UE che stabilisca la metodologia di
           certificazione per le attività zootecniche nell'ambito del regolamento (UE) 2024/3012.
@@ -312,81 +313,93 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
         <h3 className="font-semibold text-stone-900">Dati generali dell'allevamento</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Nome del calcolo *</label>
-            <input
-              className="input"
-              required
-              placeholder="Es. Azienda Verdi — allevamento bovino"
-              value={dati.nomeCalcolo}
-              onChange={(e) => setDati({ ...dati, nomeCalcolo: e.target.value })}
-            />
+            <label className="block">
+              <span className="label">Nome del calcolo *</span>
+              <input
+                className="input"
+                required
+                placeholder="Es. Azienda Verdi — allevamento bovino"
+                value={dati.nomeCalcolo}
+                onChange={(e) => setDati({ ...dati, nomeCalcolo: e.target.value })}
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Tipologia di allevamento</label>
-            <select
-              className="input"
-              value={dati.tipologiaAllevamento}
-              onChange={(e) =>
-                setDati({
-                  ...dati,
-                  tipologiaAllevamento: e.target.value as DatiZootecnia['tipologiaAllevamento'],
-                })
-              }
-            >
-              {Object.entries(TIPOLOGIA_ALLEVAMENTO_LABEL).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <label className="block">
+              <span className="label">Tipologia di allevamento</span>
+              <select
+                className="input"
+                value={dati.tipologiaAllevamento}
+                onChange={(e) =>
+                  setDati({
+                    ...dati,
+                    tipologiaAllevamento: e.target.value as DatiZootecnia['tipologiaAllevamento'],
+                  })
+                }
+              >
+                {Object.entries(TIPOLOGIA_ALLEVAMENTO_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div>
-            <label className="label">Numero medio di capi</label>
-            <input
-              type="number"
-              min={0}
-              className="input"
-              disabled={usaStruttureMandria}
-              value={dati.numeroCapiMedio}
-              onChange={(e) => setDati({ ...dati, numeroCapiMedio: num(e.target.value) })}
-            />
+            <label className="block">
+              <span className="label">Numero medio di capi</span>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                disabled={usaStruttureMandria}
+                value={dati.numeroCapiMedio}
+                onChange={(e) => setDati({ ...dati, numeroCapiMedio: num(e.target.value) })}
+              />
+            </label>
             {usaStruttureMandria && (
-              <p className="mt-1 text-xs text-stone-400">
+              <p className="mt-1 text-xs text-stone-500">
                 Calcolato automaticamente dalla somma della struttura della mandria qui sotto.
               </p>
             )}
           </div>
           <div>
-            <label className="label">Superficie aziendale (ha)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              value={dati.areaAttivitaHa}
-              onChange={(e) => setDati({ ...dati, areaAttivitaHa: num(e.target.value) })}
-            />
+            <label className="block">
+              <span className="label">Superficie aziendale (ha)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className="input"
+                value={dati.areaAttivitaHa}
+                onChange={(e) => setDati({ ...dati, areaAttivitaHa: num(e.target.value) })}
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Data presunta di inizio attività</label>
-            <input
-              type="date"
-              className="input"
-              value={dati.dataInizioPeriodoAttivita}
-              onChange={(e) => setDati({ ...dati, dataInizioPeriodoAttivita: e.target.value })}
-            />
+            <label className="block">
+              <span className="label">Data presunta di inizio attività</span>
+              <input
+                type="date"
+                className="input"
+                value={dati.dataInizioPeriodoAttivita}
+                onChange={(e) => setDati({ ...dati, dataInizioPeriodoAttivita: e.target.value })}
+              />
+            </label>
           </div>
           <div>
-            <label className="label">Durata prevista del periodo di certificazione (anni)</label>
-            <input
-              type="number"
-              min={1}
-              className="input"
-              value={dati.durataPeriodoCertificazioneAnni}
-              onChange={(e) =>
-                setDati({ ...dati, durataPeriodoCertificazioneAnni: num(e.target.value) })
-              }
-            />
+            <label className="block">
+              <span className="label">Durata prevista del periodo di certificazione (anni)</span>
+              <input
+                type="number"
+                min={1}
+                className="input"
+                value={dati.durataPeriodoCertificazioneAnni}
+                onChange={(e) =>
+                  setDati({ ...dati, durataPeriodoCertificazioneAnni: num(e.target.value) })
+                }
+              />
+            </label>
           </div>
         </div>
       </div>
@@ -465,7 +478,7 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
           </div>
         </div>
         {usaStruttureMandria && (
-          <p className="text-xs text-stone-400">Totale: {totaleStruttureMandria} capi.</p>
+          <p className="text-xs text-stone-500">Totale: {totaleStruttureMandria} capi.</p>
         )}
       </div>
 
@@ -503,13 +516,15 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
           ))}
         </div>
         <div>
-          <label className="label">Altre note (facoltativo)</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={dati.praticheDescrizione}
-            onChange={(e) => setDati({ ...dati, praticheDescrizione: e.target.value })}
-          />
+          <label className="block">
+            <span className="label">Altre note (facoltativo)</span>
+            <textarea
+              className="input"
+              rows={2}
+              value={dati.praticheDescrizione}
+              onChange={(e) => setDati({ ...dati, praticheDescrizione: e.target.value })}
+            />
+          </label>
         </div>
       </div>
 
@@ -532,14 +547,16 @@ export default function ZootecniaForm({ initial, onSubmit, submitLabel, regioneC
       </div>
 
       <div>
-        <label className="label">Note metodologiche (facoltativo)</label>
-        <textarea
-          className="input"
-          rows={2}
-          placeholder="Es. riferimenti a linee guida nazionali o studi già disponibili sull'azienda"
-          value={dati.noteMetodologiche}
-          onChange={(e) => setDati({ ...dati, noteMetodologiche: e.target.value })}
-        />
+        <label className="block">
+          <span className="label">Note metodologiche (facoltativo)</span>
+          <textarea
+            className="input"
+            rows={2}
+            placeholder="Es. riferimenti a linee guida nazionali o studi già disponibili sull'azienda"
+            value={dati.noteMetodologiche}
+            onChange={(e) => setDati({ ...dati, noteMetodologiche: e.target.value })}
+          />
+        </label>
       </div>
 
       <div className="flex justify-end">

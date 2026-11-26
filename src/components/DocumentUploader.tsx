@@ -4,6 +4,7 @@ import { formatDate, formatFileSize } from '../lib/format'
 import PdfViewerModal from './PdfViewerModal'
 import PdfCanvasViewer from './PdfCanvasViewer'
 import ConfirmButton from './ConfirmButton'
+import { FileText, Paperclip } from 'lucide-react'
 
 interface Props {
   meta?: FascicoloAgeaMeta
@@ -85,13 +86,13 @@ export default function DocumentUploader({
 
   return (
     <div className="space-y-2">
-      <label className="label">{etichetta}</label>
+      <p className="label">{etichetta}</p>
       {descrizione && <p className="text-xs text-stone-500">{descrizione}</p>}
 
       {meta ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-stone-200 bg-stone-50 p-3">
           <div className="flex items-center gap-2.5">
-            <span className="text-2xl">📄</span>
+            <FileText className="h-6 w-6 shrink-0 text-stone-500" aria-hidden="true" />
             <div>
               <p className="text-sm font-medium text-stone-800">{meta.nomeFile}</p>
               <p className="text-xs text-stone-500">
@@ -103,12 +104,12 @@ export default function DocumentUploader({
             <button type="button" className="btn-secondary" onClick={handleView}>
               Visualizza
             </button>
-            <label className="btn-secondary cursor-pointer">
+            <label className="btn-secondary cursor-pointer focus-within:ring-2 focus-within:ring-forest-500 focus-within:ring-offset-2">
               Sostituisci
               <input
                 type="file"
                 accept="application/pdf,.pdf"
-                className="hidden"
+                className="sr-only"
                 disabled={loading}
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
               />
@@ -117,13 +118,13 @@ export default function DocumentUploader({
           </div>
         </div>
       ) : (
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-stone-300 p-5 text-center text-sm text-stone-500 transition hover:border-forest-400 hover:bg-forest-50/50">
-          <span className="text-2xl">📎</span>
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-stone-300 p-5 text-center text-sm text-stone-500 transition hover:border-forest-400 hover:bg-forest-50/50 focus-within:ring-2 focus-within:ring-forest-500 focus-within:ring-offset-2">
+          <Paperclip className="h-6 w-6 text-stone-500" aria-hidden="true" />
           <span>{loading ? 'Caricamento in corso…' : testoVuoto}</span>
           <input
             type="file"
             accept="application/pdf,.pdf"
-            className="hidden"
+            className="sr-only"
             disabled={loading}
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />

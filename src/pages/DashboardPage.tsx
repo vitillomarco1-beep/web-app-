@@ -4,6 +4,7 @@ import { clientiStore, calcoliStore, gruppiStore, calcoliGruppoStore } from '../
 import type { Cliente, Calcolo, Gruppo, CalcoloGruppo } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
+import { Users } from 'lucide-react'
 
 interface VoceRecente {
   id: string
@@ -12,6 +13,7 @@ interface VoceRecente {
   createdAt: string
   beneficioNettoTotaleTCO2: number
   titolare: string
+  gruppo: boolean
   link: string
 }
 
@@ -42,6 +44,7 @@ export default function DashboardPage() {
       createdAt: c.createdAt,
       beneficioNettoTotaleTCO2: c.risultato.beneficioNettoTotaleTCO2,
       titolare: clienti.find((cl) => cl.id === c.clientId)?.ragioneSociale ?? 'Cliente eliminato',
+      gruppo: false,
       link: `/clienti/${c.clientId}/calcoli/${c.id}`,
     })),
     ...calcoliGruppo.map((c) => ({
@@ -50,7 +53,8 @@ export default function DashboardPage() {
       tipoAttivita: c.dati.tipoAttivita,
       createdAt: c.createdAt,
       beneficioNettoTotaleTCO2: c.risultato.beneficioNettoTotaleTCO2,
-      titolare: `👥 ${gruppi.find((g) => g.id === c.gruppoId)?.nome ?? 'Gruppo eliminato'}`,
+      titolare: gruppi.find((g) => g.id === c.gruppoId)?.nome ?? 'Gruppo eliminato',
+      gruppo: true,
       link: `/gruppi/${c.gruppoId}/calcoli/${c.id}`,
     })),
   ]
@@ -94,7 +98,7 @@ export default function DashboardPage() {
                 <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 text-sm">
                   <span className="text-stone-500">{calcoliAmbito.length} calcoli</span>
                   {opt.inPreparazione ? (
-                    <span className="text-stone-400">Calcolo non ancora attivo</span>
+                    <span className="text-stone-500">Calcolo non ancora attivo</span>
                   ) : (
                     <span className="font-semibold text-forest-700">
                       {formatTCO2(creditiAmbito)} t CO₂eq
@@ -154,7 +158,12 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-stone-100">
               {ultimiCalcoli.map((v) => (
                 <tr key={v.id} className="hover:bg-stone-50">
-                  <td className="px-4 py-3 font-medium text-stone-700">{v.titolare}</td>
+                  <td className="px-4 py-3 font-medium text-stone-700">
+                    {v.gruppo && (
+                      <Users className="icon text-stone-500" aria-label="Gruppo" role="img" />
+                    )}
+                    {v.titolare}
+                  </td>
                   <td className="px-4 py-3">
                     <Link to={v.link} className="hover:underline">
                       {v.nomeCalcolo}

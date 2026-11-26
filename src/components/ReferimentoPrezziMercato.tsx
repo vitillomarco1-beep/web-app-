@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PREZZI_MERCATO_CARBONIO } from '../lib/prezziMercatoCarbonio'
+import { ChartColumn } from 'lucide-react'
 
 /** Tabella di riferimento dei prezzi dei crediti di carbonio sul mercato
  * volontario mondiale (broker/piattaforme/indici), da consultare come
@@ -16,7 +17,7 @@ export default function ReferimentoPrezziMercato() {
         onClick={() => setAperto((a) => !a)}
       >
         <span className="text-xs font-semibold text-stone-700">
-          📊 Prezzi orientativi dei crediti sul mercato volontario mondiale (per confronto, non un
+          <ChartColumn className="icon" aria-hidden="true" />Prezzi orientativi dei crediti sul mercato volontario mondiale (per confronto, non un
           prezzo CRCF)
         </span>
         <span className="text-stone-500">{aperto ? '−' : '+'}</span>
@@ -48,7 +49,7 @@ export default function ReferimentoPrezziMercato() {
                     <td className="px-2 py-1.5 align-top font-medium text-stone-700">{riga.fonte}</td>
                     <td className="px-2 py-1.5 align-top text-stone-600">{riga.tipologia}</td>
                     <td className="px-2 py-1.5 align-top font-semibold text-stone-800">{riga.prezzo}</td>
-                    <td className="px-2 py-1.5 align-top text-stone-400">
+                    <td className="px-2 py-1.5 align-top text-stone-500">
                       {riga.dataRiferimento}
                       <span className="mt-0.5 block">{riga.note}</span>
                     </td>

@@ -133,87 +133,101 @@ export default function NormativaPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card space-y-4">
-          <h2 className="font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900">
             {editId ? 'Modifica aggiornamento' : 'Nuovo aggiornamento normativo'}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="label">Titolo *</label>
-              <input
-                className="input"
-                required
-                placeholder="Es. Regolamento delegato — riumidificazione torbiere"
-                value={form.titolo}
-                onChange={(e) => setForm({ ...form, titolo: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Titolo *</span>
+                <input
+                  className="input"
+                  required
+                  placeholder="Es. Regolamento delegato — riumidificazione torbiere"
+                  value={form.titolo}
+                  onChange={(e) => setForm({ ...form, titolo: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Riferimento normativo</label>
-              <input
-                className="input"
-                placeholder="Es. C(2027) 1234 final"
-                value={form.riferimentoNormativo}
-                onChange={(e) => setForm({ ...form, riferimentoNormativo: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Riferimento normativo</span>
+                <input
+                  className="input"
+                  placeholder="Es. C(2027) 1234 final"
+                  value={form.riferimentoNormativo}
+                  onChange={(e) => setForm({ ...form, riferimentoNormativo: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Data di pubblicazione</label>
-              <input
-                type="date"
-                className="input"
-                value={form.dataPubblicazione}
-                onChange={(e) => setForm({ ...form, dataPubblicazione: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Data di pubblicazione</span>
+                <input
+                  type="date"
+                  className="input"
+                  value={form.dataPubblicazione}
+                  onChange={(e) => setForm({ ...form, dataPubblicazione: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Ambito interessato</label>
-              <select
-                className="input"
-                value={form.ambito}
-                onChange={(e) => setForm({ ...form, ambito: e.target.value as AmbitoNormativa })}
-              >
-                {Object.entries(AMBITO_NORMATIVA_LABEL).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              <label className="block">
+                <span className="label">Ambito interessato</span>
+                <select
+                  className="input"
+                  value={form.ambito}
+                  onChange={(e) => setForm({ ...form, ambito: e.target.value as AmbitoNormativa })}
+                >
+                  {Object.entries(AMBITO_NORMATIVA_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
             <div>
-              <label className="label">Stato</label>
-              <select
-                className="input"
-                value={form.stato}
-                onChange={(e) => setForm({ ...form, stato: e.target.value as StatoNormativa })}
-              >
-                {Object.entries(STATO_NORMATIVA_LABEL).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              <label className="block">
+                <span className="label">Stato</span>
+                <select
+                  className="input"
+                  value={form.stato}
+                  onChange={(e) => setForm({ ...form, stato: e.target.value as StatoNormativa })}
+                >
+                  {Object.entries(STATO_NORMATIVA_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
 
           <div>
-            <label className="label">Sintesi — cosa dice</label>
-            <textarea
-              className="input"
-              rows={3}
-              value={form.sintesi}
-              onChange={(e) => setForm({ ...form, sintesi: e.target.value })}
-            />
+            <label className="block">
+              <span className="label">Sintesi — cosa dice</span>
+              <textarea
+                className="input"
+                rows={3}
+                value={form.sintesi}
+                onChange={(e) => setForm({ ...form, sintesi: e.target.value })}
+              />
+            </label>
           </div>
 
           <div>
-            <label className="label">Impatto sul calcolo — cosa dobbiamo aggiornare nell'app</label>
-            <textarea
-              className="input"
-              rows={3}
-              placeholder="Es. aggiungere il fattore X alla metodologia Y, rivedere il periodo di monitoraggio..."
-              value={form.impattoSulCalcolo}
-              onChange={(e) => setForm({ ...form, impattoSulCalcolo: e.target.value })}
-            />
+            <label className="block">
+              <span className="label">Impatto sul calcolo — cosa dobbiamo aggiornare nell'app</span>
+              <textarea
+                className="input"
+                rows={3}
+                placeholder="Es. aggiungere il fattore X alla metodologia Y, rivedere il periodo di monitoraggio..."
+                value={form.impattoSulCalcolo}
+                onChange={(e) => setForm({ ...form, impattoSulCalcolo: e.target.value })}
+              />
+            </label>
           </div>
 
           <DocumentUploader
@@ -258,7 +272,7 @@ export default function NormativaPage() {
                     {AMBITO_NORMATIVA_LABEL[v.ambito]}
                     {v.riferimentoNormativo && ` · ${v.riferimentoNormativo}`}
                     {v.dataPubblicazione && ` · ${formatDate(v.dataPubblicazione)}`}
-                    {v.documento && ' · 📄 documento allegato'}
+                    {v.documento && ' · documento allegato'}
                   </p>
                 </div>
                 <div className="flex gap-2">

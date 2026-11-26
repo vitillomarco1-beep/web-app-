@@ -5,6 +5,7 @@ import type { Gruppo, CalcoloGruppo, Cliente } from '../types'
 import { formatTCO2, formatDate, TIPO_ATTIVITA_LABEL } from '../lib/format'
 import { ATTIVITA_OPZIONI } from '../lib/attivita'
 import ConfirmButton from '../components/ConfirmButton'
+import { TriangleAlert } from 'lucide-react'
 
 export default function GroupDetailPage() {
   const { gruppoId } = useParams<{ gruppoId: string }>()
@@ -12,6 +13,7 @@ export default function GroupDetailPage() {
   const [gruppo, setGruppo] = useState<Gruppo | undefined>()
   const [calcoli, setCalcoli] = useState<CalcoloGruppo[]>([])
   const [clienti, setClienti] = useState<Cliente[]>([])
+  const [avvisoMembri, setAvvisoMembri] = useState<string | null>(null)
   const [modificaMembri, setModificaMembri] = useState(false)
   const [nuovoMembroId, setNuovoMembroId] = useState('')
 
@@ -56,9 +58,12 @@ export default function GroupDetailPage() {
 
   function rimuoviMembro(clienteId: string) {
     if (gruppo!.membri.length <= 2) {
-      alert('Un gruppo richiede almeno 2 membri: eliminalo se non serve più.')
+      // Avviso inline invece di alert(): coerente con ConfirmButton e non bloccabile
+      // dalla sandbox dell'anteprima pubblicata.
+      setAvvisoMembri('Un gruppo richiede almeno 2 membri: eliminalo se non serve più.')
       return
     }
+    setAvvisoMembri(null)
     const aggiornato: Gruppo = {
       ...gruppo!,
       membri: gruppo!.membri.filter((m) => m.clienteId !== clienteId),
@@ -131,15 +136,21 @@ export default function GroupDetailPage() {
 
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-stone-900">Aziende membro e ripartizione crediti</h2>
+          <h2 className="text-lg font-semibold text-stone-900">Aziende membro e ripartizione crediti</h2>
           <button className="btn-secondary" onClick={() => setModificaMembri((v) => !v)}>
             {modificaMembri ? 'Fatto' : 'Gestisci membri'}
           </button>
         </div>
 
+        {avvisoMembri && (
+          <p role="alert" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            {avvisoMembri}
+          </p>
+        )}
+
         {sommaQuote !== 100 && (
           <p className="text-xs text-amber-700">
-            ⚠️ Le quote sommano al {formatTCO2(sommaQuote)}%, non al 100%. La ripartizione sotto è
+            <TriangleAlert className="icon" aria-hidden="true" />Le quote sommano al {formatTCO2(sommaQuote)}%, non al 100%. La ripartizione sotto è
             comunque calcolata sulle percentuali indicate.
           </p>
         )}

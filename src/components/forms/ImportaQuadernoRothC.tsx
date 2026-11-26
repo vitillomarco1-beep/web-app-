@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { appezzamentiStore, operazioniCampoStore } from '../../lib/storage'
 import { aggregaInputRothC } from '../../lib/registroCampagna'
 import type { ScenarioOperazione } from '../../types'
+import { NotebookPen, TriangleAlert } from 'lucide-react'
 
 interface Props {
   clienteId: string
@@ -37,7 +38,7 @@ export default function ImportaQuadernoRothC({ clienteId, scenario, areaAttivita
         className="flex w-full items-center justify-between px-2 py-1.5 text-left"
         onClick={() => setAperto((a) => !a)}
       >
-        <span className="text-xs font-semibold text-stone-700">📒 Importa dal quaderno di campagna</span>
+        <span className="text-xs font-semibold text-stone-700"><NotebookPen className="icon" aria-hidden="true" />Importa dal quaderno di campagna</span>
         <span className="text-stone-500">{aperto ? '−' : '+'}</span>
       </button>
       {aperto && (
@@ -58,7 +59,7 @@ export default function ImportaQuadernoRothC({ clienteId, scenario, areaAttivita
               <p className="text-stone-500">{aggregato.formulaAmmendanti}</p>
               {aggregato.coltureNonRiconosciute.length > 0 && (
                 <p className="text-amber-700">
-                  ⚠️ Coltura/e non in elenco (apporto escluso): {aggregato.coltureNonRiconosciute.join(', ')}. Vai
+                  <TriangleAlert className="icon" aria-hidden="true" />Coltura/e non in elenco (apporto escluso): {aggregato.coltureNonRiconosciute.join(', ')}. Vai
                   al{' '}
                   <Link to={`/clienti/${clienteId}/quaderno-campagna`} className="underline">
                     quaderno di campagna

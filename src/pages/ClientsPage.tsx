@@ -7,6 +7,7 @@ import type { Cliente, FascicoloAgeaMeta } from '../types'
 import FascicoloAgeaUploader from '../components/FascicoloAgeaUploader'
 import ConfirmButton from '../components/ConfirmButton'
 import { REGIONI_ITALIANE } from '../lib/serviziMeteoRegionali'
+import { FileText } from 'lucide-react'
 
 function nuovoFormId() {
   return uuidv4()
@@ -98,73 +99,87 @@ export default function ClientsPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card space-y-4">
-          <h2 className="font-semibold text-stone-900">Nuovo cliente</h2>
+          <h2 className="text-lg font-semibold text-stone-900">Nuovo cliente</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">Ragione sociale / Nome azienda agricola *</label>
-              <input
-                className="input"
-                required
-                value={form.ragioneSociale}
-                onChange={(e) => setForm({ ...form, ragioneSociale: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Ragione sociale / Nome azienda agricola *</span>
+                <input
+                  className="input"
+                  required
+                  value={form.ragioneSociale}
+                  onChange={(e) => setForm({ ...form, ragioneSociale: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Referente</label>
-              <input
-                className="input"
-                value={form.referente}
-                onChange={(e) => setForm({ ...form, referente: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Referente</span>
+                <input
+                  className="input"
+                  value={form.referente}
+                  onChange={(e) => setForm({ ...form, referente: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Email</span>
+                <input
+                  type="email"
+                  className="input"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Telefono</label>
-              <input
-                className="input"
-                value={form.telefono}
-                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Telefono</span>
+                <input
+                  className="input"
+                  value={form.telefono}
+                  onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Comune</label>
-              <input
-                className="input"
-                value={form.comune}
-                onChange={(e) => setForm({ ...form, comune: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Comune</span>
+                <input
+                  className="input"
+                  value={form.comune}
+                  onChange={(e) => setForm({ ...form, comune: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Provincia</label>
-              <input
-                className="input"
-                value={form.provincia}
-                onChange={(e) => setForm({ ...form, provincia: e.target.value })}
-              />
+              <label className="block">
+                <span className="label">Provincia</span>
+                <input
+                  className="input"
+                  value={form.provincia}
+                  onChange={(e) => setForm({ ...form, provincia: e.target.value })}
+                />
+              </label>
             </div>
             <div>
-              <label className="label">Regione</label>
-              <select
-                className="input"
-                value={form.regione}
-                onChange={(e) => setForm({ ...form, regione: e.target.value })}
-              >
-                <option value="">— non specificata —</option>
-                {REGIONI_ITALIANE.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-stone-400">
+              <label className="block">
+                <span className="label">Regione</span>
+                <select
+                  className="input"
+                  value={form.regione}
+                  onChange={(e) => setForm({ ...form, regione: e.target.value })}
+                >
+                  <option value="">— non specificata —</option>
+                  {REGIONI_ITALIANE.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-1 text-xs text-stone-500">
                 Usata solo per proporre il link al servizio agrometeorologico pubblico della zona
                 nel simulatore RothC.
               </p>
@@ -212,13 +227,13 @@ export default function ClientsPage() {
                   {c.email && <p>{c.email}</p>}
                   {c.fascicoloAgea && (
                     <p className="flex items-center gap-1 text-forest-700">
-                      📄 Fascicolo AGEA allegato
+                      <FileText className="icon" aria-hidden="true" />Fascicolo AGEA allegato
                     </p>
                   )}
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-xs text-stone-400">
+                <span className="text-xs text-stone-500">
                   {calcoliStore.byClient(c.id).length} calcoli
                 </span>
                 <ConfirmButton
