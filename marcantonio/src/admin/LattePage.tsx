@@ -3,6 +3,7 @@ import { applicaGruppiRobot } from '../lib/gruppi'
 import { Link } from 'react-router-dom'
 import { BarChart3, CalendarDays, Gauge, Milk, Tag, Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
+import { DEMO } from '../lib/demo'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto, conferma } from '../components/ui'
 import BarChart from '../components/BarChart'
@@ -121,7 +122,7 @@ export default function LattePage() {
 
   return (
     <>
-      <PageHeader titolo="Latte" icona={BarChart3} descrizione="Gruppi e intera mandria, dai dati di DairyComp"
+      <PageHeader titolo="Latte" icona={BarChart3} descrizione={DEMO ? 'Gruppi e intera mandria, dalle produzioni per vacca' : 'Gruppi e intera mandria, dai dati di DairyComp'}
         azioni={<Link to="/area-riservata/mandria" className="btn-secondary"><Upload className="h-4 w-4" />Aggiorna da Mandria</Link>} />
 
       {/* Dati di riferimento */}

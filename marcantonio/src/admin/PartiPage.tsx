@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Baby, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, FileDown, FileUp, Loader2, Syringe } from 'lucide-react'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
+import { DEMO } from '../lib/demo'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile, matricole } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
@@ -186,7 +187,7 @@ export default function PartiPage() {
 
   return (
     <>
-      <PageHeader titolo="Parti e vaccinazioni" icona={Baby} descrizione="Dalla lista dei parti previsti di DairyComp: chi vaccinare questa settimana" />
+      <PageHeader titolo="Parti e vaccinazioni" icona={Baby} descrizione={DEMO ? 'Dai parti previsti: chi vaccinare e chi mettere in asciutta questa settimana' : 'Dalla lista dei parti previsti di DairyComp: chi vaccinare questa settimana'} />
 
       {!lista ? (
         <Vuoto>

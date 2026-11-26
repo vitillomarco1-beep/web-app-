@@ -2,10 +2,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { apriDb, ascolta, contaPezzi, ricomponi, salvaCollezione } from './sync'
 import type { Collezione, Dati } from './types'
 import { DATI_VUOTI, datiDimostrativi } from './seed'
+import { DEMO, chiaveDatiDemo, scenarioDemo } from './demo'
+import { datiDemo } from './demoDati'
 
-const CHIAVE = 'marcantonio:dati:v2' // v2: robot e gruppi aggiornati nei dati di esempio
+// nella versione dimostrativa ogni stalla di esempio ha i suoi dati, solo in questo browser
+const CHIAVE = DEMO ? chiaveDatiDemo(scenarioDemo()) : 'marcantonio:dati:v2' // v2: robot e gruppi aggiornati nei dati di esempio
 
 function carica(): Dati {
+  if (DEMO) {
+    try { const raw = localStorage.getItem(CHIAVE); if (raw) return { ...DATI_VUOTI, ...JSON.parse(raw) } } catch { /* si riparte */ }
+    return datiDemo(scenarioDemo())
+  }
   try {
     const raw = localStorage.getItem(CHIAVE)
     if (raw) return { ...DATI_VUOTI, ...JSON.parse(raw) }
@@ -101,6 +108,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let stop: (() => void) | undefined
     let annullato = false
     let attesa: number | undefined
+    if (DEMO) { setSync('locale'); return }
     apriDb().then((db) => {
       if (annullato) return
       if (!db) { setSync('locale'); return }
@@ -152,7 +160,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CHIAVE, JSON.stringify(dati))
+      localStorage.setItem(CHIAVE, JSON.stringify(dati)) // in demo: i dati del robot possono superare lo spazio, in quel caso restano solo in memoria
     } catch {
       /* storage pieno o bloccato */
     }

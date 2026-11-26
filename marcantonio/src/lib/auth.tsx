@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { UTENTI_DEMO, type Ruolo } from '../config/azienda'
+import { DEMO } from './demo'
 
 // ⚠️ Autenticazione SOLO dimostrativa: le credenziali sono nel codice del browser.
 // Prima dell'uso reale va sostituita con il servizio online (Supabase Auth), vedi docs/CONFIGURAZIONE.md.
@@ -18,6 +19,7 @@ interface AuthApi {
 const AuthCtx = createContext<AuthApi | null>(null)
 
 function leggiSessione(): Sessione | null {
+  if (DEMO) return { utente: 'demo', ruolo: 'titolare' } // la demo si apre senza accesso
   try {
     const s = JSON.parse(sessionStorage.getItem(CHIAVE) ?? 'null')
     return s && s.utente && s.ruolo ? s : null

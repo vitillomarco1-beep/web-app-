@@ -47,7 +47,7 @@ export default function MargineSezione({ onVaiRazioni }: { onVaiRazioni: () => v
           {settimane.map((s) => {
             // stalle con dati robot in quella settimana, per trovare subito le settimane complete
             const fine = aggiungiGiorni(s, 6)
-            const conDati = dati.stalle.filter((st) => dati.robotGiorni.some((g) => g.completo && g.data >= s && g.data <= fine && (st.robot?.nomi ?? []).includes(g.robot)))
+            const conDati = dati.stalle.filter((st) => st.robot?.nomi?.length ? dati.robotGiorni.some((g) => g.completo && g.data >= s && g.data <= fine && (st.robot?.nomi ?? []).includes(g.robot)) : dati.importDC.some((l) => l.data >= s && l.data <= fine && l.animali.some((a) => a.gruppo === st.gruppoDairyComp && (a.latte ?? 0) > 0)))
             const nota = conDati.length === dati.stalle.length ? 'tutte le stalle' : conDati.length ? `solo stalla ${conDati.map((x) => x.numero).join(' e ')}` : 'nessuna stalla'
             return <option key={s} value={s}>Settimana {fmtData(s)} – {fmtData(fine)} · {nota}</option>
           })}
@@ -75,7 +75,7 @@ function Avvisi({ m, tutte }: { m: M; tutte?: boolean }) {
     msg.push(`Gruppo ${s.gruppo} (stalla ${s.stalla}${nomi ? `, robot ${nomi}` : ''}): nessun dato di mungitura in questa settimana. Caricalo in "Carica la settimana" oppure scegli una settimana con i file di tutte le stalle.`)
   })
   m.stalle.filter((s) => s.datiVaccheIncompleti).forEach((s) => msg.push(`Gruppo ${s.gruppo} (stalla ${s.stalla}): nei file di questa settimana mancano molte righe per vacca. I totali della stalla sono giusti, ma l'elenco delle vacche può essere incompleto: ricarica il file del robot in "Carica la settimana".`))
-  if (m.giorni.length < 7) msg.push(`La settimana ha ${m.giorni.length} giorni completi di dati robot: le cifre sono medie su quei giorni.`)
+  if (dati.stalle.some((s) => s.robot) && m.giorni.length < 7) msg.push(`La settimana ha ${m.giorni.length} giorni completi di dati robot: le cifre sono medie su quei giorni.`)
   if (!msg.length) return null
   return <div className="mb-6 rounded-xl border border-arancio-200 bg-arancio-50/60 p-4 text-sm text-arancio-900"><ul className="list-disc space-y-1 pl-5">{msg.map((x) => <li key={x}>{x}</li>)}</ul></div>
 }

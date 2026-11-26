@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, FileDown, FileUp, Loader2, Syringe } from 'lucide-react'
 import { creaPdf, scarica } from '../lib/pdfLista'
 import { useStore } from '../lib/store'
+import { DEMO } from '../lib/demo'
 import type { Farmaco } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, leggiFile, matricole } from '../lib/dairycomp'
@@ -126,7 +127,7 @@ export default function VitelliPage() {
 
   return (
     <>
-      <PageHeader titolo="Vitelli e vaccini" icona={Syringe} descrizione="Vaccinazioni del martedì mattina dalla lista vitelli di DairyComp" />
+      <PageHeader titolo="Vitelli e vaccini" icona={Syringe} descrizione={DEMO ? 'Vaccinazioni del martedì mattina, calcolate dalla data di nascita' : 'Vaccinazioni del martedì mattina dalla lista vitelli di DairyComp'} />
 
       {!lista ? (
         <Vuoto>

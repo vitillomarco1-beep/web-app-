@@ -33,7 +33,17 @@ export function costoRazione(r: Razione, ingredienti: Ingrediente[]) {
 
 /** Settimane (lunedì) con dati robot completi, dalla più recente. */
 export function settimaneConDati(dati: Dati): string[] {
-  return [...new Set(dati.robotGiorni.filter((g) => g.completo).map((g) => lunediDi(g.data)))].sort().reverse()
+  const robot = dati.robotGiorni.filter((g) => g.completo).map((g) => lunediDi(g.data))
+  // stalle con sala di mungitura: il latte per vacca arriva dalle liste delle produzioni
+  const sala = dati.stalle.some((s) => !s.robot?.nomi?.length && s.gruppoDairyComp !== undefined)
+    ? dati.importDC.filter((l) => l.animali.some((a) => (a.latte ?? 0) > 0)).map((l) => lunediDi(l.data)) : []
+  return [...new Set([...robot, ...sala])].sort().reverse()
+}
+
+/** Liste delle produzioni per vacca (sala di mungitura) nella settimana. */
+export const listeLatteSettimana = (dati: Dati, settimana: string) => {
+  const fine = aggiungiGiorni(settimana, 6)
+  return dati.importDC.filter((l) => l.data >= settimana && l.data <= fine && l.animali.some((a) => (a.latte ?? 0) > 0))
 }
 
 export interface MargineStalla {
@@ -77,9 +87,45 @@ export function calcolaMargine(dati: Dati, settimana: string) {
 
   const stalle: MargineStalla[] = []
   const vacche: MargineVacca[] = []
+  // stalla con sala di mungitura: vacche e latte dalle liste delle produzioni per vacca della settimana
+  const margineSala = (s: Dati['stalle'][number], liste: Dati['importDC']) => {
+    const g = s.gruppoDairyComp!
+    const perVacca = new Map<string, { kg: number; n: number }>()
+    for (const l of liste) for (const a of l.animali) {
+      if (a.gruppo !== g || !(a.latte && a.latte > 0)) continue
+      const x = perVacca.get(a.id) ?? { kg: 0, n: 0 }
+      x.kg += a.latte; x.n++; perVacca.set(a.id, x)
+    }
+    const nL = Math.max(1, liste.length)
+    const capi = [...perVacca.values()].reduce((t, x) => t + x.n, 0) / nL
+    const kgLatte = [...perVacca.values()].reduce((t, x) => t + x.kg, 0) / nL
+    const razione = dati.razioni.find((r) => r.categoria === 'lattazione' && r.gruppi.includes(g))
+    const c = razione ? costoRazione(razione, dati.ingredienti) : null
+    const pesate = dati.scarichi.filter((x) => x.stalla === s.numero && x.data >= settimana && x.data <= fine)
+    const giorniPesate = new Set(pesate.map((x) => x.data)).size
+    const kgDistribuiti = giorniPesate ? pesate.reduce((t, x) => t + x.kg, 0) / giorniPesate : null
+    let costoR = 0, fonte: MargineStalla['fonteRazione'] = 'mancante'
+    if (c && kgDistribuiti !== null && c.costoKg > 0) { costoR = kgDistribuiti * c.costoKg; fonte = 'pesate' }
+    else if (c) { costoR = c.costoCapo * capi; fonte = 'razione' }
+    if (!capi) costoR = 0
+    const costoRobot = c ? c.costoRobotCapo * capi : 0
+    const ricavo = euro(kgLatte), costo = costoR + costoRobot
+    stalle.push({ stalla: s.numero, nome: s.nome, gruppo: g, razione, capi, kgLatte, datiVaccheIncompleti: false, ricavo, costoRazione: costoR, fonteRazione: fonte,
+      kgDistribuitiCapo: kgDistribuiti !== null && capi ? kgDistribuiti / capi : null, kgRazioneCapo: c ? c.kgCapo : null, costoRobot, costo, margine: ricavo - costo, senzaPrezzo: c?.senzaPrezzo ?? 0 })
+    const costoCapo = capi ? costo / capi : 0
+    const kgPareggio = prezzoLatte > 0 ? (costoCapo / prezzoLatte) * KG_PER_LITRO : 0
+    for (const [vacca, x] of perVacca) {
+      const kgGiorno = x.kg / x.n
+      const sotto = costoCapo > 0 && kgGiorno <= kgPareggio * (1 + TOLLERANZA_PAREGGIO)
+      vacche.push({ vacca, stalla: s.numero, kgGiorno, ricavo: euro(kgGiorno), costo: costoCapo, margine: euro(kgGiorno) - costoCapo, giorni: x.n, kgPareggio,
+        giorniAlPareggio: sotto ? 7 : 0, finoAllUltimoGiorno: sotto, alPareggio: sotto })
+    }
+  }
+  const listeSala = listeLatteSettimana(dati, settimana)
   for (const s of dati.stalle) {
     const nomi = s.robot?.nomi ?? []
-    if (s.gruppoDairyComp === undefined || !nomi.length) continue
+    if (s.gruppoDairyComp === undefined) continue
+    if (!nomi.length) { margineSala(s, listeSala); continue }
     const gg = dati.robotGiorni.filter((g) => g.completo && giorni.includes(g.data) && nomi.includes(g.robot))
     const kgLatte = gg.reduce((t, g) => t + g.kg, 0) / nG
     const vg = dati.robotVacche.filter((v) => giorni.includes(v.data) && nomi.includes(v.robot) && v.mungiture > 0)

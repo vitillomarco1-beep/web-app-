@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, Search, X } from 'lucide-react'
 import { useStore } from '../lib/store'
+import { DEMO } from '../lib/demo'
 import type { AnimaleDC } from '../lib/types'
 import { categoria, matricole, nomeAutomaticoGruppo } from '../lib/dairycomp'
 import { fecondazioni, giorniUltimoCalore, statoRipro, toro, type StatoRipro } from '../lib/fertilita'
@@ -126,7 +127,7 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
   const nFec = fecondazioni(a)
   const guca = giorniUltimoCalore(a)
   const tor = toro(a)
-  const dataUltimoParto = (a.lattazione ?? 0) >= 1 && a.dim ? aggiungiGiorni(lista.data, -a.dim) : null
+  const dataUltimoParto = (a.lattazione ?? 0) >= 1 && a.dim !== null ? aggiungiGiorni(lista.data, -a.dim) : null
   const dataUltimoCalore = guca ? aggiungiGiorni(lista.data, -guca) : null
   const daFile = partiPrevisti(dati.partiDC[0]).find((p) => p.vacca === a.id)
   const parto = daFile?.dataParto ?? (stato === 'gravida' && guca ? aggiungiGiorni(lista.data, GESTAZIONE_GG - guca) : null)
@@ -167,9 +168,9 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-serif text-4xl font-bold text-brand-900">{a.id}</span>
         <span className={`rounded-full px-3 py-1 text-sm font-semibold ${STATO[stato].colore}`}>{STATO[stato].testo}</span>
-        {a.codiceRiproduttivo && <span className="text-xs text-stone-500">DairyComp: {a.codiceRiproduttivo}</span>}
+        {a.codiceRiproduttivo && <span className="text-xs text-stone-500">{DEMO ? 'Codice' : 'DairyComp'}: {a.codiceRiproduttivo}</span>}
       </div>
-      <p className="mt-1 text-xs text-stone-500">Dati della lista Mandria del {fmtData(lista.data)}</p>
+      <p className="mt-1 text-xs text-stone-500">{DEMO ? 'Dati aggiornati al' : 'Dati della lista Mandria del'} {fmtData(lista.data)}</p>
 
       <Sezione titolo="Anagrafica">
         <Voci voci={[

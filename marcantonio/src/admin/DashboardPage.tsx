@@ -14,6 +14,8 @@ import { VACCINI_VITELLI, etaAl, finestra, fonteVitelli, idVacVitello, prossimoM
 import { GIORNI_MIN_PAREGGIO, calcolaMargine, settimaneConDati } from '../lib/margine'
 import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA, asciutteDellaSettimana } from '../lib/parti'
 import { DIM_FINE_CARRIERA, GIORNI_PAREGGIO_MACELLO, valutaPareggio } from '../lib/pareggio'
+import { passiDaFare } from '../lib/registro'
+import { DEMO } from '../lib/demo'
 import { CRYPTIUM_60, LENZELTA_1, LENZELTA_2, SETTIMANE_ANTICIPO, cryptium60DellaSettimana, lenzeltaDellaSettimana, idVaccinazione, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
@@ -109,7 +111,10 @@ export default function DashboardPage() {
   // Promemoria dettati nelle note veloci: compaiono dal giorno indicato finché non si segnano come fatti
   const promemoria = dati.note.filter((n) => n.promemoria && !n.fatta && n.promemoria <= isoGiorno()).sort((a, b) => a.promemoria!.localeCompare(b.promemoria!))
 
-  const cose: Cosa[] = [
+  // sincronizzazioni: iniezioni e fecondazioni di oggi (o in ritardo)
+  const sincOggi = passiDaFare(dati.sincronizzazioni)
+  const tutte: Cosa[] = [
+    ...(sincOggi.length ? [{ testo: `Sincronizzazioni di oggi: ${sincOggi.map((x) => `${x.s.vacca} ${x.passo.cosa.toLowerCase()}${x.ritardo > 0 ? ' (in ritardo)' : ''}`).join(', ')}`, link: '/area-riservata/registro', tipo: 'vaccino' as const }] : []),
     ...promemoria.map((n) => ({ testo: `Promemoria${n.promemoria! < isoGiorno() ? ` (dal ${fmtData(n.promemoria!).slice(0, 5)})` : ''}: ${n.titolo ?? n.testo}`, link: '/area-riservata', tipo: 'promemoria' as const })),
     ...(ieriMancante ? [{ testo: `Carica il file delle mungiture di ieri del gruppo ${stallaDelPro!.gruppoDairyComp ?? 1} (C:\\robot\\mungiture_${ieri}.csv)`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     // protocollo di asciugatura: l'elenco della settimana si dà il lunedì
@@ -127,14 +132,29 @@ export default function DashboardPage() {
     ...dati.farmaci.filter(inEsaurimento).map((f) => ({ testo: f.giacenza <= 0 ? `Farmaco finito: ${f.nome}` : `Farmaco in esaurimento: ${f.nome} (restano ${Math.round(f.giacenza * 10) / 10} ${f.unita})`, link: '/area-riservata/farmaci', tipo: 'farmaco' as const })),
     ...(scarichiDaVerificare ? [{ testo: 'Verifica gli scarichi di razione della settimana scorsa', link: '/area-riservata/alimentazione', tipo: 'avviso' as const }] : []),
   ]
+  // nella demo non ci sono file da caricare
+  const cose = DEMO ? tutte.filter((c) => c.tipo !== 'carica') : tutte
 
   const variazione = media ? (kg / media - 1) * 100 : null
+  // Sala di mungitura (senza robot): le cifre del giorno dal registro delle mungiture
+  const giorniSala = giorno ? [] : [...new Set(dati.mungiture.map((m) => m.data))].sort()
+  const giornoSala = giorniSala[giorniSala.length - 1]
+  const litriSala = (d: string) => dati.mungiture.filter((m) => m.data === d).reduce((t, m) => t + m.litri, 0) * 1.03
+  const capiSala = giornoSala ? Math.max(0, ...dati.mungiture.filter((m) => m.data === giornoSala).map((m) => m.capiMunti)) : 0
+  const prevSala = giorniSala.slice(-8, -1)
+  const mediaSala = prevSala.length ? prevSala.reduce((t, d) => t + litriSala(d), 0) / prevSala.length : null
+  const kpiSala = giornoSala ? [
+    { etichetta: 'Latte munto', valore: fmt0(litriSala(giornoSala)), unita: 'kg', I: Milk, extra: mediaSala ? `${litriSala(giornoSala) >= mediaSala ? '▲' : '▼'} ${fmt1(Math.abs((litriSala(giornoSala) / mediaSala - 1) * 100))}% sulla media` : '' },
+    { etichetta: 'Vacche munte', valore: fmt0(capiSala), unita: 'capi', I: Tag, extra: 'sala di mungitura' },
+    { etichetta: 'Latte per vacca', valore: capiSala ? fmt1(litriSala(giornoSala) / capiSala) : '—', unita: 'kg', I: Gauge, extra: 'mattina e sera' },
+    { etichetta: 'Mungiture', valore: '2', unita: 'al giorno', I: RotateCw, extra: `${fmt0(capiSala * 2)} mungiture` },
+  ] : []
   const kpi = giorno ? [
     { etichetta: 'Latte munto', valore: fmt0(kg), unita: 'kg', I: Milk, extra: variazione !== null ? `${variazione >= 0 ? '▲' : '▼'} ${fmt1(Math.abs(variazione))}% sulla media` : '' },
     { etichetta: 'Vacche munte', valore: fmt0(vacche), unita: 'capi', I: Tag, extra: `${delGiorno.length} robot` },
     { etichetta: 'Latte per vacca', valore: vacche ? fmt1(kg / vacche) : '—', unita: 'kg', I: Gauge, extra: mungiture ? `${fmt1(kg / mungiture)} kg a mungitura` : '' },
     { etichetta: 'Mungiture per vacca', valore: vacche ? fmt2(mungiture / vacche) : '—', unita: 'al giorno', I: RotateCw, extra: `${fmt0(mungiture)} mungiture` },
-  ] : []
+  ] : kpiSala
 
   return (
     <>
@@ -152,7 +172,7 @@ export default function DashboardPage() {
           <p className="text-sm capitalize text-brand-200">{dataLunga}</p>
           <h1 className="mt-1 font-serif text-3xl font-bold sm:text-4xl">{saluto()}</h1>
           <p className="mt-1 text-brand-100">
-            {giorno ? <>Ecco la situazione delle mungiture del <b className="text-white">{fmtData(giorno)}</b>.</> : 'Carica i file dei robot per vedere la situazione della stalla.'}
+            {giorno || giornoSala ? <>Ecco la situazione delle mungiture del <b className="text-white">{fmtData(giorno ?? giornoSala)}</b>.</> : 'Carica i file dei robot per vedere la situazione della stalla.'}
             {cose.length > 0 && <> Hai <b className="text-arancio-300">{cose.length} {cose.length === 1 ? 'cosa' : 'cose'} da fare</b>.</>}
           </p>
           {kpi.length > 0 && (
@@ -279,7 +299,7 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-          <p className="mt-2 text-xs text-stone-500">Lista DairyComp del {fmtData(listaReale!.data)}; latte medio dai robot.</p>
+          <p className="mt-2 text-xs text-stone-500">{DEMO ? 'Produzioni per vacca' : 'Lista DairyComp'} del {fmtData(listaReale!.data)}{dati.stalle.some((x) => x.robot) ? '; latte medio dai robot' : ''}.</p>
         </section>
       )}
     </>

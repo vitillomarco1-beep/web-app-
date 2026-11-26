@@ -26,6 +26,8 @@ import FertilitaPage from './admin/FertilitaPage'
 import ControlliApaPage from './admin/ControlliApaPage'
 import CaricaSettimanaPage from './admin/CaricaSettimanaPage'
 import { RichiedeAccesso } from './lib/auth'
+import { DEMO } from './lib/demo'
+import RegistroPage from './admin/RegistroPage'
 import type { ReactNode } from 'react'
 
 /** Pagine riservate al titolare. */
@@ -34,13 +36,17 @@ const T = (el: ReactNode) => <RichiedeAccesso ruoli={['titolare']}>{el}</Richied
 export default function App() {
   return (
     <Routes>
-      <Route element={<PublicLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="azienda" element={<AziendaPage />} />
-        <Route path="prodotti" element={<ProdottiPage />} />
-        <Route path="contatti" element={<ContattiPage />} />
-      </Route>
-      <Route path="area-riservata/login" element={<LoginPage />} />
+      {DEMO ? (
+        <Route path="/" element={<Navigate to="/area-riservata" replace />} />
+      ) : (
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="azienda" element={<AziendaPage />} />
+          <Route path="prodotti" element={<ProdottiPage />} />
+          <Route path="contatti" element={<ContattiPage />} />
+        </Route>
+      )}
+      <Route path="area-riservata/login" element={DEMO ? <Navigate to="/area-riservata" replace /> : <LoginPage />} />
       <Route
         path="area-riservata"
         element={
@@ -62,6 +68,7 @@ export default function App() {
         <Route path="margine" element={<Navigate to="/area-riservata/alimentazione?scheda=margine" replace />} />
         <Route path="carica" element={T(<CaricaSettimanaPage />)} />
         <Route path="mandria" element={T(<MandriaPage />)} />
+        <Route path="registro" element={T(<RegistroPage />)} />
         <Route path="produzione" element={T(<ProduzionePage />)} />
         <Route path="qualita" element={T(<QualitaPage />)} />
         <Route path="alimentazione" element={T(<AlimentazionePage />)} />

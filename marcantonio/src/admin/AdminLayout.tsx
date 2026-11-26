@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Baby, BarChart3, Dna, Syringe, Camera, FileUp, HeartPulse, Pill, ClipboardList, Factory, FlaskConical, Globe, Home, LogOut, MessageSquare, Milk, MoreHorizontal,
-  Settings, Tag, Truck, Wheat, X, type LucideIcon,
+  NotebookPen, Settings, Tag, Truck, Wheat, X, type LucideIcon,
 } from 'lucide-react'
+import { DEMO } from '../lib/demo'
+import DemoBar from '../components/DemoBar'
 import Logo from '../components/Logo'
 import { useAuth } from '../lib/auth'
 import { useStore } from '../lib/store'
@@ -30,14 +32,20 @@ export default function AdminLayout() {
     if (c) imposta('mandriaDC', [c])
   }, [dati.mandriaDC, imposta])
 
+  // Robot: le pagine dei robot solo se almeno una stalla ne ha. Registro: per chi usa l'app come gestionale (senza DairyComp).
+  const conRobot = dati.stalle.some((s) => s.robot)
+  const registro = DEMO || dati.parametri.some((p) => p.id === 'registro' && p.valore === 1)
+  const se = <T,>(c: boolean, x: T[]) => (c ? x : [])
+
   // Sezioni raggruppate per argomento: poche voci, nomi semplici
   const gruppi: { titolo?: string; voci: Voce[] }[] = collaboratore
     ? [{ voci: [{ to: `${R}/pesata`, label: 'Pesata carro', icona: Camera }] }]
     : [
-        { voci: [{ to: R, label: 'Oggi', icona: Home, end: true }, { to: `${R}/pesata`, label: 'Pesata carro', icona: Camera }, { to: `${R}/carica`, label: 'Carica la settimana', icona: FileUp }] },
+        { voci: [{ to: R, label: 'Oggi', icona: Home, end: true }, { to: `${R}/pesata`, label: 'Pesata carro', icona: Camera }, ...se(conRobot, [{ to: `${R}/carica`, label: 'Carica la settimana', icona: FileUp }])] },
         { titolo: 'Stalla', voci: [
           { to: `${R}/alimentazione`, label: 'Alimentazione', icona: Wheat },
           { to: `${R}/mandria`, label: 'Mandria', icona: Tag },
+          ...se(registro, [{ to: `${R}/registro`, label: 'Registro eventi', icona: NotebookPen }]),
           { to: `${R}/fertilita`, label: 'Fertilità', icona: Dna },
           { to: `${R}/salute`, label: 'Salute', icona: HeartPulse },
           { to: `${R}/farmaci`, label: 'Farmaci', icona: Pill },
@@ -47,13 +55,12 @@ export default function AdminLayout() {
         { titolo: 'Latte', voci: [
           { to: `${R}/latte`, label: 'Gruppi e mandria', icona: BarChart3 },
           { to: `${R}/controlli-apa`, label: 'Controlli APA', icona: ClipboardList },
-          { to: `${R}/mungiture`, label: 'Mungiture robot', icona: Milk },
+          ...se(conRobot, [{ to: `${R}/mungiture`, label: 'Mungiture robot', icona: Milk }]),
           { to: `${R}/qualita`, label: 'Qualità', icona: FlaskConical },
           { to: `${R}/consegne`, label: 'Consegne', icona: Truck },
         ] },
         { titolo: 'Altro', voci: [
-          { to: `${R}/messaggi`, label: 'Messaggi', icona: MessageSquare, badge: nonLetti },
-          { to: `${R}/caseificio`, label: 'Caseificio', icona: Factory },
+          ...se(!DEMO, [{ to: `${R}/messaggi`, label: 'Messaggi', icona: MessageSquare, badge: nonLetti }, { to: `${R}/caseificio`, label: 'Caseificio', icona: Factory }]),
           { to: `${R}/impostazioni`, label: 'Dati e backup', icona: Settings },
         ] },
       ]
@@ -90,7 +97,9 @@ export default function AdminLayout() {
     </nav>
   )
 
-  const piede = (
+  const piede = DEMO ? (
+    <div className="border-t border-stone-200 px-3 pt-3 text-xs text-stone-500">Versione dimostrativa con dati inventati. Le modifiche restano solo su questo dispositivo.</div>
+  ) : (
     <div className="space-y-0.5 border-t border-stone-200 pt-3">
       <div className="px-3 pb-2"><EtichettaArchivio /></div>
       <Link to="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-stone-500 hover:bg-stone-100"><Globe className="h-[18px] w-[18px]" strokeWidth={1.8} />Sito pubblico</Link>
@@ -112,13 +121,13 @@ export default function AdminLayout() {
       {/* Intestazione (telefono) */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-2 backdrop-blur lg:hidden">
         <Link to={collaboratore ? `${R}/pesata` : R}><Logo altezza="h-10" /></Link>
-        {!collaboratore && <EtichettaArchivio />}
+        {!collaboratore && !DEMO && <EtichettaArchivio />}
         {collaboratore && (
           <button onClick={() => { esci(); navigate('/') }} className="flex items-center gap-1.5 text-sm text-stone-500"><LogOut className="h-4 w-4" />Esci</button>
         )}
       </header>
 
-      <main className={`min-w-0 flex-1 p-4 sm:p-8 ${collaboratore ? '' : 'pb-28 lg:pb-8'}`}>{!collaboratore && <AttivaArchivio />}<Outlet /></main>
+      <main className={`min-w-0 flex-1 p-4 sm:p-8 ${collaboratore ? '' : 'pb-28 lg:pb-8'}`}>{DEMO ? <DemoBar /> : !collaboratore && <AttivaArchivio />}<Outlet /></main>
 
       {/* Barra in basso (telefono) */}
       {!collaboratore && (

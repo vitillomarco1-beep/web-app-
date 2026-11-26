@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Milk, Moon, Pencil, Search, Sprout, Tag, Upload, Users, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Milk, Moon, NotebookPen, Pencil, Search, Sprout, Tag, Upload, Users, X } from 'lucide-react'
 import { useStore } from '../lib/store'
+import { DEMO } from '../lib/demo'
 import type { AnimaleDC } from '../lib/types'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import ImportDairyComp from '../components/ImportDairyComp'
@@ -89,10 +91,10 @@ export default function MandriaPage() {
 
   return (
     <>
-      <PageHeader titolo="Mandria" icona={Tag} descrizione={`Tutti gli animali presenti · lista DairyComp del ${fmtData(lista.data)}`}
+      <PageHeader titolo="Mandria" icona={Tag} descrizione={`Tutti gli animali presenti · ${DEMO ? 'aggiornata al' : 'lista DairyComp del'} ${fmtData(lista.data)}`}
         azioni={<>
           <button className="btn-primary" onClick={() => setScheda(null)}><Search className="h-4 w-4" />Cerca vacca</button>
-          <button className="btn-secondary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>
+          {DEMO ? <Link className="btn-secondary" to="/area-riservata/registro"><NotebookPen className="h-4 w-4" />Registra un evento</Link> : <button className="btn-secondary" onClick={() => setImporta(true)}><Upload className="h-4 w-4" />Importa da DairyComp</button>}
         </>} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">

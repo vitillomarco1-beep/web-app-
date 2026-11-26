@@ -213,7 +213,7 @@ export const etichettaColonna = (k: string) => ETICHETTE[norm(k)] ?? k
 export const inLattazione = (a: AnimaleDC) =>
   !/^(ASC|MANZA|MASCHIO|TORO|VITELL)/i.test(a.codiceRiproduttivo ?? '') &&
   a.lattazione !== 0 &&
-  ((a.dim !== null && a.dim > 0) || (a.latte ?? 0) > 0)
+  ((a.dim !== null && (a.dim > 0 || /^PARTO/i.test(a.codiceRiproduttivo ?? ''))) || (a.latte ?? 0) > 0) // partorita oggi: già in lattazione
 
 /** Categoria di un animale per raggruppare la mandria. */
 export function categoria(a: AnimaleDC): string {

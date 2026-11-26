@@ -253,6 +253,8 @@ export interface Dati {
   storicoFertilita: StoricoFertilita[] // indici di fertilità, una riga per lista Mandria caricata
   fotoRipro: FotoRipro[] // stato riproduttivo di ogni lista Mandria, per ricavare le diagnosi tra due liste
   controlliApa: ControlloApa[] // controlli funzionali APA (latte, grasso, proteine, cellule, lattosio per vacca)
+  eventi: import('./registro').Evento[] // registro della mandria (aziende senza DairyComp)
+  sincronizzazioni: import('./registro').Sincronizzazione[] // protocolli di sincronizzazione in corso
 }
 
 /** Un controllo funzionale APA. id = data del controllo. vacche: marca auricolare → [kg, grasso %, proteine %, cellule ×1000, lattosio %]. */

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarClock, ChevronDown, Dna, FileDown, Loader2, Repeat, Sprout, Stethoscope, Timer, Upload } from 'lucide-react'
 import { useStore } from '../lib/store'
+import { DEMO } from '../lib/demo'
 import { PageHeader, StatTile, Vuoto, type Tono } from '../components/ui'
 import { fmt0, fmt1, fmtData } from '../lib/format'
 import { creaPdf, scarica } from '../lib/pdfLista'
@@ -100,7 +101,7 @@ export default function FertilitaPage() {
         sez('Da visitare per gravidanza', `fecondate, ultimo calore da almeno ${GG_DIAGNOSI} giorni, senza diagnosi`, f.daVisitare),
         sez('Vacche vuote oltre i ' + DIM_VUOTA_PROBLEMA + ' giorni', 'non gravide: da controllare', f.vuoteProblema),
         sez('Manze da fecondare', `oltre ${Math.round(ETA_FECONDAZIONE_MANZE / 30.44)} mesi, non ancora fecondate`, f.manzeDaFecondare),
-      ].filter((s) => s.righe.length), 'Scrivere l’esito nella colonna a destra e riportarlo poi in DairyComp.')
+      ].filter((s) => s.righe.length), DEMO ? 'Scrivere l’esito nella colonna a destra e registrarlo poi nel Registro eventi.' : 'Scrivere l’esito nella colonna a destra e riportarlo poi in DairyComp.')
       const esito = await scarica(blob, `fertilita-veterinario-${sel ? `stalla${sel.st.numero}-` : ''}${f.data}.pdf`)
       setPdf(esito === 'errore' ? 'errore' : '')
     } catch { setPdf('errore') }
@@ -110,7 +111,7 @@ export default function FertilitaPage() {
 
   return (
     <>
-      <PageHeader titolo="Fertilità" icona={Dna} descrizione={`Indici riproduttivi dalla lista Mandria di DairyComp del ${fmtData(f.data)}`}
+      <PageHeader titolo="Fertilità" icona={Dna} descrizione={`Indici riproduttivi dalla ${DEMO ? 'mandria' : 'lista Mandria di DairyComp'} del ${fmtData(f.data)}`}
         azioni={<button className="btn-primary" onClick={scaricaPdf} disabled={pdf === 'in corso'}>{pdf === 'in corso' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Lista per il veterinario</button>} />
       {pdf === 'errore' && <p className="-mt-3 mb-4 text-sm text-red-600">Non sono riuscito a creare il PDF. Riprova.</p>}
 

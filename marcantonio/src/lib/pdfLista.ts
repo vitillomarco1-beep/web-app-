@@ -1,6 +1,7 @@
 // PDF da stampare (liste vaccinazioni): si genera nel browser e si scarica.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import logo from '../assets/logo-marcantonio.png'
+import { AZIENDA } from '../config/azienda'
 
 async function logoDataUrl(): Promise<string | null> {
   try {
@@ -42,7 +43,7 @@ export async function creaPdf(titolo: string, sottotitolo: string, sezioni: Sezi
   const x = img ? 14 + lw + 6 : 14
   if (img) doc.addImage(img, 'PNG', 14, 10, lw, lh)
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(60)
-  doc.text('FRATELLI MARCANTONIO · Castelfranco in Miscano', x, 15)
+  doc.text(AZIENDA.nome === 'Fratelli Marcantonio' ? 'FRATELLI MARCANTONIO · Castelfranco in Miscano' : AZIENDA.nome.toUpperCase(), x, 15)
   doc.setFontSize(16); doc.setTextColor(...nero)
   doc.text(titolo, x, 23)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30)
