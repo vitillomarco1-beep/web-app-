@@ -106,16 +106,17 @@ export function aGiorniDalParto(parti: PartoPrevisto[], da: number, a: number, o
 export const cryptium60DellaSettimana = (parti: PartoPrevisto[], oggi = isoGiorno(), spostamento = 0) =>
   aGiorniDalParto(parti, CRYPTIUM60_GG_DA, CRYPTIUM60_GG_A, oggi, spostamento)
 
-/** Lenzelta (mastite da S. aureus ed E. coli): 2 ml intramuscolo, 1ª dose 45 giorni prima del parto, 2ª dose 3 settimane dopo. */
+/** Lenzelta (mastite da S. aureus ed E. coli): 2 ml intramuscolo, 1ª dose circa 55 giorni prima del parto (consiglio della veterinaria;
+ *  il foglietto dice 45), 2ª dose 3 settimane dopo. */
 export const LENZELTA_1: VaccinoPreparto = { id: 'lenzelta1', nome: 'Lenzelta 1ª dose', breve: 'Lenzelta 1ª', cerca: 'lenzelta', doseMl: 2, mlConf: 10, dosiConf: 5 }
 export const LENZELTA_2: VaccinoPreparto = { id: 'lenzelta2', nome: 'Lenzelta 2ª dose', breve: 'Lenzelta 2ª', cerca: 'lenzelta', doseMl: 2, mlConf: 10, dosiConf: 5 }
-/** 1ª dose: il martedì in cui l'animale è a 42–48 giorni dal parto (in media 45). */
-export const LENZELTA1_GG_DA = 42
-export const LENZELTA1_GG_A = 48
-/** 2ª dose: 3 settimane dopo la 1ª; senza 1ª segnata, a 21–27 giorni dal parto. */
+/** 1ª dose: il martedì in cui l'animale è a 51–57 giorni dal parto (in media 54; subito prima del Cryptium dei 60 giorni, senza sovrapporsi). */
+export const LENZELTA1_GG_DA = 51
+export const LENZELTA1_GG_A = 57
+/** 2ª dose: 3 settimane dopo la 1ª; senza 1ª segnata, a 30–36 giorni dal parto. */
 export const LENZELTA_INTERVALLO = 21
-export const LENZELTA2_GG_DA = 21
-export const LENZELTA2_GG_A = 27
+export const LENZELTA2_GG_DA = LENZELTA1_GG_DA - LENZELTA_INTERVALLO
+export const LENZELTA2_GG_A = LENZELTA1_GG_A - LENZELTA_INTERVALLO
 
 export interface RigaLenzelta { p: PartoPrevisto; giorniAlParto: number; nota?: string }
 

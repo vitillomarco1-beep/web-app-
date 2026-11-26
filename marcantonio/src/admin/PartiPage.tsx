@@ -58,7 +58,7 @@ export default function PartiPage() {
   const c60 = cryptium60DellaSettimana(parti, oggi, spostamento)
   const c60Mancano = c60.animali.filter((x) => !fatte.has(idVaccinazione(x.p, CRYPTIUM_60.id))).length
   const c60Farmaco = farmacoDelVaccino(dati.farmaci, CRYPTIUM_60)
-  // Lenzelta (mastite): 1ª dose a 42–48 giorni dal parto, 2ª dose 3 settimane dopo; stesso martedì
+  // Lenzelta (mastite): 1ª dose a 51–57 giorni dal parto (consiglio della veterinaria), 2ª dose 3 settimane dopo; stesso martedì
   const lz = lenzeltaDellaSettimana(parti, dati.vaccinazioni, oggi, spostamento)
   const lzFarmaco = farmacoDelVaccino(dati.farmaci, LENZELTA_1)
   const lzMancano = lz.prima.filter((x) => !fatte.has(idVaccinazione(x.p, LENZELTA_1.id))).length + lz.seconda.filter((x) => !fatte.has(idVaccinazione(x.p, LENZELTA_2.id))).length

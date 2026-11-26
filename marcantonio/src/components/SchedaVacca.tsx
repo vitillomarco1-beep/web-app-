@@ -138,7 +138,7 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
   const fatto = (id: string) => parto && vaccini.some((v) => v.vaccino === id && v.dataParto === parto)
   const martediC60 = parto ? aggiungiGiorni(lunediDi(aggiungiGiorni(parto, -60)), 1) : null
   const settPreparto = parto ? lunediDi(aggiungiGiorni(parto, -7 * SETTIMANE_ANTICIPO)) : null
-  // Lenzelta: il martedì in cui è a 42–48 giorni dal parto; la 2ª 3 settimane dopo la 1ª (o a 21–27 giorni dal parto)
+  // Lenzelta: il martedì in cui è a 51–57 giorni dal parto; la 2ª 3 settimane dopo la 1ª (o a 30–36 giorni dal parto)
   const martediEntro = (limite: string) => { const t = aggiungiGiorni(lunediDi(limite), 1); return t > limite ? aggiungiGiorni(t, -7) : t }
   const martediDopo = (inizio: string) => { const t = aggiungiGiorni(lunediDi(inizio), 1); return t < inizio ? aggiungiGiorni(t, 7) : t }
   const lz1 = parto ? dati.vaccinazioni.find((v) => v.id === `${a.id}|${parto}|${LENZELTA_1.id}`)?.fattaIl : undefined
