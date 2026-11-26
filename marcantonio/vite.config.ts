@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 
 const demo = (p: string) => fileURLToPath(new URL(`./src/demo/${p}`, import.meta.url))
 
@@ -20,10 +21,20 @@ function sostituzioniDemo(): Plugin {
       if (/^\.\/public\//.test(source) || /^\.\/admin\/(CaseificioPage|MessaggiPage)$/.test(source)) return demo('Vuota.tsx')
       return null
     },
+    // titolo, descrizione e icona neutri: nella demo non resta il nome dell'azienda
+    transformIndexHtml(html) {
+      const icona = `data:image/png;base64,${readFileSync(demo('favicon-demo.png')).toString('base64')}`
+      return html
+        .replace(/<title>[^<]*<\/title>/, '<title>Gestionale di stalla · demo</title>')
+        .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="Versione dimostrativa del gestionale di stalla, con dati inventati." />')
+        .replace(/<link rel="icon"[^>]*>/, `<link rel="icon" type="image/png" href="${icona}" />`)
+        .replace(/<link rel="apple-touch-icon"[^>]*>\s*/, '')
+    },
   }
 }
 
 export default defineConfig(({ mode }) => ({
   base: './',
   plugins: [react(), ...(mode === 'demo' ? [sostituzioniDemo()] : [])],
+  publicDir: mode === 'demo' ? false : 'public', // le icone dell'azienda non entrano nella demo
 }))
