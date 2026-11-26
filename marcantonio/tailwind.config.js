@@ -5,7 +5,12 @@ export default {
     extend: {
       colors: {
         // Prugna del logo Fratelli Marcantonio (#613846 = 700)
-        brand: {
+        // nella versione dimostrativa (TEMA_DEMO, impostato da vite.config in modalità demo) il colore principale è il blu
+        brand: process.env.TEMA_DEMO === '1' ? {
+          50: '#f0f5fc', 100: '#dde8f7', 200: '#bcd2ef', 300: '#8db3e2',
+          400: '#5a8ed0', 500: '#3a70bb', 600: '#2a5aa0', 700: '#214a87',
+          800: '#1c3d6f', 900: '#18325a',
+        } : {
           50: '#faf5f7', 100: '#f3e8ec', 200: '#e6d0d8', 300: '#d1aebb',
           400: '#b38394', 500: '#946073', 600: '#7a4a5c', 700: '#613846',
           800: '#4f2d39', 900: '#3e2430',

@@ -33,8 +33,11 @@ function sostituzioniDemo(): Plugin {
   }
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  if (mode === 'demo') process.env.TEMA_DEMO = '1' // colori della demo (tailwind.config.js)
+  return {
   base: './',
   plugins: [react(), ...(mode === 'demo' ? [sostituzioniDemo()] : [])],
   publicDir: mode === 'demo' ? false : 'public', // le icone dell'azienda non entrano nella demo
-}))
+  }
+})
