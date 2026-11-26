@@ -14,7 +14,7 @@ import { VACCINI_VITELLI, etaAl, finestra, fonteVitelli, idVacVitello, prossimoM
 import { GIORNI_MIN_PAREGGIO, calcolaMargine, settimaneConDati } from '../lib/margine'
 import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, GRAVIDANZA_MIN_ASCIUTTA_ANTICIPATA, asciutteDellaSettimana } from '../lib/parti'
 import { DIM_FINE_CARRIERA, GIORNI_PAREGGIO_MACELLO, valutaPareggio } from '../lib/pareggio'
-import { CRYPTIUM_60, SETTIMANE_ANTICIPO, cryptium60DellaSettimana, idVaccinazione, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
+import { CRYPTIUM_60, LENZELTA_1, LENZELTA_2, SETTIMANE_ANTICIPO, cryptium60DellaSettimana, lenzeltaDellaSettimana, idVaccinazione, vaccinataTutto, nellaSettimana, partiPrevisti, settimanaVaccinazioni } from '../lib/parti'
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera' }
 
@@ -67,6 +67,8 @@ export default function DashboardPage() {
   const fatteVacc = new Set(dati.vaccinazioni.map((v) => v.id))
   const daVaccinare = partiPrevisti(dati.partiDC[0]).filter((p) => nellaSettimana(p, settVacc) && !vaccinataTutto(p, fatteVacc))
   const cryptium60 = cryptium60DellaSettimana(partiPrevisti(dati.partiDC[0])).animali.filter((x) => !fatteVacc.has(idVaccinazione(x.p, CRYPTIUM_60.id))).length
+  const lzSett = lenzeltaDellaSettimana(partiPrevisti(dati.partiDC[0]), dati.vaccinazioni)
+  const lenzelta = lzSett.prima.filter((x) => !fatteVacc.has(idVaccinazione(x.p, LENZELTA_1.id))).length + lzSett.seconda.filter((x) => !fatteVacc.has(idVaccinazione(x.p, LENZELTA_2.id))).length
 
   // Lista parti di DairyComp: va ricaricata ogni 2 mesi
   const listaParti = dati.partiDC[0]
@@ -118,7 +120,7 @@ export default function DashboardPage() {
     ...((!listaVitelli || listaVitelli.data < aggiungiGiorni(martedi, -1)) && (giornoSettimana === 1 || giornoSettimana === 2) ? [{ testo: 'Carica la lista Mandria di DairyComp (con i giorni di vita GDNAS): serve per vitelli, latte e gruppi della settimana', link: '/area-riservata/vitelli', tipo: 'carica' as const }] : []),
     ...(vitelliDaFare ? [{ testo: `Vaccinazioni vitelli di martedì ${fmtData(martedi)}: ${vitelliDaFare} ${vitelliDaFare === 1 ? 'vaccino' : 'vaccini'} da fare`, link: '/area-riservata/vitelli', tipo: 'vaccino' as const }] : []),
     ...(listaPartiVecchia ? [{ testo: listaParti ? `Carica la lista parti aggiornata da DairyComp (l'ultima è del ${fmtData(listaParti.data)})` : 'Carica la lista parti da DairyComp', link: '/area-riservata/parti', tipo: 'carica' as const }] : []),
-    ...(daVaccinare.length || cryptium60 ? [{ testo: [daVaccinare.length ? `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}` : '', cryptium60 ? `Cryptium 60 giorni dal parto: ${cryptium60} ${cryptium60 === 1 ? 'animale' : 'animali'}` : ''].filter(Boolean).join(' · '), link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),
+    ...(daVaccinare.length || cryptium60 || lenzelta ? [{ testo: [daVaccinare.length ? `Vaccinazioni pre-parto: ${daVaccinare.length} ${daVaccinare.length === 1 ? 'animale' : 'animali'} con parto dal ${fmtData(settVacc.da)} al ${fmtData(settVacc.a)}` : '', cryptium60 ? `Cryptium 60 giorni dal parto: ${cryptium60} ${cryptium60 === 1 ? 'animale' : 'animali'}` : '', lenzelta ? `Lenzelta: ${lenzelta} ${lenzelta === 1 ? 'dose' : 'dosi'}` : ''].filter(Boolean).join(' · '), link: '/area-riservata/parti', tipo: 'vaccino' as const }] : []),
     ...(gruppiDaCaricare.length ? [{ testo: `Carica i file dei robot della settimana scorsa: mancano ${gruppiDaCaricare.map((s) => `gruppo ${s.gruppoDairyComp ?? s.numero}`).join(', ')}`, link: '/area-riservata/carica', tipo: 'carica' as const }] : []),
     ...(daSistemare.length ? [{ testo: `${daSistemare.length} vacche da sistemare in DairyComp (munte dal robot di un altro gruppo)`, link: '/area-riservata/latte', tipo: 'avviso' as const }] : []),
     ...robotFermi.map((g) => ({ testo: `Robot ${g.robot} fermo ${Math.floor(g.pausaMaxMin / 60)} h ${String(g.pausaMaxMin % 60).padStart(2, '0')} dalle ${g.pausaDalle} del ${fmtData(g.data)}`, link: '/area-riservata/mungiture', tipo: 'avviso' as const })),

@@ -89,14 +89,58 @@ export const CRYPTIUM_60: VaccinoPreparto = { id: 'cryptium60', nome: 'Bovilis C
 export const CRYPTIUM60_GG_DA = 58
 export const CRYPTIUM60_GG_A = 65
 
-/** Animali da vaccinare con il Cryptium dei 60 giorni nel martedì della settimana (vacche e manze). */
-export function cryptium60DellaSettimana(parti: PartoPrevisto[], oggi = isoGiorno(), spostamento = 0) {
-  const martedi = aggiungiGiorni(lunediDi(oggi), 1 + 7 * spostamento)
+/** Martedì della settimana (le liste dei vaccini si fanno il martedì). */
+export const martediDi = (oggi = isoGiorno(), spostamento = 0) => aggiungiGiorni(lunediDi(oggi), 1 + 7 * spostamento)
+
+/** Animali che il martedì della settimana sono tra `da` e `a` giorni dal parto previsto. */
+export function aGiorniDalParto(parti: PartoPrevisto[], da: number, a: number, oggi = isoGiorno(), spostamento = 0) {
+  const martedi = martediDi(oggi, spostamento)
   const animali = parti
     .map((p) => ({ p, giorniAlParto: giorniTra(martedi, p.dataParto) }))
-    .filter((x) => x.giorniAlParto >= CRYPTIUM60_GG_DA && x.giorniAlParto <= CRYPTIUM60_GG_A)
+    .filter((x) => x.giorniAlParto >= da && x.giorniAlParto <= a)
     .sort((x, y) => x.giorniAlParto - y.giorniAlParto)
   return { martedi, animali }
+}
+
+/** Animali da vaccinare con il Cryptium dei 60 giorni nel martedì della settimana (vacche e manze). */
+export const cryptium60DellaSettimana = (parti: PartoPrevisto[], oggi = isoGiorno(), spostamento = 0) =>
+  aGiorniDalParto(parti, CRYPTIUM60_GG_DA, CRYPTIUM60_GG_A, oggi, spostamento)
+
+/** Lenzelta (mastite da S. aureus ed E. coli): 2 ml intramuscolo, 1ª dose 45 giorni prima del parto, 2ª dose 3 settimane dopo. */
+export const LENZELTA_1: VaccinoPreparto = { id: 'lenzelta1', nome: 'Lenzelta 1ª dose', breve: 'Lenzelta 1ª', cerca: 'lenzelta', doseMl: 2, mlConf: 10, dosiConf: 5 }
+export const LENZELTA_2: VaccinoPreparto = { id: 'lenzelta2', nome: 'Lenzelta 2ª dose', breve: 'Lenzelta 2ª', cerca: 'lenzelta', doseMl: 2, mlConf: 10, dosiConf: 5 }
+/** 1ª dose: il martedì in cui l'animale è a 42–48 giorni dal parto (in media 45). */
+export const LENZELTA1_GG_DA = 42
+export const LENZELTA1_GG_A = 48
+/** 2ª dose: 3 settimane dopo la 1ª; senza 1ª segnata, a 21–27 giorni dal parto. */
+export const LENZELTA_INTERVALLO = 21
+export const LENZELTA2_GG_DA = 21
+export const LENZELTA2_GG_A = 27
+
+export interface RigaLenzelta { p: PartoPrevisto; giorniAlParto: number; nota?: string }
+
+/** Liste del Lenzelta per il martedì della settimana. */
+export function lenzeltaDellaSettimana(parti: PartoPrevisto[], vaccinazioni: { id: string; fattaIl: string }[], oggi = isoGiorno(), spostamento = 0) {
+  const { martedi, animali: prima } = aGiorniDalParto(parti, LENZELTA1_GG_DA, LENZELTA1_GG_A, oggi, spostamento)
+  const fatta = new Map(vaccinazioni.map((v) => [v.id, v.fattaIl]))
+  const lunedi = aggiungiGiorni(martedi, -1)
+  const seconda: RigaLenzelta[] = []
+  for (const p of parti) {
+    const giorniAlParto = giorniTra(martedi, p.dataParto)
+    if (giorniAlParto < 0) continue
+    const d1 = fatta.get(idVaccinazione(p, LENZELTA_1.id))
+    const d2 = fatta.get(idVaccinazione(p, LENZELTA_2.id))
+    if (d1) {
+      const dopo = giorniTra(d1, martedi)
+      if (dopo < LENZELTA_INTERVALLO) continue
+      // nella sua settimana sempre; dopo, solo se non è ancora fatta (o è stata segnata questa settimana)
+      if (dopo < LENZELTA_INTERVALLO + 7 || !d2 || d2 >= lunedi) seconda.push({ p, giorniAlParto, nota: dopo >= LENZELTA_INTERVALLO + 7 && (!d2 || d2 >= lunedi) ? `in ritardo: 1ª dose il ${d1.split('-').reverse().join('/')}` : undefined })
+    } else if (giorniAlParto >= LENZELTA2_GG_DA && giorniAlParto <= LENZELTA2_GG_A) {
+      seconda.push({ p, giorniAlParto, nota: '1ª dose non segnata' })
+    }
+  }
+  seconda.sort((x, y) => x.giorniAlParto - y.giorniAlParto)
+  return { martedi, prima: prima as RigaLenzelta[], seconda }
 }
 
 /** Farmaco del magazzino corrispondente al vaccino (cercato per nome). */

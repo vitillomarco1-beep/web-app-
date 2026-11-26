@@ -5,7 +5,7 @@ import { useStore } from '../lib/store'
 import { PageHeader, StatTile, Vuoto } from '../components/ui'
 import { abbinaColonne, costruisciAnimali, isCloseUp, leggiFile, matricole } from '../lib/dairycomp'
 import { aggiungiGiorni, fmt0, fmtData, isoGiorno, nuovoId } from '../lib/format'
-import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, CRYPTIUM_60, CRYPTIUM60_GG_A, CRYPTIUM60_GG_DA, asciutteDellaSettimana, cryptium60DellaSettimana, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
+import { ASCIUTTA_GG_A, ASCIUTTA_GG_DA, CRYPTIUM_60, LENZELTA_1, LENZELTA_2, LENZELTA1_GG_A, LENZELTA1_GG_DA, lenzeltaDellaSettimana, type RigaLenzelta, CRYPTIUM60_GG_A, CRYPTIUM60_GG_DA, asciutteDellaSettimana, cryptium60DellaSettimana, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, categoriaParto, doseInUnita, farmacoDelVaccino, idVaccinazione, nellaSettimana, partiPrevisti, settimanaVaccinazioni, vaccinataTutto, type PartoPrevisto, type VaccinoPreparto } from '../lib/parti'
 
 const giornoSett = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
@@ -58,6 +58,10 @@ export default function PartiPage() {
   const c60 = cryptium60DellaSettimana(parti, oggi, spostamento)
   const c60Mancano = c60.animali.filter((x) => !fatte.has(idVaccinazione(x.p, CRYPTIUM_60.id))).length
   const c60Farmaco = farmacoDelVaccino(dati.farmaci, CRYPTIUM_60)
+  // Lenzelta (mastite): 1ª dose a 42–48 giorni dal parto, 2ª dose 3 settimane dopo; stesso martedì
+  const lz = lenzeltaDellaSettimana(parti, dati.vaccinazioni, oggi, spostamento)
+  const lzFarmaco = farmacoDelVaccino(dati.farmaci, LENZELTA_1)
+  const lzMancano = lz.prima.filter((x) => !fatte.has(idVaccinazione(x.p, LENZELTA_1.id))).length + lz.seconda.filter((x) => !fatte.has(idVaccinazione(x.p, LENZELTA_2.id))).length
   const prossime = Array.from({ length: 8 }, (_, i) => {
     const s = settimanaVaccinazioni(oggi, 0, i)
     return { ...s, n: parti.filter((p) => nellaSettimana(p, s)).length }
@@ -119,7 +123,9 @@ export default function PartiPage() {
     [`Vaccinazioni pre-parto (${VACCINI_PREPARTO.map((v) => v.breve).join(' + ')}) – parti dal ${fmtData(sett.da)} al ${fmtData(sett.a)} (${daVaccinare.length} animali)`,
       ...daVaccinare.map((p) => `${p.vacca}${mt(p.vacca) ? ` (${mt(p.vacca)})` : ''}  –  parto ${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`),
       ...(c60.animali.length ? ['', `Cryptium 60 giorni dal parto, ${CRYPTIUM_60.doseMl} ml sottocute – martedì ${fmtData(c60.martedi)} (${c60.animali.length} animali)`,
-        ...c60.animali.map(({ p, giorniAlParto }) => `${p.vacca}${mt(p.vacca) ? ` (${mt(p.vacca)})` : ''}  –  ${giorniAlParto} giorni al parto  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)] : [])].join('\n')
+        ...c60.animali.map(({ p, giorniAlParto }) => `${p.vacca}${mt(p.vacca) ? ` (${mt(p.vacca)})` : ''}  –  ${giorniAlParto} giorni al parto  –  ${categoriaParto(p.lattazione)}${p.gruppo !== null ? `  –  ${nomeGr(p.gruppo)}` : ''}`)] : []),
+      ...([[LENZELTA_1, lz.prima], [LENZELTA_2, lz.seconda]] as const).flatMap(([v, el]) => el.length ? ['', `${v.nome}, ${v.doseMl} ml intramuscolo – martedì ${fmtData(lz.martedi)} (${el.length} animali)`,
+        ...el.map(({ p, giorniAlParto, nota }) => `${p.vacca}${mt(p.vacca) ? ` (${mt(p.vacca)})` : ''}  –  ${giorniAlParto} giorni al parto  –  ${categoriaParto(p.lattazione)}${nota ? `  –  ${nota}` : ''}`)] : [])].join('\n')
   const scaricaPdf = async () => {
     setPdf(true)
     try {
@@ -132,9 +138,24 @@ export default function PartiPage() {
         sottotitolo: `Martedì ${fmtData(c60.martedi)} · animali a ${CRYPTIUM60_GG_DA}–${CRYPTIUM60_GG_A} giorni dal parto previsto · ${CRYPTIUM_60.doseMl} ml sottocute`,
         colonne: ['Vacca', ...(conMatr ? ['Matricola'] : []), 'Gg al parto', 'Parto previsto', 'Categoria', 'Gruppo', 'Fatto'],
         righe: c60.animali.map(({ p, giorniAlParto }) => [p.vacca, ...(conMatr ? [mt(p.vacca)] : []), giorniAlParto, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo ?? '', fatte.has(idVaccinazione(p, CRYPTIUM_60.id)) ? 'fatto' : '']),
-      }] : [])])
+      }] : []), ...sezioniLenzelta()])
       await scarica(blob, `vaccinazioni-preparto-${sett.da}.pdf`)
     } finally { setPdf(false) }
+  }
+  const sezioniLenzelta = () => ([[LENZELTA_1, lz.prima], [LENZELTA_2, lz.seconda]] as const).filter(([, el]) => el.length).map(([v, el]) => ({
+    titolo: `${v.nome} (${el.length})`,
+    sottotitolo: `Martedì ${fmtData(lz.martedi)} · ${v.doseMl} ml intramuscolo${v.id === LENZELTA_2.id ? ' · lato del collo opposto alla 1ª dose' : ''}`,
+    colonne: ['Vacca', ...(conMatr ? ['Matricola'] : []), 'Gg al parto', 'Parto previsto', 'Categoria', 'Gruppo', 'Nota', 'Fatto'],
+    righe: el.map(({ p, giorniAlParto, nota }) => [p.vacca, ...(conMatr ? [mt(p.vacca)] : []), giorniAlParto, `${giornoSett(p.dataParto)} ${fmtData(p.dataParto)}`, categoriaParto(p.lattazione), p.gruppo ?? '', nota ?? '', fatte.has(idVaccinazione(p, v.id)) ? 'fatto' : '']),
+  }))
+  const [pdfLz, setPdfLz] = useState(false)
+  const scaricaPdfLenzelta = async () => {
+    setPdfLz(true)
+    try {
+      const blob = await creaPdf('Lenzelta – vaccino contro la mastite', `Martedì ${fmtData(lz.martedi)} · 2 ml intramuscolo · 1ª dose a ${LENZELTA1_GG_DA}–${LENZELTA1_GG_A} giorni dal parto, 2ª dose 3 settimane dopo`, sezioniLenzelta(),
+        'Flacone aperto: da usare entro 10 ore. Portare il vaccino a 15–25 °C e agitare prima dell’uso. Segnare i vaccini fatti anche nell’app.')
+      await scarica(blob, `lenzelta-${lz.martedi}.pdf`)
+    } finally { setPdfLz(false) }
   }
   const [pdf60, setPdf60] = useState(false)
   const scaricaPdf60 = async () => {
@@ -191,8 +212,8 @@ export default function PartiPage() {
               <div className="flex items-center gap-2 print:hidden">
                 <button className="btn-secondary px-3" aria-label="Settimana precedente" onClick={() => setSpostamento((s) => s - 1)}><ChevronLeft className="h-4 w-4" /></button>
                 <button className="btn-secondary px-3" aria-label="Settimana successiva" onClick={() => setSpostamento((s) => s + 1)}><ChevronRight className="h-4 w-4" /></button>
-                <button className="btn-secondary" onClick={copia} disabled={!daVaccinare.length && !c60.animali.length}>{copiato ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copiato ? 'Copiata' : 'Copia lista'}</button>
-                <button className="btn-primary" onClick={scaricaPdf} disabled={(!daVaccinare.length && !c60.animali.length) || pdf}>{pdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
+                <button className="btn-secondary" onClick={copia} disabled={!daVaccinare.length && !c60.animali.length && !lz.prima.length && !lz.seconda.length}>{copiato ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copiato ? 'Copiata' : 'Copia lista'}</button>
+                <button className="btn-primary" onClick={scaricaPdf} disabled={(!daVaccinare.length && !c60.animali.length && !lz.prima.length && !lz.seconda.length) || pdf}>{pdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
               </div>
             </div>
 
@@ -311,6 +332,55 @@ export default function PartiPage() {
               </div>
             )}
             <p className="mt-2 text-xs text-stone-500">Le frecce in alto spostano anche questa lista. Coincide con la messa in asciutta del lunedì (58–64 giorni dal parto): si può fare insieme.</p>
+          </div>
+
+          <div className="card mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2>Lenzelta · vaccino contro la mastite</h2>
+                <p className="mt-0.5 text-sm text-stone-500">Martedì <b>{fmtData(lz.martedi)}</b> · 2 ml intramuscolo · 1ª dose a {LENZELTA1_GG_DA}–{LENZELTA1_GG_A} giorni dal parto, 2ª dose 3 settimane dopo · {lzMancano} da fare su {lz.prima.length + lz.seconda.length}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="btn-primary print:hidden" onClick={scaricaPdfLenzelta} disabled={(!lz.prima.length && !lz.seconda.length) || pdfLz}>{pdfLz ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Scarica PDF</button>
+                <span className="text-sm text-stone-500">
+                  {lzFarmaco ? <>In magazzino: {Math.max(0, Math.floor(lzFarmaco.giacenza / doseInUnita(lzFarmaco.unita, LENZELTA_1)))} dosi</> : <>Lenzelta non è nel magazzino Farmaci. <button className="btn-link" onClick={() => aggiungi('farmaci', { id: nuovoId(), nome: 'Lenzelta', unita: 'ml', unitaPerConfezione: 10, prezzoConfezione: 0, giacenza: 0, note: 'Vaccino mastite, 2 ml a capo intramuscolo (5 dosi a flacone da 10 ml). Flacone aperto: 10 ore.' })}>Aggiungilo</button></>}
+                </span>
+              </div>
+            </div>
+            {([[LENZELTA_1, lz.prima, `Nessun animale a ${LENZELTA1_GG_DA}–${LENZELTA1_GG_A} giorni dal parto questo martedì.`], [LENZELTA_2, lz.seconda, 'Nessuna 2ª dose da fare questo martedì.']] as [VaccinoPreparto, RigaLenzelta[], string][]).map(([v, el, vuoto]) => (
+              <div key={v.id} className="mt-4">
+                <h3 className="text-sm font-semibold text-stone-800">{v.id === LENZELTA_1.id ? '1ª dose' : '2ª dose · sul lato del collo opposto alla 1ª'} <span className="font-normal text-stone-500">({el.length})</span></h3>
+                {el.length === 0 ? <p className="mt-1 text-sm text-stone-500">{vuoto}</p> : (
+                  <div className="mt-2 overflow-x-auto">
+                    <table className="table">
+                      <thead><tr><th>Vacca</th>{conMatr && <th>Matricola</th>}<th className="text-right">Gg al parto</th><th>Parto previsto</th><th>Categoria</th><th>Gruppo</th><th>Vaccino</th></tr></thead>
+                      <tbody>
+                        {el.map(({ p, giorniAlParto, nota }) => {
+                          const ok = fatte.has(idVaccinazione(p, v.id))
+                          return (
+                            <tr key={`${p.vacca}|${p.dataParto}`} className={ok ? 'bg-emerald-50/60' : ''}>
+                              <td className="font-semibold">{p.vacca}{nota && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-inset ring-amber-200">{nota}</span>}</td>
+                              {conMatr && <td className="tabular-nums text-stone-600">{mt(p.vacca) || '—'}</td>}
+                              <td className="text-right tabular-nums">{giorniAlParto}</td>
+                              <td className="whitespace-nowrap">{giornoSett(p.dataParto)} {fmtData(p.dataParto)}{p.stimata && <span className="ml-1 text-xs text-stone-400">(stimata)</span>}</td>
+                              <td>{categoriaParto(p.lattazione)}</td>
+                              <td>{etichettaGr(p.gruppo)}</td>
+                              <td>
+                                <button type="button" onClick={() => segna(p, v)} aria-pressed={ok}
+                                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${ok ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-stone-300 bg-white text-stone-600 hover:border-brand-400'}`}>
+                                  {ok ? <Check className="h-3.5 w-3.5" /> : <Syringe className="h-3.5 w-3.5" />}{v.breve}
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+            <p className="mt-3 text-xs text-stone-500">Vaccinare tutta la mandria, solo animali sani. Flacone aperto: da usare entro 10 ore; portarlo a 15–25 °C e agitarlo prima dell’uso. Non mescolare con altri vaccini: con Cryptium e Rotavec non ci sono dati, l’abbinamento è da decidere con il veterinario. Il gonfiore nel punto d’iniezione (fino a 5 cm²) e un po’ di febbre il primo giorno sono normali.</p>
           </div>
 
           <AsciutteCard />
