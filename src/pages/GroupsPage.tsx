@@ -76,12 +76,11 @@ export default function GroupsPage() {
             costi e i crediti risultanti.
           </p>
         </div>
-        <button
-          className="btn-primary whitespace-nowrap"
-          onClick={() => (showForm ? handleCancelForm() : setShowForm(true))}
-        >
-          {showForm ? 'Annulla' : '+ Nuovo gruppo'}
-        </button>
+        {!showForm && (
+          <button type="button" className="btn-primary whitespace-nowrap" onClick={() => setShowForm(true)}>
+            + Nuovo gruppo
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -147,6 +146,9 @@ export default function GroupsPage() {
           </div>
 
           <div className="flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={handleCancelForm}>
+              Annulla
+            </button>
             <button type="submit" className="btn-primary" disabled={membriSelezionati.length < 2}>
               Salva gruppo
             </button>

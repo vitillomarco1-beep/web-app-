@@ -123,12 +123,11 @@ export default function NormativaPage() {
             crediti di carbonio, con le note su cosa comportano per l'app.
           </p>
         </div>
-        <button
-          className="btn-primary whitespace-nowrap"
-          onClick={() => (showForm ? handleCancelForm() : apriNuovo())}
-        >
-          {showForm ? 'Annulla' : '+ Nuovo aggiornamento'}
-        </button>
+        {!showForm && (
+          <button type="button" className="btn-primary whitespace-nowrap" onClick={() => apriNuovo()}>
+            + Nuovo aggiornamento
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -243,6 +242,9 @@ export default function NormativaPage() {
           />
 
           <div className="flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={handleCancelForm}>
+              Annulla
+            </button>
             <button type="submit" className="btn-primary">
               {editId ? 'Salva modifiche' : 'Salva aggiornamento'}
             </button>

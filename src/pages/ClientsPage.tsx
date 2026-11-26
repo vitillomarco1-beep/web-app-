@@ -89,12 +89,11 @@ export default function ClientsPage() {
             Gestisci i clienti per cui calcolare il bilancio dei crediti di carbonio.
           </p>
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => (showForm ? handleCancelForm() : setShowForm(true))}
-        >
-          {showForm ? 'Annulla' : '+ Nuovo cliente'}
-        </button>
+        {!showForm && (
+          <button type="button" className="btn-primary" onClick={() => setShowForm(true)}>
+            + Nuovo cliente
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -193,6 +192,9 @@ export default function ClientsPage() {
           />
 
           <div className="flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={handleCancelForm}>
+              Annulla
+            </button>
             <button type="submit" className="btn-primary">
               Salva cliente
             </button>
