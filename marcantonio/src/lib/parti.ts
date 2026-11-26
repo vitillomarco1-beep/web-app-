@@ -113,10 +113,10 @@ export const LENZELTA_2: VaccinoPreparto = { id: 'lenzelta2', nome: 'Lenzelta 2�
 /** 1ª dose: il martedì in cui l'animale è a 51–57 giorni dal parto (in media 54; subito prima del Cryptium dei 60 giorni, senza sovrapporsi). */
 export const LENZELTA1_GG_DA = 51
 export const LENZELTA1_GG_A = 57
-/** 2ª dose: 3 settimane dopo la 1ª; senza 1ª segnata, a 30–36 giorni dal parto. */
+/** Il Lenzelta parte dal martedì 24/11/2026: chi era già oltre la finestra della 1ª dose non lo fa in questa gravidanza. */
+export const LENZELTA_INIZIO = '2026-11-24'
+/** 2ª dose: 3 settimane dopo la 1ª, solo per chi ha la 1ª segnata. */
 export const LENZELTA_INTERVALLO = 21
-export const LENZELTA2_GG_DA = LENZELTA1_GG_DA - LENZELTA_INTERVALLO
-export const LENZELTA2_GG_A = LENZELTA1_GG_A - LENZELTA_INTERVALLO
 
 export interface RigaLenzelta { p: PartoPrevisto; giorniAlParto: number; nota?: string }
 
@@ -136,9 +136,7 @@ export function lenzeltaDellaSettimana(parti: PartoPrevisto[], vaccinazioni: { i
       if (dopo < LENZELTA_INTERVALLO) continue
       // nella sua settimana sempre; dopo, solo se non è ancora fatta (o è stata segnata questa settimana)
       if (dopo < LENZELTA_INTERVALLO + 7 || !d2 || d2 >= lunedi) seconda.push({ p, giorniAlParto, nota: dopo >= LENZELTA_INTERVALLO + 7 && (!d2 || d2 >= lunedi) ? `in ritardo: 1ª dose il ${d1.split('-').reverse().join('/')}` : undefined })
-    } else if (giorniAlParto >= LENZELTA2_GG_DA && giorniAlParto <= LENZELTA2_GG_A) {
-      seconda.push({ p, giorniAlParto, nota: '1ª dose non segnata' })
-    }
+    } // senza 1ª dose segnata niente 2ª: il richiamo ha senso solo dopo la prima
   }
   seconda.sort((x, y) => x.giorniAlParto - y.giorniAlParto)
   return { martedi, prima: prima as RigaLenzelta[], seconda }

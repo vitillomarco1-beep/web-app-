@@ -4,7 +4,7 @@ import { useStore } from '../lib/store'
 import type { AnimaleDC } from '../lib/types'
 import { categoria, matricole, nomeAutomaticoGruppo } from '../lib/dairycomp'
 import { fecondazioni, giorniUltimoCalore, statoRipro, toro, type StatoRipro } from '../lib/fertilita'
-import { CRYPTIUM_60, LENZELTA_1, LENZELTA_2, LENZELTA1_GG_DA, LENZELTA2_GG_DA, LENZELTA_INTERVALLO, GESTAZIONE_GG, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, partiPrevisti } from '../lib/parti'
+import { CRYPTIUM_60, LENZELTA_1, LENZELTA_2, LENZELTA1_GG_DA, LENZELTA_INIZIO, LENZELTA_INTERVALLO, GESTAZIONE_GG, SETTIMANE_ANTICIPO, VACCINI_PREPARTO, partiPrevisti } from '../lib/parti'
 import { normMatricola, SOGLIE } from '../lib/apa'
 import { nomePatologia } from '../lib/salute'
 import { aggiungiGiorni, fmt0, fmt1, fmt2, fmtData, giorniTra, isoGiorno, lunediDi } from '../lib/format'
@@ -138,12 +138,12 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
   const fatto = (id: string) => parto && vaccini.some((v) => v.vaccino === id && v.dataParto === parto)
   const martediC60 = parto ? aggiungiGiorni(lunediDi(aggiungiGiorni(parto, -60)), 1) : null
   const settPreparto = parto ? lunediDi(aggiungiGiorni(parto, -7 * SETTIMANE_ANTICIPO)) : null
-  // Lenzelta: il martedì in cui è a 51–57 giorni dal parto; la 2ª 3 settimane dopo la 1ª (o a 30–36 giorni dal parto)
+  // Lenzelta: il martedì in cui è a 51–57 giorni dal parto; la 2ª 3 settimane dopo la 1ª (solo se la 1ª è fatta)
   const martediEntro = (limite: string) => { const t = aggiungiGiorni(lunediDi(limite), 1); return t > limite ? aggiungiGiorni(t, -7) : t }
   const martediDopo = (inizio: string) => { const t = aggiungiGiorni(lunediDi(inizio), 1); return t < inizio ? aggiungiGiorni(t, 7) : t }
   const lz1 = parto ? dati.vaccinazioni.find((v) => v.id === `${a.id}|${parto}|${LENZELTA_1.id}`)?.fattaIl : undefined
   const martediLz1 = parto ? martediEntro(aggiungiGiorni(parto, -LENZELTA1_GG_DA)) : null
-  const martediLz2 = parto ? (lz1 ? martediDopo(aggiungiGiorni(lz1, LENZELTA_INTERVALLO)) : martediEntro(aggiungiGiorni(parto, -LENZELTA2_GG_DA))) : null
+  const martediLz2 = lz1 ? martediDopo(aggiungiGiorni(lz1, LENZELTA_INTERVALLO)) : null
 
 
   // controlli APA
@@ -200,8 +200,10 @@ function Scheda({ a, matricola }: { a: AnimaleDC; matricola: string | null }) {
         <Sezione titolo="Vaccini prima del parto">
           <ul className="space-y-1 text-sm">
             <li>Cryptium 60 gg: {fatto(CRYPTIUM_60.id) ? <b className="text-emerald-700">fatto</b> : <Quando data={martediC60!} fine={aggiungiGiorni(martediC60!, 6)} testo={`martedì ${fmtData(martediC60!)}`} />}</li>
-            <li>Lenzelta 1ª dose: {fatto(LENZELTA_1.id) ? <b className="text-emerald-700">fatta</b> : <Quando data={martediLz1!} fine={aggiungiGiorni(martediLz1!, 6)} testo={`martedì ${fmtData(martediLz1!)}`} />}</li>
-            <li>Lenzelta 2ª dose: {fatto(LENZELTA_2.id) ? <b className="text-emerald-700">fatta</b> : <Quando data={martediLz2!} fine={aggiungiGiorni(martediLz2!, 6)} testo={`martedì ${fmtData(martediLz2!)}`} />}</li>
+            {(fatto(LENZELTA_1.id) || (martediLz1 && martediLz1 >= LENZELTA_INIZIO)) && <>
+              <li>Lenzelta 1ª dose: {fatto(LENZELTA_1.id) ? <b className="text-emerald-700">fatta</b> : <Quando data={martediLz1!} fine={aggiungiGiorni(martediLz1!, 6)} testo={`martedì ${fmtData(martediLz1!)}`} />}</li>
+              <li>Lenzelta 2ª dose: {fatto(LENZELTA_2.id) ? <b className="text-emerald-700">fatta</b> : !martediLz2 ? <span className="text-stone-500">3 settimane dopo la 1ª</span> : <Quando data={martediLz2!} fine={aggiungiGiorni(martediLz2!, 6)} testo={`martedì ${fmtData(martediLz2!)}`} />}</li>
+            </>}
             <li>Rotavec + Cryptium: {VACCINI_PREPARTO.every((v) => fatto(v.id)) ? <b className="text-emerald-700">fatti</b> : <Quando data={settPreparto!} fine={aggiungiGiorni(settPreparto!, 6)} testo={`settimana del ${fmtData(settPreparto!)}`} />}</li>
           </ul>
         </Sezione>
